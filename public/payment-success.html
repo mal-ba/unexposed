@@ -70,7 +70,8 @@
             : '결제가 완료됐어요. 선택하신 패턴 PDF는 이메일로 안내드릴게요.';
         } else {
           title.textContent = '결제가 완료됐어요 🎉';
-          message.textContent = `${data.plan} 플랜 구독이 시작됐어요. 매월 ${Number(data.amount).toLocaleString('ko-KR')}원이 결제될 예정이에요.`;
+          const cycleLabel = data.plan === 'Premium' ? '매년' : '매월';
+          message.textContent = `${data.plan} 플랜 구독이 시작됐어요. ${cycleLabel} ${Number(data.amount).toLocaleString('ko-KR')}원이 결제될 예정이에요.`;
         }
       } else {
         title.textContent = '결제 승인에 실패했어요';

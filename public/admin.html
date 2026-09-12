@@ -207,6 +207,7 @@
           <th>이메일</th>
           <th>플랜</th>
           <th>금액</th>
+          <th></th>
         </tr>
       </thead>
       <tbody id="subs-tbody"></tbody>
@@ -366,6 +367,7 @@
         <td>${s.email || ''}</td>
         <td>${s.plan || ''}</td>
         <td>${fmtWon(s.amount)}</td>
+        <td class="del-cell"><button class="del-btn" data-sub-email="${s.email}" title="삭제" type="button">✕</button></td>
       </tr>`).join('');
   }
 
@@ -681,6 +683,45 @@
         if(data.ok){
           overlay.remove();
           loadOrders();
+        } else {
+          overlay.querySelector('p').textContent = data.error || '삭제에 실패했어요.';
+        }
+      } catch(err){
+        overlay.querySelector('p').textContent = '삭제 중 오류가 발생했어요.';
+      }
+    });
+  }
+
+  // 구독자 삭제 버튼 클릭 → "진짜 삭제할까요?" 확인 팝업 → 확인해야만 실제로 지워요.
+  subsTbody.addEventListener('click', e => {
+    const btn = e.target.closest('.del-btn[data-sub-email]');
+    if(!btn) return;
+    showDeleteSubConfirm(btn.dataset.subEmail);
+  });
+
+  function showDeleteSubConfirm(email){
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box">
+        <h3 style="margin:0 0 4px;">이 구독자를 삭제할까요?</h3>
+        <p>${email} 님의 구독 기록이 삭제되면 되돌릴 수 없어요.</p>
+        <div class="confirm-actions">
+          <button class="confirm-cancel" type="button">취소</button>
+          <button class="confirm-delete" type="button">삭제하기</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.confirm-cancel').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
+    overlay.querySelector('.confirm-delete').addEventListener('click', async () => {
+      overlay.querySelector('.confirm-delete').textContent = '삭제 중...';
+      try{
+        const res = await fetch(`/api/admin/subscriptions/${encodeURIComponent(email)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(data.ok){
+          overlay.remove();
+          loadSubscriptions();
         } else {
           overlay.querySelector('p').textContent = data.error || '삭제에 실패했어요.';
         }

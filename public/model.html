@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리가 만드는 방식 — UNEXPOSED</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep:#0F2E2C; --mist:#F5F2EA; --paper:#FBFAF6; --star:#6FB8C2; --star-dark:#3E7F86;
+    --coral:#D8663F; --ink:#14201E; --ink-soft:#4A5654; --line:rgba(20,32,30,0.12); --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  a{color:inherit; text-decoration:none;}
+  body{ font-family:'Noto Sans KR', sans-serif; background:var(--paper); color:var(--ink); margin:0; line-height:1.7; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:18px 6vw; border-bottom:1px solid var(--line); }
+  .brand{ display:flex; align-items:center; gap:10px; font-weight:600; font-size:15px; text-decoration:none; color:var(--ink); }
+  .brand svg{ width:24px; height:24px; }
+  .back-link{ font-size:13.5px; color:var(--ink-soft); text-decoration:none; }
+  .back-link:hover{ color:var(--star-dark); }
+  main{ max-width:760px; margin:0 auto; padding:56px 6vw 100px; }
+  .eyebrow{ font-size:12.5px; letter-spacing:0.08em; color:var(--star-dark); font-weight:700; margin-bottom:10px; }
+  h1{ font-family:'Fraunces', serif; font-weight:500; font-size:clamp(28px,4vw,38px); margin:0 0 24px; }
+  .lede{ color:var(--ink-soft); font-size:15.5px; margin:0 0 28px; }
+
+  /* Cover-style positioning statement, echoing the pitch deck cover */
+  .cover{
+    background:var(--deep); color:var(--paper); border-radius:var(--radius);
+    padding:40px 32px; margin-bottom:44px; position:relative; overflow:hidden;
+  }
+  .cover .tag{ font-size:12px; letter-spacing:0.14em; color:var(--star); font-weight:700; margin-bottom:16px; }
+  .cover blockquote{
+    font-family:'Fraunces', serif; font-weight:500; font-style:italic; font-size:clamp(19px,2.6vw,25px);
+    line-height:1.55; margin:0; position:relative; z-index:1;
+  }
+  .cover .star-mark{ position:absolute; right:-30px; bottom:-30px; opacity:0.14; }
+
+  h2{ font-family:'Fraunces', serif; font-weight:500; font-size:22px; margin:48px 0 18px; }
+  .section-lede{ color:var(--ink-soft); font-size:14px; margin:-10px 0 20px; }
+
+  .reason-list{ display:flex; flex-direction:column; gap:14px; margin-bottom:8px; }
+  .reason{
+    display:flex; gap:16px; border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px;
+  }
+  .reason .num{
+    flex-shrink:0; width:30px; height:30px; border-radius:50%; background:var(--mist);
+    color:var(--star-dark); font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;
+  }
+  .reason h3{ font-size:15px; font-weight:600; margin:0 0 6px; }
+  .reason p{ color:var(--ink-soft); font-size:14px; margin:0; }
+  .reason .delta{
+    display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; font-size:12.5px;
+  }
+  .reason .delta span{ background:var(--mist); border-radius:100px; padding:4px 12px; color:var(--ink); }
+  .reason .delta .before{ color:var(--ink-soft); background:transparent; border:1px dashed var(--line); }
+
+  .value-list{ display:flex; flex-direction:column; gap:14px; margin-bottom:8px; }
+  .value{
+    border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; background:var(--mist);
+  }
+  .value h3{ font-size:15px; font-weight:600; margin:0 0 6px; color:var(--deep); }
+  .value p{ color:var(--ink-soft); font-size:14px; margin:0; }
+
+  .callout{
+    background:var(--mist); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px;
+    font-size:13.5px; color:var(--ink-soft); margin-top:28px;
+  }
+  .see-also{ margin-top:28px; font-size:13.5px; }
+  .see-also a{ color:var(--star-dark); font-weight:600; }
+  .see-also a:hover{ text-decoration:underline; }
+
+  .nav-left{ display:flex; align-items:center; gap:14px; }
+  .menu-toggle-btn{
+    width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--paper);
+    color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .menu-toggle-btn:hover{ border-color:var(--star-dark); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav-left">
+    <button class="menu-toggle-btn" id="menu-toggle-btn" type="button" aria-label="메뉴 열기">
+      <svg viewBox="0 0 20 14" width="20" height="14"><rect width="20" height="2" rx="1" fill="currentColor"/><rect y="6" width="20" height="2" rx="1" fill="currentColor"/><rect y="12" width="20" height="2" rx="1" fill="currentColor"/></svg>
+    </button>
+    <a class="brand" href="/">
+      <svg viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
+      UNEXPOSED
+    </a>
+  </div>
+  <a class="back-link" href="/">← 홈으로</a>
+</header>
+
+<div id="side-menu-mount"></div>
+
+<main>
+  <div class="eyebrow">OUR MODEL</div>
+  <h1>한 사람의 몸에 맞춰,<br>한 사람의 손끝으로</h1>
+  <p class="lede">UNEXPOSED가 지금 이 방식으로 옷을 만드는 이유예요.</p>
+
+  <div class="cover">
+    <div class="tag">POSITIONING</div>
+    <blockquote>
+      “AI가 생성한 초개인화 맞춤 패턴을, 숙련된 지역 재봉사와 1:1로 매칭해 완벽한 핏의 실물 의류로 배송하는
+      &nbsp;<b>상생형 온디맨드 패션 C2C 풀스택 플랫폼</b>”
+    </blockquote>
+    <svg class="star-mark" width="180" height="180" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#6FB8C2"/></svg>
+  </div>
+
+  <h2>왜 이 방식을 선택했나</h2>
+  <p class="section-lede">패턴 파일 하나만 건네주던 이전 방식에서, 완성된 옷 한 벌을 끝까지 책임지는 방식으로 바꿨어요.</p>
+
+  <div class="reason-list">
+    <div class="reason">
+      <div class="num">1</div>
+      <div>
+        <h3>라스트마일까지 완결 — 구매 장벽 제거</h3>
+        <p>패턴 파일을 다운로드한 뒤 "직접 만들어야 하는 숙제"를 남기던 이전 모델과 달리, 디자인부터 제작·배송까지 유저의 여정을 끝까지 마무리해요. 사용자가 중간에 멈추지 않도록, 구매 전환을 가로막는 마지막 장벽을 없앴어요.</p>
+      </div>
+    </div>
+
+    <div class="reason">
+      <div class="num">2</div>
+      <div>
+        <h3>수익 구조의 변화 — ARPU 증대</h3>
+        <p>소프트웨어 구독료 하나에 기대던 수익 구조를, 여러 겹의 수익원으로 확장했어요.</p>
+        <div class="delta">
+          <span class="before">기존 · 월 구독료 또는 저가 패턴 판매 단일 수익</span>
+          <span>피봇 후 · AI 패턴 생성비 + 재봉 중개 마진(Take-rate) + 원단·배송 마진</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="reason">
+      <div class="num">3</div>
+      <div>
+        <h3>ESG 상생 서사 — 신뢰와 브랜드 가치</h3>
+        <p>AI 자동화로 일감이 줄어드는 전통 재봉사들에게 새로운 C2C 일거리를 연결해요. "기술이 사람을 대체한다"는 이야기가 아니라, "기술과 사람이 함께 일한다"는 상생 모델로 브랜드에 대한 신뢰를 쌓아가요.</p>
+      </div>
+    </div>
+
+    <div class="reason">
+      <div class="num">4</div>
+      <div>
+        <h3>투트랙(Two-Track) 요금제 — 가격 저항 해소</h3>
+        <p>예산과 필요에 따라 두 가지 방식 중에서 고를 수 있어요.</p>
+        <div class="delta">
+          <span>Lite · 자가 제작용 패턴 PDF/도면 저가 제공</span>
+          <span>Premium · 패턴 생성비 + 재봉사 공임비가 포함된 완성품 제작</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="reason">
+      <div class="num">5</div>
+      <div>
+        <h3>아바타 기반 핏 보장제(QC) — 품질 불안 해소</h3>
+        <p>신체 스캔 아바타 데이터를 기준으로 재봉사의 완성품 오차를 검수해요. 기준을 벗어나면 보상해 드리는 결함 보상 시스템으로, C2C 방식에서 생길 수 있는 품질 리스크를 관리해요.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>절대 바꾸지 않는 것</h2>
+  <p class="section-lede">방식은 바뀌어도, UNEXPOSED가 처음부터 지켜온 가치는 그대로예요.</p>
+
+  <div class="value-list">
+    <div class="value">
+      <h3>체형 포용성 &amp; 감정적 공감</h3>
+      <p>수술 흉터, 비대칭, 굴곡진 체형 같은 신체적 특징을 "감추고 교정할 대상"이 아니라, 나만의 독창적인 예술을 시작하는 첫 번째 정체성으로 바라봐요.</p>
+    </div>
+    <div class="value">
+      <h3>데이터 프라이버시</h3>
+      <p>신체 사진이나 스캔 데이터를 서버에 영구 저장하지 않아요. 즉시 암호화하고 삭제하는 것을 원칙으로 해요.</p>
+    </div>
+    <div class="value">
+      <h3>그림판 수준의 초간편 UI</h3>
+      <p>퀵 스타트 모드와 AI 라인 분리 기능으로, 단 3번의 탭 안에 디자인을 완결 지을 수 있도록 만들어요.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    지금은 PentaCorp 학생 팀이 운영하는 데모/시제품 단계예요. 실제 재봉사 매칭·원단 제작·배송 파트너 연결은 준비 중이며, 위 내용은 저희가 지향하는 서비스 방향을 설명해요.
+  </div>
+
+  <p class="see-also">
+    제작·배송 흐름이 궁금하다면 → <a href="shipping.html">배송과 만드는 과정</a> · 브랜드 이야기가 궁금하다면 → <a href="about.html">소개</a>
+  </p>
+</main>
+
+<div id="footer-mount"></div>
+<script src="/menu-loader.js"></script>
+<script src="/site-footer.js" defer></script>
+<script src="/i18n.js" defer></script>
+</body>
+</html>

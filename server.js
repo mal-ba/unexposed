@@ -991,6 +991,13 @@ app.get('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res)
   res.json({ ok: true, subscriptions: data });
 });
 
+// 관리자 전용: 구독자 한 명을 완전히 삭제해요. (admin.html의 구독 플랜 목록 삭제 버튼에서 사용)
+app.delete('/api/admin/subscriptions/:email', requireLogin, requireAdmin, async (req, res) => {
+  const { error } = await supabase.from('subscriptions').delete().eq('email', req.params.email);
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  res.json({ ok: true });
+});
+
 // 관리자 여부만 가볍게 확인할 때 써요 (admin.html이 로그인 직후 이걸로 접근 권한을 확인해요).
 app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
   res.json({ ok: true, isAdmin: true, isSuperAdmin: isSuperAdminEmail(req.user.email) });
