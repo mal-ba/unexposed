@@ -15,15 +15,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    메쉬라서, regions를 'whole' 하나로 두고 옷 전체를 하나의 파트로 채색해요.
    glb가 없는 longSleeve는 기존처럼 절차적으로 생성해요. */
 const GARMENT_TYPES = {
-  shortSleeve: { label: '반팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.14, glbHeightFrac: 0.36,
+  shortSleeve: { label: '반팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.14, glbHeightFrac: 0.42, yOffsetFrac: 0.04,
     glb: '/wardrobe-assets/Meshy_AI_Classic_White_T_Shirt_0913135306_generate.glb',
     regions: [['whole','전체']] },
   longSleeve: { label: '긴팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.34,
     regions: [['front','앞면'],['back','뒷면'],['leftSleeve','왼쪽 소매'],['rightSleeve','오른쪽 소매'],['leftSide','왼쪽 옆면'],['rightSide','오른쪽 옆면']] },
-  shortPants: { label: '반바지', anchor: 'waist', legFrac: 0.22, glbHeightFrac: 0.22,
+  shortPants: { label: '반바지', anchor: 'waist', legFrac: 0.22, glbHeightFrac: 0.22, yOffsetFrac: 0.025,
     glb: '/wardrobe-assets/Meshy_AI_White_Shorts_0913135257_generate.glb',
     regions: [['whole','전체']] },
-  longPants: { label: '긴바지', anchor: 'waist', legFrac: 0.46, glbHeightFrac: 0.46,
+  longPants: { label: '긴바지', anchor: 'waist', legFrac: 0.46, glbHeightFrac: 0.54,
     glb: '/wardrobe-assets/Meshy_AI_White_Long_Pants_0913135302_generate.glb',
     regions: [['whole','전체']] },
 };
@@ -248,8 +248,6 @@ const el = {
   typeRow: document.getElementById('type-row'),
   fabricRow: document.getElementById('fabric-row'),
   partList: document.getElementById('part-list'),
-  lengthRange: document.getElementById('length-range'),
-  girthRange: document.getElementById('girth-range'),
   resetBtn: document.getElementById('reset-btn'),
   loading: document.getElementById('create-loading'),
 };
@@ -373,7 +371,8 @@ function rebuildGarment(){
   if(el.loading) el.loading.hidden = true;
   state.garmentGroup = built.group;
   state.parts = built.parts;
-  state.garmentGroup.position.y = (def.anchor === 'shoulder') ? state.shoulderY : state.waistY;
+  const anchorY = (def.anchor === 'shoulder') ? state.shoulderY : state.waistY;
+  state.garmentGroup.position.y = anchorY + (def.yOffsetFrac || 0) * state.mannequinHeight;
   state.mannequin.add(state.garmentGroup);
 
   // 저장된 원단 배정을 다시 칠해요.
@@ -455,8 +454,6 @@ function renderPartList(){
   });
 }
 
-el.lengthRange.addEventListener('input', () => { state.lengthMul = parseFloat(el.lengthRange.value); rebuildGarment(); });
-el.girthRange.addEventListener('input', () => { state.girthMul = parseFloat(el.girthRange.value); rebuildGarment(); });
 el.resetBtn.addEventListener('click', resetCurrentGarment);
 
 /* ---------- 초기 UI 렌더 (마네킹 로딩과 무관하게 바로 보이게) ---------- */
