@@ -776,22 +776,22 @@
       <h3>Lite <span class="plan-subtitle">자가 제작(DIY)</span></h3>
       <div class="amount serif">5,000원<span> / 월</span></div>
       <ul>
-        <li>워터마크 없는 패턴 PDF 다운로드</li>
-        <li>템플릿 5종 + 무제한 나만의 디자인</li>
-        <li>직접 재단·제작하는 분들께 딱 맞는 가격</li>
-      </ul>
-      <button class="plan-select-btn" type="button">구독하기</button>
-    </div>
-    <div class="price-card featured" data-plan="Premium" data-price="69000">
-      <div class="badge">완제품까지 한 번에</div>
-      <h3>Premium <span class="plan-subtitle">재봉사 매칭 + 완제품 배송</span></h3>
-      <div class="amount serif">69,000원<span> / 월</span></div>
-      <ul>
         <li>AI 패턴 생성 + 검증된 지역 재봉사 1:1 매칭</li>
         <li>완제품 도어투도어 배송</li>
         <li>아바타 기반 핏 보장(QC) — 오차 검수 후 불량 시 보상</li>
       </ul>
       <button class="plan-select-btn" type="button">구독하기</button>
+    </div>
+    <div class="price-card featured" data-plan="Premium" data-price="57000">
+      <div class="badge">완제품까지 한 번에</div>
+      <h3>Premium <span class="plan-subtitle">재봉사 매칭 + 완제품 배송</span></h3>
+      <div class="amount serif">57,000원<span> / 년</span></div>
+      <ul>
+        <li>AI 패턴 생성 + 검증된 지역 재봉사 1:1 매칭</li>
+        <li>완제품 도어투도어 배송</li>
+        <li>아바타 기반 핏 보장(QC) — 오차 검수 후 불량 시 보상</li>
+      </ul>
+      <a class="plan-select-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" href="https://kr.penworldwide.org/buybuttons/kr01suwon05/cart/" target="_blank" rel="noopener noreferrer">구독하기</a>
     </div>
   </div>
   <p class="plan-selected-note" id="plan-selected-note"></p>
@@ -1462,7 +1462,8 @@
           if(card){
             card.classList.add('selected');
             card.querySelector('.plan-select-btn').textContent = '✓ 구독 중';
-            planNote.textContent = `${data.subscription.plan} 플랜 구독 중 · ${data.user.email} 계정으로 매월 ${fmt(data.subscription.amount)}이 결제돼요.`;
+            const cycleLabel = data.subscription.plan === 'Premium' ? '매년' : '매월';
+            planNote.textContent = `${data.subscription.plan} 플랜 구독 중 · ${data.user.email} 계정으로 ${cycleLabel} ${fmt(data.subscription.amount)}이 결제돼요.`;
           }
         }
       }
@@ -1612,8 +1613,9 @@
 
       pendingPlanKey = PLAN_KEY_MAP[card.dataset.plan];
       pendingCardEl = card;
+      const cycleLabel = card.dataset.plan === 'Premium' ? '/ 년' : '/ 월';
       modalPlanName.textContent = `${card.dataset.plan} 플랜`;
-      modalPlanPrice.innerHTML = `${fmt(price)} <span style="font-size:13px; font-family:'Noto Sans KR'; color:var(--ink-soft);">/ 월</span>`;
+      modalPlanPrice.innerHTML = `${fmt(price)} <span style="font-size:13px; font-family:'Noto Sans KR'; color:var(--ink-soft);">${cycleLabel}</span>`;
       paymentModal.hidden = false;
     });
   });

@@ -108,7 +108,7 @@ const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람�
 // 피봇 후 가격 체계: Lite(자가 제작용 패턴만) / Premium(AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 아바타 기반 핏 보장 QC)
 const PLAN_PRICES = {
   lite: { name: 'Lite', amount: 5000 },
-  premium: { name: 'Premium', amount: 69000 },
+  premium: { name: 'Premium', amount: 57000 },
 };
 
 /* ---------------- 옷장(기본 제공 + 커뮤니티 업로드) ---------------- */
