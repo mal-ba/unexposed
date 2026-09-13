@@ -12,7 +12,7 @@
       <div class="sec-head" style="text-align:left; margin-bottom:16px;">
         <div class="eyebrow">제작 스튜디오 (베타)</div>
         <h2 class="serif" style="font-size:24px; margin:4px 0 6px;">내 치수·원단으로 옷 만들기</h2>
-        <p style="margin:0;">옷 종류를 정하고, 원하는 원단을 골라 채색해보세요.</p>
+        <p style="margin:0;">옷 종류를 정하고, 기장·둘레 배율 숫자를 직접 입력한 뒤 원하는 원단을 골라 채색해보세요.</p>
       </div>
 
       <div class="type-row" id="type-row"></div>
@@ -21,6 +21,17 @@
         <div id="create-3d"></div>
         <p class="viewer-loading" id="create-loading">마네킹을 불러오는 중…</p>
         <p class="viewer-hint">드래그로 회전 · 옷을 탭해서 채색</p>
+      </div>
+
+      <div class="size-grid">
+        <label>
+          <span>기장 배율</span>
+          <input type="number" id="length-input" min="0.6" max="1.6" step="0.02" value="1">
+        </label>
+        <label>
+          <span>둘레 배율</span>
+          <input type="number" id="girth-input" min="0.7" max="1.5" step="0.02" value="1">
+        </label>
       </div>
 
       <div class="section-label">원단 선택 <span class="hint">(고른 뒤 옷을 탭하세요)</span></div>

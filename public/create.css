@@ -26,15 +26,8 @@
 
 .size-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px; }
 .size-grid label{ display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:var(--ink-soft); }
-.size-grid input[type="range"]{ accent-color:var(--deep); }
-
-.size-control{ display:flex; align-items:center; gap:8px; }
-.size-control input[type="range"]{ flex:1; }
-.size-control input[type="number"]{
-  width:60px; padding:6px 8px; border-radius:8px;
-  border:1px solid rgba(0,0,0,.15); text-align:center;
-  font-size:14px;
-}
+.size-grid input[type="number"]{ width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--line, #ddd); border-radius:8px; font-size:14px; color:var(--ink); background:#fff; }
+.size-grid input[type="number"]:focus{ outline:none; border-color:var(--deep); }
 
 .section-label{ font-size:13px; font-weight:600; color:var(--ink); margin:0 0 10px; }
 .section-label .hint{ font-weight:400; color:var(--ink-soft); font-size:12px; }

@@ -248,6 +248,8 @@ const el = {
   typeRow: document.getElementById('type-row'),
   fabricRow: document.getElementById('fabric-row'),
   partList: document.getElementById('part-list'),
+  lengthInput: document.getElementById('length-input'),
+  girthInput: document.getElementById('girth-input'),
   resetBtn: document.getElementById('reset-btn'),
   loading: document.getElementById('create-loading'),
 };
@@ -454,6 +456,21 @@ function renderPartList(){
   });
 }
 
+function clampNumberInput(input, fallback, min, max){
+  const v = parseFloat(input.value);
+  if(!isFinite(v)) return fallback;
+  return Math.min(max, Math.max(min, v));
+}
+el.lengthInput.addEventListener('change', () => {
+  state.lengthMul = clampNumberInput(el.lengthInput, 1, 0.6, 1.6);
+  el.lengthInput.value = state.lengthMul;
+  rebuildGarment();
+});
+el.girthInput.addEventListener('change', () => {
+  state.girthMul = clampNumberInput(el.girthInput, 1, 0.7, 1.5);
+  el.girthInput.value = state.girthMul;
+  rebuildGarment();
+});
 el.resetBtn.addEventListener('click', resetCurrentGarment);
 
 /* ---------- 초기 UI 렌더 (마네킹 로딩과 무관하게 바로 보이게) ---------- */
