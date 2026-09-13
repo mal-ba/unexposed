@@ -193,6 +193,8 @@ const el = {
   partList: document.getElementById('part-list'),
   lengthRange: document.getElementById('length-range'),
   girthRange: document.getElementById('girth-range'),
+  lengthNumber: document.getElementById('length-number'),
+  girthNumber: document.getElementById('girth-number'),
   resetBtn: document.getElementById('reset-btn'),
   loading: document.getElementById('create-loading'),
 };
@@ -383,8 +385,38 @@ function renderPartList(){
   });
 }
 
-el.lengthRange.addEventListener('input', () => { state.lengthMul = parseFloat(el.lengthRange.value); rebuildGarment(); });
-el.girthRange.addEventListener('input', () => { state.girthMul = parseFloat(el.girthRange.value); rebuildGarment(); });
+function clampNum(v, min, max, fallback){
+  const n = parseFloat(v);
+  if (Number.isNaN(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+el.lengthRange.addEventListener('input', () => {
+  state.lengthMul = parseFloat(el.lengthRange.value);
+  el.lengthNumber.value = state.lengthMul;
+  rebuildGarment();
+});
+el.girthRange.addEventListener('input', () => {
+  state.girthMul = parseFloat(el.girthRange.value);
+  el.girthNumber.value = state.girthMul;
+  rebuildGarment();
+});
+
+el.lengthNumber.addEventListener('change', () => {
+  const v = clampNum(el.lengthNumber.value, 0.6, 1.6, state.lengthMul);
+  el.lengthNumber.value = v;
+  el.lengthRange.value = v;
+  state.lengthMul = v;
+  rebuildGarment();
+});
+el.girthNumber.addEventListener('change', () => {
+  const v = clampNum(el.girthNumber.value, 0.7, 1.5, state.girthMul);
+  el.girthNumber.value = v;
+  el.girthRange.value = v;
+  state.girthMul = v;
+  rebuildGarment();
+});
+
 el.resetBtn.addEventListener('click', resetCurrentGarment);
 
 /* ---------- 초기 UI 렌더 (마네킹 로딩과 무관하게 바로 보이게) ---------- */
