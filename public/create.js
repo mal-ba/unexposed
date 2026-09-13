@@ -9,16 +9,23 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-/* ---------- 옷 종류 정의 ---------- */
+/* ---------- 옷 종류 정의 ----------
+   shortSleeve/shortPants/longPants는 Meshy AI로 생성한 실제 GLB 모델을 그대로
+   불러와서 써요(glb 필드). 이 모델들은 부위별로 분리된 메쉬/재질이 없는 단일
+   메쉬라서, regions를 'whole' 하나로 두고 옷 전체를 하나의 파트로 채색해요.
+   glb가 없는 longSleeve는 기존처럼 절차적으로 생성해요. */
 const GARMENT_TYPES = {
-  shortSleeve: { label: '반팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.14,
-    regions: [['front','앞면'],['back','뒷면'],['leftSleeve','왼쪽 소매'],['rightSleeve','오른쪽 소매'],['leftSide','왼쪽 옆면'],['rightSide','오른쪽 옆면']] },
+  shortSleeve: { label: '반팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.14, glbHeightFrac: 0.36,
+    glb: '/wardrobe-assets/Meshy_AI_Classic_White_T_Shirt_0913135306_generate.glb',
+    regions: [['whole','전체']] },
   longSleeve: { label: '긴팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.34,
     regions: [['front','앞면'],['back','뒷면'],['leftSleeve','왼쪽 소매'],['rightSleeve','오른쪽 소매'],['leftSide','왼쪽 옆면'],['rightSide','오른쪽 옆면']] },
-  shortPants: { label: '반바지', anchor: 'waist', legFrac: 0.22,
-    regions: [['front','앞면'],['back','뒷면'],['leftSide','왼쪽 옆면'],['rightSide','오른쪽 옆면']] },
-  longPants: { label: '긴바지', anchor: 'waist', legFrac: 0.46,
-    regions: [['front','앞면'],['back','뒷면'],['leftSide','왼쪽 옆면'],['rightSide','오른쪽 옆면']] },
+  shortPants: { label: '반바지', anchor: 'waist', legFrac: 0.22, glbHeightFrac: 0.22,
+    glb: '/wardrobe-assets/Meshy_AI_White_Shorts_0913135257_generate.glb',
+    regions: [['whole','전체']] },
+  longPants: { label: '긴바지', anchor: 'waist', legFrac: 0.46, glbHeightFrac: 0.46,
+    glb: '/wardrobe-assets/Meshy_AI_White_Long_Pants_0913135302_generate.glb',
+    regions: [['whole','전체']] },
 };
 
 /* ---------- 원단 정의 (대표적인 몇 가지 — 절차적 캡처본) ---------- */
@@ -91,6 +98,56 @@ function findShoulderLineY(root){
   let bestBucket = 0, bestWidth = -1;
   for(let b = 0; b < BUCKETS; b++){ if(maxAbsXInBucket[b] > bestWidth){ bestWidth = maxAbsXInBucket[b]; bestBucket = b; } }
   return minY + span * ((bestBucket + 0.5) / BUCKETS);
+}
+
+/* ---------- 실제 GLB 옷 모델 미리 불러오기 ----------
+   Meshy AI가 만든 GLB들은 단일 메쉬(POSITION만 있고 NORMAL/UV/재질 없음)라서,
+   불러온 뒤 법선을 계산하고 우리 쪽 MeshStandardMaterial을 새로 입혀서 써요.
+   페이지 스크립트가 로드되자마자(모달을 열기 전부터) 미리 받아 두고,
+   타입을 눌렀을 때는 캐시에서 바로 꺼내 쓰도록 해요. */
+const GLB_CACHE = {}; // typeKey -> 원본 BufferGeometry(법선/바운딩박스 계산 완료)
+let pendingGlbType = null;
+const glbLoader = new GLTFLoader();
+
+function preloadGarmentGLBs(){
+  const jobs = Object.entries(GARMENT_TYPES)
+    .filter(([, def]) => def.glb)
+    .map(([key, def]) => new Promise(resolve => {
+      glbLoader.load(def.glb, gltf => {
+        const mesh = findMannequinMesh(gltf.scene);
+        if(mesh && mesh.geometry){
+          mesh.geometry.computeVertexNormals();
+          mesh.geometry.computeBoundingBox();
+          GLB_CACHE[key] = mesh.geometry;
+        }
+        resolve();
+      }, undefined, () => resolve()); // 실패해도 다른 항목 로딩은 계속 진행해요.
+    }));
+  return Promise.all(jobs).then(() => {
+    if(pendingGlbType && GLB_CACHE[pendingGlbType] && state.typeKey === pendingGlbType){
+      pendingGlbType = null;
+      rebuildGarment();
+    }
+  });
+}
+preloadGarmentGLBs();
+
+function buildGroupFromGLB(cachedGeometry, mannequinHeight, lengthMul, girthMul, heightFrac){
+  const group = new THREE.Group();
+  const box = cachedGeometry.boundingBox;
+  const rawH = (box.max.y - box.min.y) || 1;
+  const baseScale = (mannequinHeight * heightFrac) / rawH;
+  const scaleY = baseScale * lengthMul;
+  const scaleXZ = baseScale * girthMul;
+
+  const geo = cachedGeometry.clone(); // 캐시 원본은 그대로 두고, 매번 새 지오메트리로 복제해서 써요.
+  const mat = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.85 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.scale.set(scaleXZ, scaleY, scaleXZ);
+  // 옷의 맨 윗부분(어깨선 또는 허리선)이 group 원점(=anchor 라인)에 오도록 내려줘요.
+  mesh.position.y = -box.max.y * scaleY;
+  group.add(mesh);
+  return { group, parts: { whole: mesh } };
 }
 
 /* ---------- 절차적 옷 지오메트리 ---------- */
@@ -193,8 +250,6 @@ const el = {
   partList: document.getElementById('part-list'),
   lengthRange: document.getElementById('length-range'),
   girthRange: document.getElementById('girth-range'),
-  lengthNumber: document.getElementById('length-number'),
-  girthNumber: document.getElementById('girth-number'),
   resetBtn: document.getElementById('reset-btn'),
   loading: document.getElementById('create-loading'),
 };
@@ -298,9 +353,24 @@ function rebuildGarment(){
     state.garmentGroup.traverse(n => { if(n.isMesh){ n.geometry.dispose(); n.material.dispose(); } });
   }
   const def = GARMENT_TYPES[state.typeKey];
-  const built = def.anchor === 'shoulder'
-    ? buildTopGroup(state.mannequinHeight, state.lengthMul, state.girthMul, def.sleeveFrac)
-    : buildBottomGroup(state.mannequinHeight, state.lengthMul, state.girthMul, def.legFrac);
+  let built;
+  if(def.glb){
+    const cachedGeo = GLB_CACHE[state.typeKey];
+    if(!cachedGeo){
+      // 아직 다운로드/파싱 중이면, 끝나는 대로 preloadGarmentGLBs()의 콜백이 다시 불러줘요.
+      state.garmentGroup = null;
+      state.parts = {};
+      pendingGlbType = state.typeKey;
+      if(el.loading){ el.loading.hidden = false; el.loading.textContent = '옷 모델을 불러오는 중...'; }
+      return;
+    }
+    built = buildGroupFromGLB(cachedGeo, state.mannequinHeight, state.lengthMul, state.girthMul, def.glbHeightFrac);
+  } else {
+    built = def.anchor === 'shoulder'
+      ? buildTopGroup(state.mannequinHeight, state.lengthMul, state.girthMul, def.sleeveFrac)
+      : buildBottomGroup(state.mannequinHeight, state.lengthMul, state.girthMul, def.legFrac);
+  }
+  if(el.loading) el.loading.hidden = true;
   state.garmentGroup = built.group;
   state.parts = built.parts;
   state.garmentGroup.position.y = (def.anchor === 'shoulder') ? state.shoulderY : state.waistY;
@@ -385,38 +455,8 @@ function renderPartList(){
   });
 }
 
-function clampNum(v, min, max, fallback){
-  const n = parseFloat(v);
-  if (Number.isNaN(n)) return fallback;
-  return Math.min(max, Math.max(min, n));
-}
-
-el.lengthRange.addEventListener('input', () => {
-  state.lengthMul = parseFloat(el.lengthRange.value);
-  el.lengthNumber.value = state.lengthMul;
-  rebuildGarment();
-});
-el.girthRange.addEventListener('input', () => {
-  state.girthMul = parseFloat(el.girthRange.value);
-  el.girthNumber.value = state.girthMul;
-  rebuildGarment();
-});
-
-el.lengthNumber.addEventListener('change', () => {
-  const v = clampNum(el.lengthNumber.value, 0.6, 1.6, state.lengthMul);
-  el.lengthNumber.value = v;
-  el.lengthRange.value = v;
-  state.lengthMul = v;
-  rebuildGarment();
-});
-el.girthNumber.addEventListener('change', () => {
-  const v = clampNum(el.girthNumber.value, 0.7, 1.5, state.girthMul);
-  el.girthNumber.value = v;
-  el.girthRange.value = v;
-  state.girthMul = v;
-  rebuildGarment();
-});
-
+el.lengthRange.addEventListener('input', () => { state.lengthMul = parseFloat(el.lengthRange.value); rebuildGarment(); });
+el.girthRange.addEventListener('input', () => { state.girthMul = parseFloat(el.girthRange.value); rebuildGarment(); });
 el.resetBtn.addEventListener('click', resetCurrentGarment);
 
 /* ---------- 초기 UI 렌더 (마네킹 로딩과 무관하게 바로 보이게) ---------- */
