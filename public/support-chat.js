@@ -22,7 +22,7 @@
    "a": [
     "스캔은 \"scan demo\" 섹션의 \"3D로 꾸미기 시작\" 또는 \"2D로 꾸미기 시작\" 버튼을 누르면 시작돼요. 카메라 권한을 허용하면 사진 촬영이나 5초 동영상 녹화를 할 수 있고, 카메라를 쓸 수 없으면 사진·동영상 파일을 업로드해도 돼요.",
     "Google 계정으로 로그인해서 유료 플랜 구독이나 결제를 할 수 있어요. 카카오톡·클로드 앱 같은 인앱 브라우저에서는 구글 보안 정책상 로그인이 막혀 있어서, 화면 위 배너의 \"외부 브라우저로 열기\"를 눌러서 크롬·사파리로 열어주세요.",
-    "요금제는 월간 결제 10,000원, 연간 결제 109,800원 두 가지예요. 연간 결제는 월간으로 12개월 내는 금액(120,000원)보다 8.5% 저렴해요. 요금제 섹션에서 \"구독하기\"를 누르면 결제 페이지로 이동해요.",
+    "요금제는 월간 결제 9,900원, 연간 결제 109,800원 두 가지예요. 연간 결제는 월간으로 12개월 내는 금액(118,800원)보다 7.6% 저렴해요. 요금제 섹션에서 \"구독하기\"를 누르면 결제 페이지로 이동해요.",
     "원단 등급(베이직/프리미엄/스페셜), 디테일 옵션(자수·특수재단), 완성 형태(패턴 PDF/완제품 배송)를 골라서 실시간으로 예상 제작 견적을 확인할 수 있어요. \"기타(직접 요청)\"를 선택하면 원하는 원단·디자인을 자유롭게 적을 수도 있어요.",
     "스캔 화면 안 \"옷장 & 꾸미기\"에서 기본 제공 아이템을 둘러보거나, 연령대·상황에 맞춰 추천받거나, 직접 만든 옷·장신구(.glb 파일)를 올려서 마네킹에 입혀볼 수 있어요.",
     "키(cm)를 입력하고 \"아바타 생성하기\"를 누르면 3D 마네킹 크기가 그 비율에 맞게 조정돼요. 마우스나 손가락으로 드래그하면 360도로 돌려볼 수 있어요.",
@@ -48,7 +48,7 @@
    "a": [
     "To start scanning, press the \"Start in 3D\" or \"Start in 2D\" button in the scan demo section. Allow camera access to take a photo or record a 5-second video — if you can’t use the camera, you can upload a photo or video file instead.",
     "Sign in with your Google account to subscribe to a paid plan or make a payment. In in-app browsers like KakaoTalk or the Claude app, Google blocks sign-in for security reasons — tap \"Open in external browser\" in the banner at the top to open the page in Chrome or Safari.",
-    "There are two plans: monthly at 10,000 KRW and yearly at 109,800 KRW. The yearly plan is 8.5% cheaper than paying monthly for 12 months (120,000 KRW). Press \"Subscribe\" in the pricing section to go to the payment page.",
+    "There are two plans: monthly at 9,900 KRW and yearly at 109,800 KRW. The yearly plan is 7.6% cheaper than paying monthly for 12 months (118,800 KRW). Press \"Subscribe\" in the pricing section to go to the payment page.",
     "Choose a fabric tier (Basic/Premium/Special), detail options (embroidery, special cutting) and the finished form (pattern PDF / finished garment delivery) to see an estimated production quote in real time. Choose \"Other (custom request)\" to freely describe the fabric or design you want.",
     "In \"Wardrobe & Styling\" on the scan screen, you can browse the default items, get recommendations by age group and occasion, or upload your own clothes and accessories (.glb files) to try them on the mannequin.",
     "Enter your height (cm) and press \"Create avatar\" — the 3D mannequin is resized to match. Drag with your mouse or finger to rotate it 360 degrees.",
@@ -74,7 +74,7 @@
    "a": [
     "Чтобы начать сканирование, нажмите кнопку «Начать в 3D» или «Начать в 2D» в разделе scan demo. Разрешите доступ к камере, чтобы сделать фото или записать 5-секундное видео; если камера недоступна, можно загрузить файл фото или видео.",
     "Войдите через аккаунт Google, чтобы оформить платный тариф или оплатить. Во встроенных браузерах вроде KakaoTalk или приложения Claude Google блокирует вход из соображений безопасности — нажмите «Открыть во внешнем браузере» в баннере сверху и откройте страницу в Chrome или Safari.",
-    "Есть два тарифа: помесячно — 10 000 вон, за год — 109 800 вон. Годовой тариф на 8,5% дешевле, чем 12 месяцев помесячной оплаты (120 000 вон). Нажмите «Оформить подписку» в разделе с ценами, чтобы перейти к оплате.",
+    "Есть два тарифа: помесячно — 9 900 вон, за год — 109 800 вон. Годовой тариф на 7,6% дешевле, чем 12 месяцев помесячной оплаты (118 800 вон). Нажмите «Оформить подписку» в разделе с ценами, чтобы перейти к оплате.",
     "Выберите уровень ткани (Basic/Premium/Special), детали (вышивка, особый крой) и форму результата (PDF-выкройка / доставка готового изделия) — и сразу увидите примерную стоимость производства. Вариант «Другое (свой запрос)» позволяет свободно описать нужную ткань или дизайн.",
     "В разделе «Гардероб и стиль» на экране сканирования можно просматривать базовые вещи, получать рекомендации по возрасту и ситуации или загружать свою одежду и аксессуары (.glb-файлы) и примерять их на манекене.",
     "Введите рост (см) и нажмите «Создать аватар» — 3D-манекен подстроится под эти пропорции. Перетаскивайте мышью или пальцем, чтобы повернуть его на 360 градусов.",
@@ -100,7 +100,7 @@
    "a": [
     "在 scan demo 区域点击“开始3D设计” 或 “开始2D设计”按钮即可开始扫描。允许相机权限后可以拍照或录制 5 秒视频；如果无法使用相机，也可以上传照片或视频文件。",
     "使用 Google 账号登录后即可订阅付费套餐或付款。在 KakaoTalk、Claude 应用等内置浏览器中，Google 出于安全政策会阻止登录，请点击页面顶部横幅中的“在外部浏览器中打开”，用 Chrome 或 Safari 打开。",
-    "共有两种套餐：按月 10,000 韩元，按年 109,800 韩元。按年付费比按月付 12 个月（120,000 韩元）便宜 8.5%。在价格区域点击“订阅”即可进入付款页面。",
+    "共有两种套餐：按月 9,900 韩元，按年 109,800 韩元。按年付费比按月付 12 个月（118,800 韩元）便宜 7.6%。在价格区域点击“订阅”即可进入付款页面。",
     "选择面料等级（基础/高级/特殊）、细节选项（刺绣、特殊裁剪）和成品形式（版型 PDF / 成品配送），即可实时查看预估制作报价。选择“其他（自定义需求）”还可以自由填写想要的面料或设计。",
     "在扫描页面的“衣柜与装扮”中，可以浏览默认单品、按年龄段和场合获取推荐，或上传自己制作的衣服和配饰（.glb 文件）穿到人台上试看。",
     "输入身高（cm）并点击“生成虚拟形象”，3D 人台会按比例调整大小。用鼠标或手指拖动即可 360 度旋转查看。",
@@ -126,7 +126,7 @@
    "a": [
     "scan demoセクションの「3Dで始める」 または 「2Dで始める」ボタンを押すとスキャンが始まります。カメラへのアクセスを許可すると写真撮影や5秒の動画録画ができ、カメラが使えない場合は写真・動画ファイルをアップロードしても大丈夫です。",
     "Googleアカウントでログインすると、有料プランの購読や決済ができます。KakaoTalkやClaudeアプリなどのアプリ内ブラウザでは、Googleのセキュリティポリシーによりログインがブロックされるため、画面上部のバナーの「外部ブラウザで開く」を押してChromeやSafariで開いてください。",
-    "プランは月額10,000ウォンと年額109,800ウォンの2種類です。年額プランは月額で12か月払う場合（120,000ウォン）より8.5%お得です。料金セクションの「購読する」を押すと決済ページに移動します。",
+    "プランは月額9,900ウォンと年額109,800ウォンの2種類です。年額プランは月額で12か月払う場合（118,800ウォン）より7.6%お得です。料金セクションの「購読する」を押すと決済ページに移動します。",
     "生地のグレード（ベーシック/プレミアム/スペシャル）、ディテールオプション（刺繍・特殊裁断）、完成形態（パターンPDF/完成品配送）を選ぶと、予想製作見積もりをリアルタイムで確認できます。「その他（直接リクエスト）」を選べば、希望の生地やデザインを自由に書くこともできます。",
     "スキャン画面内の「クローゼット＆コーディネート」で、基本アイテムを見たり、年代やシーンに合わせたおすすめを受けたり、自作の服・アクセサリー（.glbファイル）をアップロードしてマネキンに着せてみることができます。",
     "身長（cm）を入力して「アバターを生成」を押すと、3Dマネキンのサイズがその比率に合わせて調整されます。マウスや指でドラッグすると360度回転させて見られます。",
@@ -152,7 +152,7 @@
    "a": [
     "Le scan démarre en appuyant sur le bouton « Commencer en 3D  ou  Commencer en 2D » dans la section scan demo. En autorisant la caméra, vous pouvez prendre une photo ou filmer une vidéo de 5 secondes ; si la caméra n'est pas disponible, vous pouvez importer une photo ou une vidéo.",
     "Connectez-vous avec votre compte Google pour souscrire à une formule payante ou payer. Dans les navigateurs intégrés comme KakaoTalk ou l'app Claude, Google bloque la connexion pour des raisons de sécurité : appuyez sur « Ouvrir dans un navigateur externe » dans la bannière en haut pour ouvrir la page dans Chrome ou Safari.",
-    "Il existe deux formules : mensuelle à 10 000 KRW et annuelle à 109 800 KRW. La formule annuelle est 8,5 % moins chère que 12 mois en mensuel (120 000 KRW). Appuyez sur « S’abonner » dans la section tarifs pour accéder au paiement.",
+    "Il existe deux formules : mensuelle à 9 900 KRW et annuelle à 109 800 KRW. La formule annuelle est 7,6 % moins chère que 12 mois en mensuel (118 800 KRW). Appuyez sur « S’abonner » dans la section tarifs pour accéder au paiement.",
     "Choisissez le niveau de tissu (Basic/Premium/Special), les options de détail (broderie, coupe spéciale) et la forme finale (patron PDF / livraison du vêtement fini) pour voir un devis de fabrication estimé en temps réel. Avec « Autre (demande libre) », vous pouvez décrire librement le tissu ou le design souhaité.",
     "Dans « Garde-robe & style » sur l'écran de scan, vous pouvez parcourir les articles de base, obtenir des recommandations selon l'âge et l'occasion, ou importer vos propres vêtements et accessoires (fichiers .glb) pour les essayer sur le mannequin.",
     "Saisissez votre taille (cm) et appuyez sur « Créer l'avatar » : le mannequin 3D s'ajuste à ces proportions. Faites glisser avec la souris ou le doigt pour le faire pivoter à 360 degrés.",
@@ -178,7 +178,7 @@
    "a": [
     "Der Scan startet, wenn du im Bereich scan demo auf „In 3D starten“ oder „In 2D starten“ tippst. Erlaubst du den Kamerazugriff, kannst du ein Foto machen oder ein 5-Sekunden-Video aufnehmen; ohne Kamera kannst du auch eine Foto- oder Videodatei hochladen.",
     "Mit deinem Google-Konto kannst du dich anmelden, um einen kostenpflichtigen Plan zu abonnieren oder zu bezahlen. In In-App-Browsern wie KakaoTalk oder der Claude-App blockiert Google die Anmeldung aus Sicherheitsgründen – tippe im Banner oben auf „In externem Browser öffnen“ und öffne die Seite in Chrome oder Safari.",
-    "Es gibt zwei Tarife: monatlich für 10.000 KRW und jährlich für 109.800 KRW. Der Jahrestarif ist 8,5 % günstiger als 12 Monate monatliche Zahlung (120.000 KRW). Tippe im Preisbereich auf „Abonnieren“, um zur Zahlungsseite zu gelangen.",
+    "Es gibt zwei Tarife: monatlich für 9.900 KRW und jährlich für 109.800 KRW. Der Jahrestarif ist 7,6 % günstiger als 12 Monate monatliche Zahlung (118.800 KRW). Tippe im Preisbereich auf „Abonnieren“, um zur Zahlungsseite zu gelangen.",
     "Wähle Stoffstufe (Basic/Premium/Special), Detailoptionen (Stickerei, Spezialschnitt) und die Endform (Schnittmuster-PDF / Lieferung des fertigen Stücks), um in Echtzeit ein geschätztes Produktionsangebot zu sehen. Mit „Sonstiges (eigener Wunsch)“ kannst du Stoff oder Design frei beschreiben.",
     "Unter „Kleiderschrank & Styling“ im Scan-Bildschirm kannst du Standardteile durchstöbern, Empfehlungen nach Alter und Anlass erhalten oder eigene Kleidung und Accessoires (.glb-Dateien) hochladen und an der Schneiderpuppe anprobieren.",
     "Gib deine Größe (cm) ein und tippe auf „Avatar erstellen“ – die 3D-Puppe passt sich diesen Proportionen an. Ziehe mit Maus oder Finger, um sie um 360 Grad zu drehen.",
@@ -204,7 +204,7 @@
    "a": [
     "يبدأ المسح عند الضغط على زر \"ابدأ بتصميم ثلاثي الأبعاد\" أو \"ابدأ بتصميم ثنائي الأبعاد\" في قسم scan demo. بعد السماح بالوصول إلى الكاميرا يمكنك التقاط صورة أو تسجيل فيديو مدته 5 ثوانٍ، وإذا تعذّر استخدام الكاميرا يمكنك رفع ملف صورة أو فيديو.",
     "سجّل الدخول بحساب Google للاشتراك في خطة مدفوعة أو الدفع. في المتصفحات المدمجة داخل التطبيقات مثل KakaoTalk أو تطبيق Claude، تحظر Google تسجيل الدخول لأسباب أمنية، لذا اضغط \"افتح في متصفح خارجي\" في الشريط أعلى الصفحة وافتحها في Chrome أو Safari.",
-    "هناك خطتان: شهرية بسعر 10,000 وون وسنوية بسعر 109,800 وون. الخطة السنوية أرخص بنسبة 8.5% من الدفع الشهري لمدة 12 شهرًا (120,000 وون). اضغط \"اشترك\" في قسم الأسعار للانتقال إلى صفحة الدفع.",
+    "هناك خطتان: شهرية بسعر 9,900 وون وسنوية بسعر 109,800 وون. الخطة السنوية أرخص بنسبة 7.6% من الدفع الشهري لمدة 12 شهرًا (118,800 وون). اضغط \"اشترك\" في قسم الأسعار للانتقال إلى صفحة الدفع.",
     "اختر مستوى القماش (أساسي/متميز/خاص) وخيارات التفاصيل (تطريز، قصّ خاص) وشكل المنتج النهائي (نمط PDF / توصيل القطعة الجاهزة) لترى تقديرًا فوريًا لسعر الإنتاج. وباختيار \"أخرى (طلب خاص)\" يمكنك وصف القماش أو التصميم الذي تريده بحرية.",
     "في قسم \"الخزانة والتنسيق\" داخل شاشة المسح، يمكنك تصفح القطع الأساسية، أو الحصول على اقتراحات حسب الفئة العمرية والمناسبة، أو رفع ملابسك وإكسسواراتك الخاصة (ملفات glb.) وتجربتها على المانيكان.",
     "أدخل طولك (سم) واضغط \"إنشاء الصورة الرمزية\"، فيتغير حجم المانيكان ثلاثي الأبعاد وفقًا لهذه النسبة. اسحب بالفأرة أو بإصبعك لتدويره 360 درجة.",
@@ -230,7 +230,7 @@
    "a": [
     "Nhấn nút \"Bắt đầu bằng 3D\" hoặc \"Bắt đầu bằng 2D\" trong mục scan demo để bắt đầu quét. Khi cho phép truy cập camera, bạn có thể chụp ảnh hoặc quay video 5 giây; nếu không dùng được camera, bạn có thể tải lên tệp ảnh hoặc video.",
     "Đăng nhập bằng tài khoản Google để đăng ký gói trả phí hoặc thanh toán. Trong trình duyệt trong ứng dụng như KakaoTalk hay ứng dụng Claude, Google chặn đăng nhập vì lý do bảo mật — hãy nhấn \"Mở bằng trình duyệt bên ngoài\" trên biểu ngữ phía trên để mở bằng Chrome hoặc Safari.",
-    "Có hai gói: theo tháng 10.000 won và theo năm 109.800 won. Gói năm rẻ hơn 8,5% so với trả theo tháng trong 12 tháng (120.000 won). Nhấn \"Đăng ký\" ở mục bảng giá để chuyển đến trang thanh toán.",
+    "Có hai gói: theo tháng 9.900 won và theo năm 109.800 won. Gói năm rẻ hơn 7,6% so với trả theo tháng trong 12 tháng (118.800 won). Nhấn \"Đăng ký\" ở mục bảng giá để chuyển đến trang thanh toán.",
     "Chọn cấp độ vải (Basic/Premium/Special), tùy chọn chi tiết (thêu, cắt đặc biệt) và hình thức hoàn thiện (rập PDF / giao thành phẩm) để xem báo giá sản xuất ước tính theo thời gian thực. Chọn \"Khác (yêu cầu riêng)\" để tự do mô tả loại vải hay thiết kế bạn muốn.",
     "Trong mục \"Tủ đồ & Phối đồ\" ở màn hình quét, bạn có thể xem các món có sẵn, nhận gợi ý theo độ tuổi và hoàn cảnh, hoặc tải lên quần áo và phụ kiện tự làm (tệp .glb) để mặc thử lên ma-nơ-canh.",
     "Nhập chiều cao (cm) và nhấn \"Tạo avatar\", ma-nơ-canh 3D sẽ được điều chỉnh theo tỉ lệ đó. Kéo bằng chuột hoặc ngón tay để xoay 360 độ.",
@@ -256,7 +256,7 @@
    "a": [
     "scan demo खण्डको \"3D मा सुरु गर्नुहोस्\" वा \"2D मा सुरु गर्नुहोस्\" बटन थिचेपछि स्क्यान सुरु हुन्छ। क्यामेरा अनुमति दिएपछि फोटो खिच्न वा ५ सेकेन्डको भिडियो रेकर्ड गर्न सकिन्छ; क्यामेरा चलाउन नसके फोटो वा भिडियो फाइल अपलोड गर्न पनि सकिन्छ।",
     "Google खाताबाट लगइन गरेर शुल्क योजना सदस्यता लिन वा भुक्तानी गर्न सकिन्छ। KakaoTalk वा Claude एप जस्ता इन-एप ब्राउजरमा Google ले सुरक्षा नीतिका कारण लगइन रोक्छ, त्यसैले माथिको ब्यानरमा \"बाह्य ब्राउजरमा खोल्नुहोस्\" थिचेर Chrome वा Safari मा खोल्नुहोस्।",
-    "दुई योजना छन्: मासिक १०,००० वन र वार्षिक १,०९,८०० वन। वार्षिक योजना १२ महिना मासिक तिर्नुभन्दा (१,२०,००० वन) ८.५% सस्तो छ। मूल्य खण्डमा \"सदस्यता लिनुहोस्\" थिचेपछि भुक्तानी पृष्ठमा जान्छ।",
+    "दुई योजना छन्: मासिक ९,९०० वन र वार्षिक १,०९,८०० वन। वार्षिक योजना १२ महिना मासिक तिर्नुभन्दा (१,१८,८०० वन) ७.६% सस्तो छ। मूल्य खण्डमा \"सदस्यता लिनुहोस्\" थिचेपछि भुक्तानी पृष्ठमा जान्छ।",
     "कपडाको तह (बेसिक/प्रिमियम/स्पेशल), विवरण विकल्प (कढाइ, विशेष काटाइ) र अन्तिम रूप (ढाँचा PDF / तयारी लुगा डेलिभरी) छानेर अनुमानित उत्पादन मूल्य तुरुन्तै हेर्न सकिन्छ। \"अन्य (आफ्नै अनुरोध)\" छाने मनपर्ने कपडा वा डिजाइन खुला रूपमा लेख्न सकिन्छ।",
     "स्क्यान स्क्रिनभित्रको \"वार्डरोब र सजावट\" मा आधारभूत सामानहरू हेर्न, उमेर र अवसर अनुसार सुझाव लिन, वा आफैंले बनाएका लुगा·गहना (.glb फाइल) अपलोड गरेर म्यानिकिनमा लगाएर हेर्न सकिन्छ।",
     "उचाइ (cm) हालेर \"अवतार बनाउनुहोस्\" थिचेपछि 3D म्यानिकिनको आकार त्यही अनुपातमा मिलाइन्छ। माउस वा औंलाले तानेर ३६० डिग्री घुमाएर हेर्न सकिन्छ।",
@@ -282,7 +282,7 @@
    "a": [
     "กดปุ่ม \"เริ่มด้วยโหมด 3D\" หรือ \"เริ่มด้วยโหมด 2D\" ในส่วน scan demo เพื่อเริ่มสแกน เมื่ออนุญาตให้ใช้กล้องแล้ว คุณสามารถถ่ายรูปหรืออัดวิดีโอ 5 วินาทีได้ ถ้าใช้กล้องไม่ได้ ก็อัปโหลดไฟล์รูปหรือวิดีโอแทนได้",
     "เข้าสู่ระบบด้วยบัญชี Google เพื่อสมัครแพ็กเกจแบบชำระเงินหรือชำระเงิน ในเบราว์เซอร์ในแอปอย่าง KakaoTalk หรือแอป Claude นั้น Google จะบล็อกการเข้าสู่ระบบตามนโยบายความปลอดภัย กรุณากด \"เปิดในเบราว์เซอร์ภายนอก\" บนแบนเนอร์ด้านบนเพื่อเปิดใน Chrome หรือ Safari",
-    "มี 2 แพ็กเกจ: รายเดือน 10,000 วอน และรายปี 109,800 วอน แพ็กเกจรายปีถูกกว่าการจ่ายรายเดือน 12 เดือน (120,000 วอน) 8.5% กด \"สมัครสมาชิก\" ในส่วนราคาเพื่อไปยังหน้าชำระเงิน",
+    "มี 2 แพ็กเกจ: รายเดือน 9,900 วอน และรายปี 109,800 วอน แพ็กเกจรายปีถูกกว่าการจ่ายรายเดือน 12 เดือน (118,800 วอน) 7.6% กด \"สมัครสมาชิก\" ในส่วนราคาเพื่อไปยังหน้าชำระเงิน",
     "เลือกระดับผ้า (เบสิก/พรีเมียม/สเปเชียล) ตัวเลือกรายละเอียด (ปัก ตัดพิเศษ) และรูปแบบสินค้า (แพทเทิร์น PDF / ส่งสินค้าสำเร็จรูป) เพื่อดูราคาผลิตโดยประมาณแบบเรียลไทม์ เลือก \"อื่น ๆ (คำขอเอง)\" เพื่อเขียนผ้าหรือดีไซน์ที่ต้องการได้อย่างอิสระ",
     "ใน \"ตู้เสื้อผ้าและการแต่งตัว\" บนหน้าจอสแกน คุณสามารถดูไอเทมพื้นฐาน รับคำแนะนำตามช่วงอายุและโอกาส หรืออัปโหลดเสื้อผ้าและเครื่องประดับที่ทำเอง (ไฟล์ .glb) มาลองใส่บนหุ่นได้",
     "กรอกส่วนสูง (ซม.) แล้วกด \"สร้างอวตาร\" หุ่น 3D จะปรับขนาดตามสัดส่วนนั้น ลากด้วยเมาส์หรือนิ้วเพื่อหมุนดูได้ 360 องศา",
@@ -308,7 +308,7 @@
    "a": [
     "با زدن دکمه «شروع در حالت سه‌بعدی» یا «شروع در حالت دوبعدی» در بخش scan demo اسکن شروع می‌شود. با اجازه دادن به دوربین می‌توانی عکس بگیری یا ویدیوی ۵ ثانیه‌ای ضبط کنی؛ اگر دوربین در دسترس نیست، می‌توانی فایل عکس یا ویدیو بارگذاری کنی.",
     "با حساب گوگل وارد شو تا بتوانی پلن پولی را مشترک شوی یا پرداخت کنی. در مرورگرهای داخل برنامه مثل KakaoTalk یا اپ Claude، گوگل به دلایل امنیتی ورود را مسدود می‌کند؛ پس «باز کردن در مرورگر خارجی» را در بنر بالای صفحه بزن و صفحه را در Chrome یا Safari باز کن.",
-    "دو پلن وجود دارد: ماهانه ۱۰٬۰۰۰ وون و سالانه ۱۰۹٬۸۰۰ وون. پلن سالانه ۸٫۵٪ از پرداخت ماهانه برای ۱۲ ماه (۱۲۰٬۰۰۰ وون) ارزان‌تر است. در بخش قیمت‌ها «اشتراک» را بزن تا به صفحه پرداخت بروی.",
+    "دو پلن وجود دارد: ماهانه ۹٬۹۰۰ وون و سالانه ۱۰۹٬۸۰۰ وون. پلن سالانه ۷٫۶٪ از پرداخت ماهانه برای ۱۲ ماه (۱۱۸٬۸۰۰ وون) ارزان‌تر است. در بخش قیمت‌ها «اشتراک» را بزن تا به صفحه پرداخت بروی.",
     "سطح پارچه (بیسیک/پریمیوم/اسپشال)، گزینه‌های جزئیات (گلدوزی، برش ویژه) و شکل نهایی (الگوی PDF / ارسال لباس آماده) را انتخاب کن تا تخمین هزینه تولید را همان لحظه ببینی. با انتخاب «سایر (درخواست دلخواه)» می‌توانی پارچه یا طرح موردنظرت را آزادانه بنویسی.",
     "در بخش «کمد و استایل» در صفحه اسکن می‌توانی آیتم‌های پیش‌فرض را ببینی، بر اساس سن و موقعیت پیشنهاد بگیری، یا لباس و اکسسوری ساخت خودت (فایل glb.) را بارگذاری کنی و روی مانکن امتحان کنی.",
     "قدت (سانتی‌متر) را وارد کن و «ساخت آواتار» را بزن تا اندازه مانکن سه‌بعدی به همان نسبت تنظیم شود. با موس یا انگشت بکش تا ۳۶۰ درجه بچرخد.",
@@ -334,7 +334,7 @@
    "a": [
     "Skanningen startar när du trycker på knappen ”Starta i 3D” eller ”Starta i 2D” i avsnittet scan demo. Om du tillåter kameran kan du ta ett foto eller spela in en 5-sekundersvideo; kan du inte använda kameran går det bra att ladda upp en foto- eller videofil.",
     "Logga in med ditt Google-konto för att prenumerera på en betald plan eller betala. I inbyggda webbläsare som KakaoTalk eller Claude-appen blockerar Google inloggning av säkerhetsskäl – tryck på ”Öppna i extern webbläsare” i bannern högst upp och öppna sidan i Chrome eller Safari.",
-    "Det finns två planer: månadsvis för 10 000 KRW och årsvis för 109 800 KRW. Årsplanen är 8,5 % billigare än att betala månadsvis i 12 månader (120 000 KRW). Tryck på ”Prenumerera” i prisavsnittet för att komma till betalningen.",
+    "Det finns två planer: månadsvis för 9 900 KRW och årsvis för 109 800 KRW. Årsplanen är 7,6 % billigare än att betala månadsvis i 12 månader (118 800 KRW). Tryck på ”Prenumerera” i prisavsnittet för att komma till betalningen.",
     "Välj tygnivå (Basic/Premium/Special), detaljalternativ (brodyr, specialskärning) och slutform (mönster-PDF / leverans av färdigt plagg) för att se en uppskattad produktionsoffert i realtid. Välj ”Annat (egen förfrågan)” för att fritt beskriva tyget eller designen du vill ha.",
     "Under ”Garderob & styling” på skanningsskärmen kan du bläddra bland standardplagg, få rekommendationer efter ålder och tillfälle, eller ladda upp egna kläder och accessoarer (.glb-filer) och prova dem på skyltdockan.",
     "Ange din längd (cm) och tryck på ”Skapa avatar” så anpassas 3D-dockan efter proportionerna. Dra med musen eller fingret för att rotera den 360 grader.",
@@ -360,7 +360,7 @@
    "a": [
     "scan demo অংশে \"3D-তে শুরু করুন\" অথবা \"2D-তে শুরু করুন\" বোতাম চাপলে স্ক্যান শুরু হয়। ক্যামেরার অনুমতি দিলে ছবি তুলতে বা ৫ সেকেন্ডের ভিডিও রেকর্ড করতে পারবেন; ক্যামেরা ব্যবহার করতে না পারলে ছবি বা ভিডিও ফাইল আপলোডও করতে পারেন।",
     "Google অ্যাকাউন্ট দিয়ে লগইন করে পেইড প্ল্যানে সাবস্ক্রাইব বা পেমেন্ট করতে পারবেন। KakaoTalk বা Claude অ্যাপের মতো ইন-অ্যাপ ব্রাউজারে নিরাপত্তা নীতির কারণে Google লগইন আটকে দেয়, তাই উপরের ব্যানারে \"বহিরাগত ব্রাউজারে খুলুন\" চেপে Chrome বা Safari-তে খুলুন।",
-    "দুটি প্ল্যান আছে: মাসিক ১০,০০০ ওন এবং বার্ষিক ১,০৯,৮০০ ওন। বার্ষিক প্ল্যান ১২ মাস মাসিক দেওয়ার (১,২০,০০০ ওন) চেয়ে ৮.৫% সস্তা। মূল্য অংশে \"সাবস্ক্রাইব করুন\" চাপলে পেমেন্ট পেজে যাবেন।",
+    "দুটি প্ল্যান আছে: মাসিক ৯,৯০০ ওন এবং বার্ষিক ১,০৯,৮০০ ওন। বার্ষিক প্ল্যান ১২ মাস মাসিক দেওয়ার (১,১৮,৮০০ ওন) চেয়ে ৭.৬% সস্তা। মূল্য অংশে \"সাবস্ক্রাইব করুন\" চাপলে পেমেন্ট পেজে যাবেন।",
     "কাপড়ের স্তর (বেসিক/প্রিমিয়াম/স্পেশাল), বিবরণ বিকল্প (এমব্রয়ডারি, বিশেষ কাটিং) এবং চূড়ান্ত রূপ (প্যাটার্ন PDF / সম্পন্ন পোশাক ডেলিভারি) বেছে নিলে রিয়েল-টাইমে আনুমানিক উৎপাদন মূল্য দেখতে পাবেন। \"অন্যান্য (নিজের অনুরোধ)\" বেছে নিলে পছন্দের কাপড় বা ডিজাইন স্বাধীনভাবে লিখতে পারবেন।",
     "স্ক্যান স্ক্রিনের \"ওয়ারড্রোব ও সাজ\" অংশে ডিফল্ট আইটেম দেখতে, বয়স ও পরিস্থিতি অনুযায়ী সুপারিশ পেতে, অথবা নিজের তৈরি পোশাক ও গয়না (.glb ফাইল) আপলোড করে ম্যানিকিনে পরিয়ে দেখতে পারবেন।",
     "উচ্চতা (সেমি) লিখে \"অবতার তৈরি করুন\" চাপলে 3D ম্যানিকিনের আকার সেই অনুপাতে ঠিক হয়ে যায়। মাউস বা আঙুল দিয়ে টেনে ৩৬০ ডিগ্রি ঘুরিয়ে দেখতে পারবেন।",
@@ -386,7 +386,7 @@
    "a": [
     "Pemindaian dimulai dengan menekan tombol \"Mulai dalam 3D\" atau \"Mulai dalam 2D\" di bagian scan demo. Setelah mengizinkan akses kamera, kamu bisa memotret atau merekam video 5 detik; jika kamera tidak bisa dipakai, kamu juga bisa mengunggah file foto atau video.",
     "Masuk dengan akun Google untuk berlangganan paket berbayar atau melakukan pembayaran. Di browser dalam aplikasi seperti KakaoTalk atau aplikasi Claude, Google memblokir login karena kebijakan keamanan — ketuk \"Buka di browser eksternal\" pada banner di atas untuk membukanya di Chrome atau Safari.",
-    "Ada dua paket: bulanan 10.000 won dan tahunan 109.800 won. Paket tahunan 8,5% lebih hemat dibanding membayar bulanan selama 12 bulan (120.000 won). Ketuk \"Berlangganan\" di bagian harga untuk menuju halaman pembayaran.",
+    "Ada dua paket: bulanan 9.900 won dan tahunan 109.800 won. Paket tahunan 7,6% lebih hemat dibanding membayar bulanan selama 12 bulan (118.800 won). Ketuk \"Berlangganan\" di bagian harga untuk menuju halaman pembayaran.",
     "Pilih tingkat kain (Basic/Premium/Special), opsi detail (bordir, potongan khusus), dan bentuk akhir (pola PDF / pengiriman produk jadi) untuk melihat perkiraan biaya produksi secara real-time. Pilih \"Lainnya (permintaan khusus)\" untuk menuliskan kain atau desain yang kamu inginkan dengan bebas.",
     "Di \"Lemari & Gaya\" pada layar pindai, kamu bisa melihat item bawaan, mendapat rekomendasi sesuai usia dan situasi, atau mengunggah pakaian dan aksesori buatan sendiri (file .glb) untuk dicoba pada manekin.",
     "Masukkan tinggi badan (cm) lalu ketuk \"Buat avatar\", ukuran manekin 3D akan disesuaikan dengan proporsi tersebut. Seret dengan mouse atau jari untuk memutarnya 360 derajat.",
@@ -412,7 +412,7 @@
    "a": [
     "Tarama, scan demo bölümündeki \"3D ile başla\" veya \"2D ile başla\" düğmesine basınca başlar. Kamera iznini verirsen fotoğraf çekebilir veya 5 saniyelik video kaydedebilirsin; kamerayı kullanamıyorsan fotoğraf ya da video dosyası da yükleyebilirsin.",
     "Ücretli plana abone olmak veya ödeme yapmak için Google hesabınla giriş yap. KakaoTalk ya da Claude uygulaması gibi uygulama içi tarayıcılarda Google, güvenlik politikası gereği girişi engeller; üstteki banner'da \"Harici tarayıcıda aç\"a dokunarak sayfayı Chrome veya Safari'de aç.",
-    "İki plan var: aylık 10.000 won ve yıllık 109.800 won. Yıllık plan, 12 ay boyunca aylık ödemeye (120.000 won) göre %8,5 daha ucuz. Ödeme sayfasına gitmek için fiyatlar bölümünde \"Abone ol\" düğmesine dokun.",
+    "İki plan var: aylık 9.900 won ve yıllık 109.800 won. Yıllık plan, 12 ay boyunca aylık ödemeye (118.800 won) göre %7,6 daha ucuz. Ödeme sayfasına gitmek için fiyatlar bölümünde \"Abone ol\" düğmesine dokun.",
     "Kumaş katmanını (Basic/Premium/Special), detay seçeneklerini (nakış, özel kesim) ve bitmiş formu (kalıp PDF / bitmiş ürün teslimatı) seçerek tahmini üretim teklifini anında görebilirsin. \"Diğer (özel istek)\" seçeneğiyle istediğin kumaşı veya tasarımı serbestçe yazabilirsin.",
     "Tarama ekranındaki \"Gardırop ve Stil\" bölümünde varsayılan ürünlere göz atabilir, yaş ve duruma göre öneri alabilir ya da kendi yaptığın kıyafet ve aksesuarları (.glb dosyaları) yükleyip mankende deneyebilirsin.",
     "Boyunu (cm) girip \"Avatar oluştur\"a dokunduğunda 3D manken o orana göre boyutlanır. Fare veya parmağınla sürükleyerek 360 derece döndürebilirsin.",
@@ -438,7 +438,7 @@
    "a": [
     "Het scannen begint wanneer je in het onderdeel scan demo op \"Starten in 3D\" of \"Starten in 2D\" tikt. Als je cameratoegang geeft, kun je een foto maken of een video van 5 seconden opnemen; kun je de camera niet gebruiken, dan kun je ook een foto- of videobestand uploaden.",
     "Log in met je Google-account om een betaald abonnement te nemen of te betalen. In in-app-browsers zoals KakaoTalk of de Claude-app blokkeert Google het inloggen om veiligheidsredenen – tik in de banner bovenaan op \"Openen in externe browser\" en open de pagina in Chrome of Safari.",
-    "Er zijn twee abonnementen: maandelijks voor 10.000 KRW en jaarlijks voor 109.800 KRW. Het jaarabonnement is 8,5% goedkoper dan 12 maanden maandelijks betalen (120.000 KRW). Tik in het prijsgedeelte op \"Abonneren\" om naar de betaalpagina te gaan.",
+    "Er zijn twee abonnementen: maandelijks voor 9.900 KRW en jaarlijks voor 109.800 KRW. Het jaarabonnement is 7,6% goedkoper dan 12 maanden maandelijks betalen (118.800 KRW). Tik in het prijsgedeelte op \"Abonneren\" om naar de betaalpagina te gaan.",
     "Kies het stofniveau (Basic/Premium/Special), detailopties (borduurwerk, speciale snit) en de eindvorm (patroon-pdf / levering van het afgewerkte kledingstuk) om direct een geschatte productieofferte te zien. Met \"Anders (eigen verzoek)\" kun je vrij beschrijven welke stof of welk ontwerp je wilt.",
     "Bij \"Kledingkast & styling\" op het scanscherm kun je standaarditems bekijken, aanbevelingen krijgen per leeftijd en gelegenheid, of je eigen kleding en accessoires (.glb-bestanden) uploaden en op de paspop passen.",
     "Vul je lengte (cm) in en tik op \"Avatar maken\" – de 3D-paspop wordt op die verhoudingen aangepast. Sleep met je muis of vinger om hem 360 graden te draaien.",
@@ -464,7 +464,7 @@
    "a": [
     "scan demo सेक्शन में \"3D में शुरू करें\" या \"2D में शुरू करें\" बटन दबाने से स्कैन शुरू होता है। कैमरा की अनुमति देने पर आप फ़ोटो ले सकते हैं या 5 सेकंड का वीडियो रिकॉर्ड कर सकते हैं; कैमरा इस्तेमाल न हो सके तो फ़ोटो या वीडियो फ़ाइल अपलोड भी कर सकते हैं।",
     "Google खाते से लॉगिन करके सशुल्क प्लान की सदस्यता ले सकते हैं या भुगतान कर सकते हैं। KakaoTalk या Claude ऐप जैसे इन-ऐप ब्राउज़र में Google सुरक्षा नीति के कारण लॉगिन रोक देता है, इसलिए ऊपर बैनर में \"बाहरी ब्राउज़र में खोलें\" दबाकर Chrome या Safari में खोलें।",
-    "दो प्लान हैं: मासिक 10,000 वॉन और वार्षिक 1,09,800 वॉन। वार्षिक प्लान 12 महीने मासिक भुगतान (1,20,000 वॉन) से 8.5% सस्ता है। मूल्य सेक्शन में \"सदस्यता लें\" दबाने पर भुगतान पेज खुलता है।",
+    "दो प्लान हैं: मासिक 9,900 वॉन और वार्षिक 1,09,800 वॉन। वार्षिक प्लान 12 महीने मासिक भुगतान (1,18,800 वॉन) से 7.6% सस्ता है। मूल्य सेक्शन में \"सदस्यता लें\" दबाने पर भुगतान पेज खुलता है।",
     "कपड़े का स्तर (बेसिक/प्रीमियम/स्पेशल), डिटेल विकल्प (कढ़ाई, खास कटिंग) और अंतिम रूप (पैटर्न PDF / तैयार कपड़े की डिलीवरी) चुनकर रीयल-टाइम में अनुमानित उत्पादन मूल्य देख सकते हैं। \"अन्य (अपना अनुरोध)\" चुनने पर मनचाहा कपड़ा या डिज़ाइन खुलकर लिख सकते हैं।",
     "स्कैन स्क्रीन के \"वॉर्डरोब और स्टाइलिंग\" में डिफ़ॉल्ट आइटम देख सकते हैं, उम्र और मौके के हिसाब से सुझाव पा सकते हैं, या खुद के बनाए कपड़े और एक्सेसरी (.glb फ़ाइल) अपलोड करके पुतले पर पहनाकर देख सकते हैं।",
     "ऊंचाई (सेमी) डालकर \"अवतार बनाएं\" दबाएँ, 3D पुतले का आकार उसी अनुपात में बदल जाएगा। माउस या उंगली से खींचकर 360 डिग्री घुमा सकते हैं।",
@@ -490,7 +490,7 @@
    "a": [
     "O escaneamento começa ao tocar no botão \"Começar em 3D\" ou \"Começar em 2D\" na seção scan demo. Ao permitir o acesso à câmera, você pode tirar uma foto ou gravar um vídeo de 5 segundos; se não puder usar a câmera, também pode enviar um arquivo de foto ou vídeo.",
     "Entre com sua conta Google para assinar um plano pago ou fazer um pagamento. Em navegadores dentro de apps, como o KakaoTalk ou o app do Claude, o Google bloqueia o login por segurança — toque em \"Abrir em navegador externo\" no banner no topo e abra a página no Chrome ou Safari.",
-    "Há dois planos: mensal por 10.000 wons e anual por 109.800 wons. O plano anual sai 8,5% mais barato do que pagar 12 meses no mensal (120.000 wons). Toque em \"Assinar\" na seção de preços para ir à página de pagamento.",
+    "Há dois planos: mensal por 9.900 wons e anual por 109.800 wons. O plano anual sai 7,6% mais barato do que pagar 12 meses no mensal (118.800 wons). Toque em \"Assinar\" na seção de preços para ir à página de pagamento.",
     "Escolha o nível de tecido (Basic/Premium/Special), as opções de detalhe (bordado, corte especial) e a forma final (molde em PDF / entrega da peça pronta) para ver um orçamento estimado de produção em tempo real. Em \"Outro (pedido personalizado)\" você pode descrever livremente o tecido ou o design que deseja.",
     "Em \"Guarda-roupa e estilo\", na tela de escaneamento, você pode ver os itens padrão, receber recomendações por faixa etária e ocasião, ou enviar suas próprias roupas e acessórios (arquivos .glb) para experimentar no manequim.",
     "Digite sua altura (cm) e toque em \"Criar avatar\" — o manequim 3D é ajustado a essa proporção. Arraste com o mouse ou o dedo para girá-lo 360 graus.",
@@ -516,7 +516,7 @@
    "a": [
     "La scansione parte toccando il pulsante \"Inizia in 3D\" o \"Inizia in 2D\" nella sezione scan demo. Consentendo l’accesso alla fotocamera puoi scattare una foto o registrare un video di 5 secondi; se non puoi usare la fotocamera, puoi anche caricare un file foto o video.",
     "Accedi con il tuo account Google per abbonarti a un piano a pagamento o pagare. Nei browser integrati nelle app, come KakaoTalk o l’app Claude, Google blocca l’accesso per motivi di sicurezza: tocca \"Apri nel browser esterno\" nel banner in alto e apri la pagina in Chrome o Safari.",
-    "Ci sono due piani: mensile a 10.000 won e annuale a 109.800 won. Il piano annuale costa l’8,5% in meno rispetto a 12 mesi di mensile (120.000 won). Tocca \"Abbonati\" nella sezione prezzi per andare alla pagina di pagamento.",
+    "Ci sono due piani: mensile a 9.900 won e annuale a 109.800 won. Il piano annuale costa l’7,6% in meno rispetto a 12 mesi di mensile (118.800 won). Tocca \"Abbonati\" nella sezione prezzi per andare alla pagina di pagamento.",
     "Scegli il livello di tessuto (Basic/Premium/Special), le opzioni di dettaglio (ricamo, taglio speciale) e la forma finale (cartamodello PDF / consegna del capo finito) per vedere in tempo reale un preventivo di produzione stimato. Con \"Altro (richiesta personalizzata)\" puoi descrivere liberamente il tessuto o il design che desideri.",
     "In \"Armadio e stile\", nella schermata di scansione, puoi sfogliare gli articoli predefiniti, ricevere consigli per fascia d’età e occasione, oppure caricare vestiti e accessori creati da te (file .glb) e provarli sul manichino.",
     "Inserisci la tua altezza (cm) e tocca \"Crea avatar\": il manichino 3D si adatta a quelle proporzioni. Trascina con il mouse o con il dito per ruotarlo di 360 gradi.",
@@ -542,7 +542,7 @@
    "a": [
     "El escaneo empieza al tocar el botón \"Empezar en 3D\" o \"Empezar en 2D\" en la sección scan demo. Si permites el acceso a la cámara, puedes hacer una foto o grabar un vídeo de 5 segundos; si no puedes usar la cámara, también puedes subir un archivo de foto o vídeo.",
     "Inicia sesión con tu cuenta de Google para suscribirte a un plan de pago o pagar. En navegadores integrados en apps como KakaoTalk o la app de Claude, Google bloquea el inicio de sesión por seguridad: toca \"Abrir en navegador externo\" en el banner superior y abre la página en Chrome o Safari.",
-    "Hay dos planes: mensual por 10.000 wones y anual por 109.800 wones. El plan anual es un 8,5 % más barato que pagar 12 meses en mensual (120.000 wones). Toca \"Suscribirse\" en la sección de precios para ir a la página de pago.",
+    "Hay dos planes: mensual por 9.900 wones y anual por 109.800 wones. El plan anual es un 7,6 % más barato que pagar 12 meses en mensual (118.800 wones). Toca \"Suscribirse\" en la sección de precios para ir a la página de pago.",
     "Elige el nivel de tela (Basic/Premium/Special), las opciones de detalle (bordado, corte especial) y la forma final (patrón en PDF / entrega de la prenda terminada) para ver en tiempo real un presupuesto estimado de producción. Con \"Otro (petición personalizada)\" puedes describir libremente la tela o el diseño que quieres.",
     "En \"Armario y estilo\", dentro de la pantalla de escaneo, puedes ver los artículos predeterminados, recibir recomendaciones según edad y ocasión, o subir tu propia ropa y accesorios (archivos .glb) para probarlos en el maniquí.",
     "Introduce tu estatura (cm) y toca \"Crear avatar\": el maniquí 3D se ajusta a esas proporciones. Arrastra con el ratón o el dedo para girarlo 360 grados.",
@@ -568,7 +568,7 @@
    "a": [
     "Skanowanie zaczyna się po naciśnięciu przycisku „Zacznij w 3D” lub „Zacznij w 2D” w sekcji scan demo. Po zezwoleniu na dostęp do kamery możesz zrobić zdjęcie lub nagrać 5-sekundowy film; jeśli nie możesz użyć kamery, możesz też przesłać plik ze zdjęciem lub filmem.",
     "Zaloguj się kontem Google, aby wykupić płatny plan lub zapłacić. W przeglądarkach wbudowanych w aplikacje, takich jak KakaoTalk czy aplikacja Claude, Google blokuje logowanie ze względów bezpieczeństwa — dotknij „Otwórz w zewnętrznej przeglądarce” na banerze u góry i otwórz stronę w Chrome lub Safari.",
-    "Są dwa plany: miesięczny za 10 000 wonów i roczny za 109 800 wonów. Plan roczny jest o 8,5% tańszy niż 12 miesięcy płatności miesięcznej (120 000 wonów). Dotknij „Subskrybuj” w sekcji cennika, aby przejść do płatności.",
+    "Są dwa plany: miesięczny za 9 900 wonów i roczny za 109 800 wonów. Plan roczny jest o 7,6% tańszy niż 12 miesięcy płatności miesięcznej (118 800 wonów). Dotknij „Subskrybuj” w sekcji cennika, aby przejść do płatności.",
     "Wybierz poziom tkaniny (Basic/Premium/Special), opcje detali (haft, specjalny krój) i formę końcową (wykrój PDF / dostawa gotowego ubrania), aby na bieżąco zobaczyć szacowaną wycenę produkcji. Wybierając „Inne (własna prośba)”, możesz swobodnie opisać tkaninę lub projekt, jakiego chcesz.",
     "W sekcji „Szafa i stylizacja” na ekranie skanowania możesz przeglądać podstawowe elementy, otrzymywać rekomendacje według wieku i okazji albo przesłać własne ubrania i dodatki (pliki .glb) i przymierzyć je na manekinie.",
     "Wpisz swój wzrost (cm) i dotknij „Utwórz awatara” — manekin 3D dopasuje się do tych proporcji. Przeciągnij myszką lub palcem, aby obrócić go o 360 stopni.",
