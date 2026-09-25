@@ -379,12 +379,12 @@ function propCardHTML(def){
         <input type="color" class="makeup-prop-color" data-prop-id="${def.id}" value="${def.defaultColor}">
       </div>
       <button type="button" class="btn btn-ghost-dark makeup-prop-toggle-btn" data-prop-id="${def.id}">추가하기</button>
-      <div class="makeup-prop-fine-tune" data-prop-id="${def.id}" hidden>
+      ${def.id === 'hair' ? '' : `<div class="makeup-prop-fine-tune" data-prop-id="${def.id}" hidden>
         <label>좌우 <input type="range" class="prop-x" data-prop-id="${def.id}" min="-0.25" max="0.25" step="0.005" value="0"></label>
         <label>위아래 <input type="range" class="prop-y" data-prop-id="${def.id}" min="-0.25" max="0.25" step="0.005" value="0"></label>
         <label>앞뒤 <input type="range" class="prop-z" data-prop-id="${def.id}" min="-0.15" max="0.15" step="0.005" value="0"></label>
         <label>크기 <input type="range" class="prop-scale" data-prop-id="${def.id}" min="0.3" max="2.5" step="0.01" value="1"></label>
-      </div>
+      </div>`}
     </div>`;
 }
 
@@ -411,6 +411,7 @@ function updatePropTransform(propId){
   if(!active) return;
   const def = MAKEUP_PROP_DEFS.find(d => d.id === propId);
   const card = document.getElementById(`makeup-prop-card-${propId}`);
+  if(!card.querySelector('.prop-x')) return; // 머리카락처럼 조정 슬라이더가 없는 소품
   const dx = parseFloat(card.querySelector('.prop-x').value);
   const dy = parseFloat(card.querySelector('.prop-y').value);
   const dz = parseFloat(card.querySelector('.prop-z').value);
@@ -431,7 +432,7 @@ function toggleProp(propId){
     faceModel.remove(activeProps[propId].object3d);
     delete activeProps[propId];
     toggleBtn.textContent = '추가하기';
-    fineTune.hidden = true;
+    if(fineTune) fineTune.hidden = true;
     return;
   }
   if(!faceModel){
@@ -445,7 +446,7 @@ function toggleProp(propId){
   faceModel.add(object3d);
   activeProps[propId] = { object3d };
   toggleBtn.textContent = '빼기';
-  fineTune.hidden = false;
+  if(fineTune) fineTune.hidden = false;
 }
 
 /* ==========================================================================
