@@ -10,21 +10,22 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ---------- 옷 종류 정의 ----------
-   shortSleeve/shortPants/longPants는 Meshy AI로 생성한 실제 GLB 모델을 그대로
-   불러와서 써요(glb 필드). 이 모델들은 부위별로 분리된 메쉬/재질이 없는 단일
-   메쉬라서, regions를 'whole' 하나로 두고 옷 전체를 하나의 파트로 채색해요.
-   glb가 없는 longSleeve는 기존처럼 절차적으로 생성해요. */
+   네 종류 모두 Meshy AI로 생성한 실제 GLB 모델을 그대로 불러와서 써요(glb 필드).
+   이 모델들은 부위별로 분리된 메쉬/재질이 없는 단일 메쉬라서, regions를 'whole'
+   하나로 두고 옷 전체를 하나의 파트로 채색해요.
+   glbWidthMul: 모델 자체가 옆으로 넓게 생성된 경우 가로(X)만 따로 줄이는 보정값(기본 1). */
 const GARMENT_TYPES = {
   shortSleeve: { label: '반팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.14, glbHeightFrac: 0.42, yOffsetFrac: 0.04,
     glb: '/wardrobe-assets/Meshy_AI_Classic_White_T_Shirt_0913135306_generate.glb',
     regions: [['whole','전체']] },
-  longSleeve: { label: '긴팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.34,
-    regions: [['front','앞면'],['back','뒷면'],['leftSleeve','왼쪽 소매'],['rightSleeve','오른쪽 소매'],['leftSide','왼쪽 옆면'],['rightSide','오른쪽 옆면']] },
+  longSleeve: { label: '긴팔 티셔츠', anchor: 'shoulder', sleeveFrac: 0.34, glbHeightFrac: 0.42, yOffsetFrac: 0.04,
+    glb: '/wardrobe-assets/Meshy_AI_Gray_Henley_Long_Slee_0925142723_generate.glb',
+    regions: [['whole','전체']] },
   shortPants: { label: '반바지', anchor: 'waist', legFrac: 0.22, glbHeightFrac: 0.22, yOffsetFrac: 0.025,
     glb: '/wardrobe-assets/Meshy_AI_White_Shorts_0913135257_generate.glb',
     regions: [['whole','전체']] },
-  longPants: { label: '긴바지', anchor: 'waist', legFrac: 0.46, glbHeightFrac: 0.54,
-    glb: '/wardrobe-assets/Meshy_AI_White_Long_Pants_0913135302_generate.glb',
+  longPants: { label: '긴바지', anchor: 'waist', legFrac: 0.46, glbHeightFrac: 0.54, glbWidthMul: 0.8,
+    glb: '/wardrobe-assets/Meshy_AI_Cream_Linen_Drawstrin_0925142806_generate.glb',
     regions: [['whole','전체']] },
 };
 
@@ -132,7 +133,7 @@ function preloadGarmentGLBs(){
 }
 preloadGarmentGLBs();
 
-function buildGroupFromGLB(cachedGeometry, mannequinHeight, lengthMul, girthMul, heightFrac){
+function buildGroupFromGLB(cachedGeometry, mannequinHeight, lengthMul, girthMul, heightFrac, widthMul = 1){
   const group = new THREE.Group();
   const box = cachedGeometry.boundingBox;
   const rawH = (box.max.y - box.min.y) || 1;
@@ -143,7 +144,7 @@ function buildGroupFromGLB(cachedGeometry, mannequinHeight, lengthMul, girthMul,
   const geo = cachedGeometry.clone(); // 캐시 원본은 그대로 두고, 매번 새 지오메트리로 복제해서 써요.
   const mat = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.85 });
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.scale.set(scaleXZ, scaleY, scaleXZ);
+  mesh.scale.set(scaleXZ * widthMul, scaleY, scaleXZ);
   // 옷의 맨 윗부분(어깨선 또는 허리선)이 group 원점(=anchor 라인)에 오도록 내려줘요.
   mesh.position.y = -box.max.y * scaleY;
   group.add(mesh);
@@ -354,7 +355,7 @@ function rebuildGarment(){
       if(el.loading){ el.loading.hidden = false; el.loading.textContent = '옷 모델을 불러오는 중...'; }
       return;
     }
-    built = buildGroupFromGLB(cachedGeo, state.mannequinHeight, state.lengthMul, state.girthMul, def.glbHeightFrac);
+    built = buildGroupFromGLB(cachedGeo, state.mannequinHeight, state.lengthMul, state.girthMul, def.glbHeightFrac, def.glbWidthMul || 1);
   } else {
     built = def.anchor === 'shoulder'
       ? buildTopGroup(state.mannequinHeight, state.lengthMul, state.girthMul, def.sleeveFrac)
