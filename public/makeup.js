@@ -598,3 +598,10 @@ window.refreshMakeupWardrobe = function(){
   wardrobeLoaded = false;
   if(viewerStarted) loadMakeupWardrobe();
 };
+
+// 팝업(메이크업 모달)을 닫을 때 index.html이 호출해요: 켜져 있던 카메라를 끄고 버튼 상태를 원래대로 돌려요.
+window.stopMakeupCamera = function(){
+  stopScanStream();
+  scanVideo.srcObject = null;
+  if(!scanStepEl.hidden) renderStageUI();
+};
