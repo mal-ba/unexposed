@@ -304,26 +304,16 @@ controls.minDistance = 0.6;
 controls.maxDistance = 8;
 controls.target.set(0, 1, 0);
 
-const loader = new GLTFLoader();
-loader.load('/models/mannequin.glb?v=4', gltf => {
-  state.mannequin = gltf.scene;
-  scene.add(state.mannequin);
-  const bounds = getMannequinLocalBounds(state.mannequin);
-  let height = bounds ? bounds.height : 1.6;
-  let minY = bounds ? bounds.minY : 0;
-  if(!isFinite(height) || height <= 0 || height > 100) height = 1.6;
-  const scale = 1.65 / height; // 기본 165cm 기준으로 통일
-  state.mannequin.scale.set(scale, scale, scale);
-  state.mannequinHeight = height * scale;
-  state.mannequinMinY = minY * scale;
-  const shoulderYRaw = findShoulderLineY(state.mannequin);
-  state.shoulderY = (shoulderYRaw !== null ? shoulderYRaw * scale : state.mannequinMinY + state.mannequinHeight * 0.776);
-  state.waistY = state.mannequinMinY + state.mannequinHeight * 0.473;
-  if(el.loading) el.loading.hidden = true;
-  rebuildGarment();
-}, undefined, () => {
-  if(el.loading) el.loading.textContent = '마네킹을 불러오지 못했어요.';
-});
+// 마네킹 모델은 더 이상 불러오지 않아요. 옷을 붙일 빈 기준 그룹만 두고,
+// 위치·크기는 기본 키 165cm 기준 고정값으로 계산해요.
+state.mannequin = new THREE.Group();
+scene.add(state.mannequin);
+state.mannequinHeight = 1.65;
+state.mannequinMinY = 0;
+state.shoulderY = state.mannequinMinY + state.mannequinHeight * 0.776;
+state.waistY = state.mannequinMinY + state.mannequinHeight * 0.473;
+if(el.loading) el.loading.hidden = true;
+rebuildGarment();
 
 (function loop(){
   requestAnimationFrame(loop);
