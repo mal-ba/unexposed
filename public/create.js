@@ -108,19 +108,22 @@ function getFabricTexture(fabric, colorHex){
   return tex;
 }
 
-/* 브러시 자국(paint 속성, RGBA)을 원단/색 위에 덮어 그리는 재질.
-   paint.a = 0이면 원래 원단색 그대로, 1이면 브러시 색으로 완전히 덮어요. */
+/* 칠하기 재질 — 정점 속성 두 개로 "부분 지우기"를 지원해요.
+   fillMask(0~1): 부위 채우기(원단/색)가 보이는 정도. 지우개로 문지르면 0이 되어 기본 옷감색이 드러나요.
+   paint(RGBA): 브러시 자국. a = 0이면 안 보이고, 1이면 브러시 색으로 완전히 덮어요. */
+const BASE_LINEAR = new THREE.Color(BASE_HEX);
 function makePaintableMaterial(){
   const mat = new THREE.MeshStandardMaterial({ color: BASE_HEX, roughness: 0.85, side: THREE.DoubleSide });
   mat.onBeforeCompile = shader => {
+    shader.uniforms.uBaseColor = { value: BASE_LINEAR };
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec4 paint;\nvarying vec4 vPaint;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPaint = paint;');
+      .replace('#include <common>', '#include <common>\nattribute vec4 paint;\nattribute float fillMask;\nvarying vec4 vPaint;\nvarying float vFillMask;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPaint = paint;\nvFillMask = fillMask;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec4 vPaint;')
-      .replace('#include <map_fragment>', '#include <map_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vPaint.rgb, clamp(vPaint.a, 0.0, 1.0));');
+      .replace('#include <common>', '#include <common>\nuniform vec3 uBaseColor;\nvarying vec4 vPaint;\nvarying float vFillMask;')
+      .replace('#include <map_fragment>', '#include <map_fragment>\ndiffuseColor.rgb = mix(uBaseColor, diffuseColor.rgb, clamp(vFillMask, 0.0, 1.0));\ndiffuseColor.rgb = mix(diffuseColor.rgb, vPaint.rgb, clamp(vPaint.a, 0.0, 1.0));');
   };
-  mat.customProgramCacheKey = () => 'unexposed-paintable-v1';
+  mat.customProgramCacheKey = () => 'unexposed-paintable-v2';
   return mat;
 }
 
@@ -229,18 +232,19 @@ const state = {
   activeColor: '#D8663F',       // null = 원단 원래 색
   brushSize: 0.035,             // 월드 단위 반지름
   mirror: false,
-  designByType: {},             // { typeKey: { regions: {key: {fabric, color}}, paint: Float32Array } }
+  designByType: {},             // { typeKey: { regions: {key: {fabric, color}}, paint: Float32Array, fillMask: Float32Array } }
   garmentGroup: null,
   holder: null,                 // 실제 스케일이 걸린 그룹(브러시 좌표 변환 기준)
   parts: {},                    // regionKey -> Mesh
   paintAttr: null,
+  fillAttr: null,
   paintGrid: null,
   lastTappedRegion: null,
   mannequin: null, mannequinHeight: 1.65,
 };
 
 function getDesign(typeKey){
-  if(!state.designByType[typeKey]) state.designByType[typeKey] = { regions: {}, paint: null };
+  if(!state.designByType[typeKey]) state.designByType[typeKey] = { regions: {}, paint: null, fillMask: null };
   return state.designByType[typeKey];
 }
 
@@ -375,6 +379,7 @@ function disposeGarment(){
   state.holder = null;
   state.parts = {};
   state.paintAttr = null;
+  state.fillAttr = null;
   state.paintGrid = null;
 }
 
@@ -399,6 +404,9 @@ function rebuildGarment(){
   if(!design.paint || design.paint.length !== cache.count * 4) design.paint = new Float32Array(cache.count * 4);
   const paintAttr = new THREE.BufferAttribute(design.paint, 4);
   state.paintAttr = paintAttr;
+  if(!design.fillMask || design.fillMask.length !== cache.count) design.fillMask = new Float32Array(cache.count).fill(1);
+  const fillAttr = new THREE.BufferAttribute(design.fillMask, 1);
+  state.fillAttr = fillAttr;
 
   const box = cache.geometry.boundingBox;
   const rawH = (box.max.y - box.min.y) || 1;
@@ -420,6 +428,7 @@ function rebuildGarment(){
     g.setAttribute('normal', cache.geometry.attributes.normal);
     g.setAttribute('uv', cache.geometry.attributes.uv);
     g.setAttribute('paint', paintAttr);
+    g.setAttribute('fillMask', fillAttr);
     g.setIndex(new THREE.BufferAttribute(idx, 1));
     g.boundingBox = box.clone();
     g.boundingSphere = cache.sphere.clone();
@@ -470,6 +479,7 @@ function fillRegion(key, withMirror = true){
   const targets = [key];
   if(withMirror && state.mirror) targets.push(mirrorRegionKey(key));
   targets.forEach(k => {
+    restoreFillMask(k); // 지우개로 지웠던 자리도 다시 채워요.
     if(!fabric && !state.activeColor){
       delete design.regions[k]; // 단색 + 원단 원래 색 = 기본 상태로 되돌리기
       applyRegionLook(k, null);
@@ -484,6 +494,22 @@ function fillRegion(key, withMirror = true){
   const fabricName = fabric ? FABRICS.find(f => f.id === fabric).name : '단색';
   setStatus(`${targets.map(k => regionLabel(kind, k)).join(', ')} → ${fabricName}${state.activeColor ? ' · ' + state.activeColor : ''}`);
   renderRegionGrid();
+}
+
+// 부위에 속한 정점들의 fillMask를 1로 되돌려요(지우개로 지운 부분을 다시 채움).
+function restoreFillMask(key){
+  const cache = GLB_CACHE[state.typeKey];
+  const mask = state.fillAttr && state.fillAttr.array;
+  if(!cache || !mask) return;
+  const idx = cache.regionIndex[key];
+  if(!idx) return;
+  for(let j = 0; j < idx.length; j++){
+    const i = idx[j];
+    mask[i] = 1;
+    if(i < dirtyMin) dirtyMin = i;
+    if(i > dirtyMax) dirtyMax = i;
+  }
+  flushPaint();
 }
 
 function fillAllRegions(){
@@ -524,6 +550,7 @@ function paintDab(p, n, erase){
   const pos = cache.geometry.attributes.position.array;
   const nor = cache.geometry.attributes.normal.array;
   const arr = state.paintAttr.array;
+  const mask = state.fillAttr.array;
   const s = state.holder.scale;
   const r = state.brushSize, r2 = r * r, inner = r * 0.55;
   const px = p.x * s.x, py = p.y * s.y, pz = p.z * s.z;
@@ -547,7 +574,9 @@ function paintDab(p, n, erase){
       const t = d <= inner ? 1 : 1 - (d - inner) / (r - inner);
       const i4 = i * 4;
       if(erase){
+        // 지우개: 브러시 자국과 부위 채우기(원단/색)를 함께 지워요.
         arr[i4+3] *= (1 - t);
+        mask[i] *= (1 - t);
       } else {
         const oa = arr[i4+3];
         const k = oa <= 0.001 ? 1 : t;
@@ -563,13 +592,16 @@ function paintDab(p, n, erase){
 }
 
 function flushPaint(){
-  const attr = state.paintAttr;
+  const attr = state.paintAttr, fill = state.fillAttr;
   if(!attr || dirtyMax < 0) return;
+  const count = dirtyMax - dirtyMin + 1;
   if(typeof attr.clearUpdateRanges === 'function'){
     attr.clearUpdateRanges();
-    attr.addUpdateRange(dirtyMin * 4, (dirtyMax - dirtyMin + 1) * 4);
+    attr.addUpdateRange(dirtyMin * 4, count * 4);
+    if(fill){ fill.clearUpdateRanges(); fill.addUpdateRange(dirtyMin, count); }
   }
   attr.needsUpdate = true;
+  if(fill) fill.needsUpdate = true;
   dirtyMin = Infinity; dirtyMax = -1;
 }
 
@@ -697,7 +729,7 @@ function renderTypeRow(){
 const TOOL_HINTS = {
   fill: '드래그로 회전 · 옷을 탭하면 그 부위를 채워요',
   brush: '옷 위를 드래그해서 그리기 · 옷 바깥을 드래그하면 회전',
-  eraser: '옷 위를 드래그해서 브러시 자국 지우기 · 옷 바깥은 회전',
+  eraser: '옷 위를 드래그해서 브러시 자국·채운 색 지우기 · 옷 바깥은 회전',
 };
 function renderToolRow(){
   el.toolRow.querySelectorAll('.tool-chip').forEach(b => b.classList.toggle('active', b.dataset.tool === state.tool));
