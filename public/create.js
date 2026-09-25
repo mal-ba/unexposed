@@ -280,6 +280,8 @@ window.closeCreateModal = closeCreateModal;
 createModalCloseBtn.addEventListener('click', closeCreateModal);
 
 let container, scene, camera, renderer, controls, resizeViewer;
+// 옷을 놓을 화면 정가운데 지점 — 카메라(OrbitControls)도 항상 이 지점을 바라봐요.
+const VIEW_CENTER = new THREE.Vector3(0, 1, 0);
 
 function initViewer(){
 /* ---------- three.js 씬 ---------- */
@@ -303,7 +305,7 @@ controls.enableDamping = true;
 controls.enablePan = false;
 controls.minDistance = 0.6;
 controls.maxDistance = 8;
-controls.target.set(0, 1, 0);
+controls.target.copy(VIEW_CENTER);
 
 // 마네킹 모델은 더 이상 불러오지 않아요. 옷을 붙일 빈 기준 그룹만 두고,
 // 위치·크기는 기본 키 165cm 기준 고정값으로 계산해요.
@@ -364,8 +366,12 @@ function rebuildGarment(){
   if(el.loading) el.loading.hidden = true;
   state.garmentGroup = built.group;
   state.parts = built.parts;
-  const anchorY = (def.anchor === 'shoulder') ? state.shoulderY : state.waistY;
-  state.garmentGroup.position.y = anchorY + (def.yOffsetFrac || 0) * state.mannequinHeight;
+  // 옷의 바운딩박스 중심을 뷰어 정가운데(카메라가 바라보는 지점 = VIEW_CENTER)에 맞춰요.
+  // 종류·길이·둘레가 바뀌어 크기가 달라져도 항상 화면 한가운데에 오도록 매번 다시 계산해요.
+  state.garmentGroup.position.set(0, 0, 0);
+  state.garmentGroup.updateMatrixWorld(true);
+  const center = new THREE.Box3().setFromObject(state.garmentGroup).getCenter(new THREE.Vector3());
+  state.garmentGroup.position.set(VIEW_CENTER.x - center.x, VIEW_CENTER.y - center.y, VIEW_CENTER.z - center.z);
   state.mannequin.add(state.garmentGroup);
 
   // 저장된 원단 배정을 다시 칠해요.
