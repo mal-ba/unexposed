@@ -35,6 +35,9 @@
   .badge-pending{ background:#F5E6C8; color:#8A6417; }
   .badge-3d{ background:#DDEAF0; color:#2C5F6E; }
   .badge-2d{ background:#EFE3D6; color:#8A5A2A; }
+  .sub-help{ font-size:12.5px; color:var(--ink-soft); margin:-4px 0 12px; line-height:1.55; }
+  .sub-plan-select{ padding:9px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px; font-family:inherit; background:var(--paper); color:var(--ink); }
+  .sub-exp{ font-size:11px; color:var(--ink-soft); }
   .badge-studio{ background:#E4DDF0; color:#5B4A86; }
   .order-note{ display:block; margin-top:6px; font-size:11.5px; color:#4A5654; white-space:pre-line; }
   .refresh-btn, .logout-btn{
@@ -201,6 +204,17 @@
   </div>
 
   <div class="section-title">구독 플랜</div>
+  <p class="sub-help">구독하기 버튼은 외부 결제(penworldwide)로 연결돼서 자동으로 기록되지 않아요. 결제를 확인한 뒤 여기서 등록하면, 그 사람은 주문할 때 구독에 포함된 재봉사 매칭·배송비(30,000원)가 빠져요.</p>
+  <form class="admin-add-form" id="sub-add-form">
+    <input type="email" name="email" placeholder="구독자 Google 이메일" required>
+    <select name="plan" class="sub-plan-select">
+      <option value="Lite">월간 (9,900원 · 31일)</option>
+      <option value="Premium">연간 (109,800원 · 366일)</option>
+    </select>
+    <input type="date" name="subscribedAt" title="결제일 (비우면 오늘)">
+    <button class="admin-add-btn" type="submit">구독자 등록</button>
+  </form>
+  <p class="admin-form-error" id="sub-form-error"></p>
   <div class="table-scroll">
     <table id="subs-table">
       <thead>
@@ -209,6 +223,7 @@
           <th>이메일</th>
           <th>플랜</th>
           <th>금액</th>
+          <th>상태</th>
           <th></th>
         </tr>
       </thead>
@@ -371,8 +386,11 @@
       <tr>
         <td>${fmtDate(s.subscribed_at)}</td>
         <td>${s.email || ''}</td>
-        <td>${s.plan || ''}</td>
+        <td>${s.plan === 'Premium' ? '연간' : s.plan === 'Lite' ? '월간' : (s.plan || '')}</td>
         <td>${fmtWon(s.amount)}</td>
+        <td>${s.active
+          ? `<span class="badge badge-paid">이용 중</span><br><span class="sub-exp">~${fmtDate(s.expires_at)}</span>`
+          : `<span class="badge badge-pending">만료</span>`}</td>
         <td class="del-cell"><button class="del-btn" data-sub-email="${s.email}" title="삭제" type="button">✕</button></td>
       </tr>`).join('');
   }
@@ -697,6 +715,28 @@
       }
     });
   }
+
+  // 구독자 직접 등록 (외부 결제로 구독한 사람)
+  const subAddForm = document.getElementById('sub-add-form');
+  const subFormError = document.getElementById('sub-form-error');
+  subAddForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(subAddForm);
+    const btn = subAddForm.querySelector('button');
+    btn.disabled = true; subFormError.textContent = '';
+    try{
+      const res = await fetch('/api/admin/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: fd.get('email'), plan: fd.get('plan'), subscribedAt: fd.get('subscribedAt') || null }),
+      });
+      const data = await res.json();
+      if(data.ok){ subAddForm.reset(); loadSubscriptions(); }
+      else subFormError.textContent = data.error || '등록에 실패했어요.';
+    } catch(err){
+      subFormError.textContent = '등록 중 오류가 발생했어요.';
+    } finally { btn.disabled = false; }
+  });
 
   // 구독자 삭제 버튼 클릭 → "진짜 삭제할까요?" 확인 팝업 → 확인해야만 실제로 지워요.
   subsTbody.addEventListener('click', e => {

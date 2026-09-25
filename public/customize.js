@@ -380,17 +380,35 @@
 
   if(patternRepeatInput) patternRepeatInput.addEventListener('input', applyCurrentPattern);
 
+  // 구독 중인 사람은 구독에 포함된 재봉사 매칭 + 완제품 배송 비용을 빼고 옷 가격만 내요.
+  // (화면 표시용이고, 실제 금액은 서버가 구독 상태를 확인해서 다시 계산해요)
+  let designSubscriber = null;
+  async function refreshDesignSubscription(){
+    if(!window.authState || !window.authState.loggedIn){ designSubscriber = null; updateTotal(); return; }
+    try{
+      const res = await fetch('/api/subscription');
+      const data = await res.json();
+      designSubscriber = data.subscription && data.subscription.active ? data.subscription : null;
+    } catch(err){ /* 확인 실패 시 할인 없이 보여줘요 */ }
+    updateTotal();
+  }
+  function subscriberDiscount(){ return designSubscriber ? state.finish : 0; }
+
   function updateTotal(){
-    const total = BASE + state.fabric + state.detail + state.finish;
+    const discount = subscriberDiscount();
+    const total = BASE + state.fabric + state.detail + state.finish - discount;
     const totalEl = document.getElementById('calc-total');
     const noteEl = document.querySelector('.calc-total-note');
     const anyCustom = customActive.fabric || customActive.detail;
+    const subText = designSubscriber
+      ? (discount ? ` · 구독 포함 -${fmt(discount)}` : ' · 구독 중: Premium 선택 시 매칭·배송비 무료')
+      : '';
     if(anyCustom){
       totalEl.textContent = fmt(total) + ' + 협의';
-      noteEl.textContent = '기본 제작비 30,000원 + 선택 옵션 (직접 요청 항목은 협의 후 확정)';
+      noteEl.textContent = '기본 제작비 30,000원 + 선택 옵션 (직접 요청 항목은 협의 후 확정)' + subText;
     } else {
       totalEl.textContent = fmt(total);
-      noteEl.textContent = '기본 제작비 30,000원 + 선택 옵션';
+      noteEl.textContent = '기본 제작비 30,000원 + 선택 옵션' + subText;
     }
     const finishTailorNote = document.getElementById('finish-tailor-note');
     if(finishTailorNote) finishTailorNote.hidden = state.finish !== 30000; // Premium(재봉사 매칭) 선택했을 때만 안내를 보여줘요.
@@ -524,7 +542,7 @@
         return;
       }
       const needsShipping = state.finish === 30000;
-      const total = BASE + state.fabric + state.detail + state.finish;
+      const total = BASE + state.fabric + state.detail + state.finish - subscriberDiscount();
       const parts = [
         getActiveChipLabel('fabric'),
         ...getActiveDetailLabels(),
@@ -642,6 +660,7 @@
   // 3D 모드: 스캔 → 3D 마네킹·옷장 → 원단/색상 꾸미기로 이어지는 흐름이에요.
   function openDesignModal3D(){
     currentDesignMode = '3d';
+    refreshDesignSubscription();
     designModal.hidden = false;
     if(wizard3dOnlyBlock) wizard3dOnlyBlock.hidden = false;
     setScanStepText(false);
@@ -654,6 +673,7 @@
   // 2D 모드: 3D 마네킹 없이, 스캔한 사진을 그대로 내 캐릭터로 써서 원단/색상/디테일만 꾸며요.
   function openDesignModal2D(){
     currentDesignMode = '2d';
+    refreshDesignSubscription();
     designModal.hidden = false;
     if(wizard3dOnlyBlock) wizard3dOnlyBlock.hidden = true; // 3D 마네킹·옷장 부분은 2D에선 필요 없어서 숨겨요.
     setScanStepText(true);

@@ -107,10 +107,31 @@ function isAdminEmail(email) {
 const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람당 보관 개수 제한
 
 // 피봇 후 가격 체계: Lite(자가 제작용 패턴만) / Premium(AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 아바타 기반 핏 보장 QC)
+// Lite = 월간 결제, Premium = 연간 결제 (메인 요금제 카드의 data-plan 값과 맞춰요)
 const PLAN_PRICES = {
-  lite: { name: 'Lite', amount: 5000 },
-  premium: { name: 'Premium', amount: 57000 },
+  lite: { name: 'Lite', amount: 9900 },
+  premium: { name: 'Premium', amount: 109800 },
 };
+// 구독이 유효한 기간(일). 결제일(subscribed_at)부터 이 기간 안이면 "구독 중"으로 봐요.
+const PLAN_VALID_DAYS = { Lite: 31, Premium: 366 };
+
+// 구독 행 하나를 받아서 지금 유효한지 계산해요.
+function describeSubscription(sub){
+  if(!sub) return null;
+  const days = PLAN_VALID_DAYS[sub.plan] || 31;
+  const start = new Date(sub.subscribed_at);
+  const expiresAt = isNaN(start) ? null : new Date(start.getTime() + days * 86400000);
+  const active = !!expiresAt && expiresAt.getTime() > Date.now();
+  return {
+    plan: sub.plan, amount: sub.amount, subscribedAt: sub.subscribed_at,
+    paymentKey: sub.payment_key, orderId: sub.order_id,
+    expiresAt: expiresAt ? expiresAt.toISOString() : null, active,
+  };
+}
+async function getSubscription(email){
+  const { data } = await supabase.from('subscriptions').select('*').eq('email', email).maybeSingle();
+  return describeSubscription(data);
+}
 
 /* ---------------- 옷장(기본 제공 + 커뮤니티 업로드) ---------------- */
 
@@ -428,9 +449,7 @@ app.get('/api/me', async (req, res) => {
     user,
     isAdmin: isAdminEmail(user.email),
     isSuperAdmin: isSuperAdminEmail(user.email),
-    subscription: sub
-      ? { plan: sub.plan, amount: sub.amount, subscribedAt: sub.subscribed_at, paymentKey: sub.payment_key, orderId: sub.order_id }
-      : null,
+    subscription: describeSubscription(sub),
     bodyDataConsent: consent ? { consent: consent.consent, updatedAt: consent.updated_at } : null,
     profile: profile ? {
       name: profile.name,
@@ -836,12 +855,7 @@ app.post('/api/payments/confirm', requireLogin, async (req, res) => {
 });
 
 app.get('/api/subscription', requireLogin, async (req, res) => {
-  const { data: sub } = await supabase.from('subscriptions').select('*').eq('email', req.user.email).maybeSingle();
-  res.json({
-    subscription: sub
-      ? { plan: sub.plan, amount: sub.amount, subscribedAt: sub.subscribed_at, paymentKey: sub.payment_key, orderId: sub.order_id }
-      : null,
-  });
+  res.json({ subscription: await getSubscription(req.user.email) });
 });
 
 /* ---------------- 맞춤 제작 주문 + 배송지 (2단계 "무늬·디테일 선택" 화면의 주문하기) ---------------- */
@@ -940,7 +954,14 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     }
   }
 
-  const amount = ORDER_BASE_PRICE + fa + da + fi;
+  // 월간·연간 구독에는 "AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 핏 검수(QC)"가 포함돼 있어요.
+  // 그래서 구독 중인 사람은 Premium(재봉사 매칭 + 배송) 비용을 빼고, 옷 자체 가격만 받아요.
+  const sub = await getSubscription(req.user.email);
+  const subscriberWaived = sub && sub.active ? fi : 0;
+  const amount = ORDER_BASE_PRICE + fa + da + fi - subscriberWaived;
+  const finishLabelFinal = subscriberWaived
+    ? `${finishLabel || 'Premium · 재봉사 매칭 + 완제품 배송'} → 구독 포함(-${subscriberWaived.toLocaleString('ko-KR')}원)`
+    : finishLabel;
   const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   const row = {
@@ -950,7 +971,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     design_mode: safeDesignMode,
     fabric_label: fabricLabel || null,
     detail_labels: detailLabels && detailLabels.length ? detailLabels : null,
-    finish_label: finishLabel,
+    finish_label: finishLabelFinal,
     fabric_note: fabricNote || null,
     detail_note: detailNote || null,
     shipping_name: needsShipping ? s.name : null,
@@ -974,7 +995,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   }
 
   res.json({
-    ok: true, orderId, amount,
+    ok: true, orderId, amount, subscriberDiscount: subscriberWaived,
     orderName: safeDesignMode === 'studio' ? `UNEXPOSED 제작 스튜디오 주문` : 'UNEXPOSED 맞춤 제작 주문',
   });
 });
@@ -1064,7 +1085,41 @@ app.get('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res)
     .select('*')
     .order('subscribed_at', { ascending: false });
   if (error) return res.status(500).json({ ok: false, error: '구독 목록을 불러오지 못했어요.' });
-  res.json({ ok: true, subscriptions: data });
+  res.json({
+    ok: true,
+    subscriptions: (data || []).map(s => {
+      const d = describeSubscription(s);
+      return { ...s, active: d.active, expires_at: d.expiresAt };
+    }),
+  });
+});
+
+// 관리자 전용: 구독자를 직접 등록/갱신해요. 메인 페이지의 구독하기 버튼이 외부 결제
+// (penworldwide)로 연결돼서 우리 DB에 자동 기록이 안 되니, 결제 확인 후 여기서 등록해요.
+app.post('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res) => {
+  const { email, plan, subscribedAt } = req.body || {};
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    return res.status(400).json({ ok: false, error: '이메일 형식을 확인해주세요.' });
+  }
+  const planInfo = plan === 'Premium' ? PLAN_PRICES.premium : plan === 'Lite' ? PLAN_PRICES.lite : null;
+  if (!planInfo) return res.status(400).json({ ok: false, error: '플랜을 골라주세요.' });
+  const start = subscribedAt ? new Date(subscribedAt) : new Date();
+  if (isNaN(start)) return res.status(400).json({ ok: false, error: '결제일을 확인해주세요.' });
+
+  const { error } = await supabase.from('subscriptions').upsert({
+    email: cleanEmail,
+    plan: planInfo.name,
+    amount: planInfo.amount,
+    subscribed_at: start.toISOString(),
+    payment_key: null,
+    order_id: `manual_${Date.now()}`,
+  });
+  if (error) {
+    console.error('구독자 등록 오류:', error);
+    return res.status(500).json({ ok: false, error: '등록 중 오류가 발생했어요.' });
+  }
+  res.json({ ok: true });
 });
 
 // 관리자 전용: 구독자 한 명을 완전히 삭제해요. (admin.html의 구독 플랜 목록 삭제 버튼에서 사용)

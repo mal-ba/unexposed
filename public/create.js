@@ -278,6 +278,7 @@ let viewerStarted = false;
 
 function openCreateModal(){
   createModal.hidden = false;
+  if(typeof refreshSubscription === 'function') refreshSubscription();
   if(!viewerStarted){
     viewerStarted = true;
     initViewer();
@@ -942,6 +943,19 @@ const orderEl = {
   payBtn: document.getElementById('create-order-pay-btn'),
 };
 let orderFinish = 0;
+let subscriber = null; // { plan, active, expiresAt } — 구독 중이면 재봉사 매칭·배송비가 빠져요.
+
+// 구독 상태를 서버에서 확인해요. (실제 금액 계산은 서버가 다시 해요)
+async function refreshSubscription(){
+  const auth = window.authState;
+  if(!auth || !auth.loggedIn){ subscriber = null; updateQuote(); return; }
+  try {
+    const res = await fetch('/api/subscription');
+    const data = await res.json();
+    subscriber = data.subscription && data.subscription.active ? data.subscription : null;
+  } catch(err){ /* 확인 실패 시 할인 없이 보여줘요 */ }
+  updateQuote();
+}
 
 function designHasPaint(design){
   const p = design && design.paint;
@@ -962,10 +976,12 @@ function computeQuote(){
   });
   const hasPaint = designHasPaint(design);
   const paintAmount = hasPaint ? PAINT_AMOUNT : 0;
+  // 구독에는 재봉사 매칭 + 완제품 배송이 포함돼 있어서, 구독자는 그 비용을 빼고 옷 가격만 내요.
+  const subDiscount = subscriber ? orderFinish : 0;
   return {
     fabricAmount, paintAmount, hasPaint, usedFabrics: [...used],
-    finishAmount: orderFinish,
-    total: ORDER_BASE + fabricAmount + paintAmount + orderFinish,
+    finishAmount: orderFinish, subDiscount,
+    total: ORDER_BASE + fabricAmount + paintAmount + orderFinish - subDiscount,
   };
 }
 
@@ -977,8 +993,10 @@ function quoteHtml(q){
   ];
   if(q.hasPaint) rows.push(['브러시 그림(나염)', '+' + won(q.paintAmount)]);
   rows.push([q.finishAmount ? 'Premium · 재봉사 매칭 + 완제품 배송' : 'Lite · 패턴 PDF만', '+' + won(q.finishAmount)]);
+  if(q.subDiscount) rows.push([`구독 포함 (${subscriber.plan === 'Premium' ? '연간' : '월간'} 구독 중)`, '-' + won(q.subDiscount)]);
   return rows.map(([a, b]) => `<div class="q-row"><span>${a}</span><span>${b}</span></div>`).join('')
     + `<div class="q-row q-total"><span>예상 견적</span><span>${won(q.total)}</span></div>`
+    + (subscriber && !q.finishAmount ? `<div class="q-sub">구독 중이라 Premium을 고르면 재봉사 매칭·배송비가 빠져요.</div>` : '')
     + `<div class="q-sub">기장 ×${state.lengthMul.toFixed(2)} · 둘레 ×${state.girthMul.toFixed(2)} · 부위 ${Object.keys(getDesign(state.typeKey).regions).length}곳 채움</div>`;
 }
 
@@ -1034,7 +1052,7 @@ function captureDesignSnapshot(){
   } catch(err){ return null; }
 }
 
-orderEl.openBtn.addEventListener('click', () => {
+orderEl.openBtn.addEventListener('click', async () => {
   const auth = window.authState;
   if(!auth || !auth.loggedIn){
     alert('주문하려면 먼저 왼쪽 상단 메뉴에서 Google 로그인을 해주세요.');
@@ -1044,6 +1062,7 @@ orderEl.openBtn.addEventListener('click', () => {
     setStatus('옷 모델을 불러온 뒤에 주문할 수 있어요.');
     return;
   }
+  await refreshSubscription();
   const q = computeQuote();
   orderEl.summary.innerHTML = quoteHtml(q);
   const snap = captureDesignSnapshot();
