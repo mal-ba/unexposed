@@ -10,7 +10,7 @@
 
 .viewer-box{
   position:relative; background:var(--deep-2); border-radius:var(--radius); overflow:hidden;
-  height:46vh; min-height:320px; margin-bottom:16px;
+  height:46vh; min-height:320px; margin-bottom:14px;
 }
 #create-3d{ width:100%; height:100%; }
 #create-3d canvas{ display:block; touch-action:none; }
@@ -20,9 +20,55 @@
 }
 .viewer-loading[hidden]{ display:none; }
 .viewer-hint{
-  position:absolute; left:10px; bottom:10px; margin:0; font-size:11px; color:var(--paper);
+  position:absolute; left:10px; bottom:10px; right:10px; margin:0; font-size:11px; color:var(--paper);
   background:rgba(15,46,44,0.72); padding:5px 10px; border-radius:999px; pointer-events:none;
+  width:fit-content; max-width:calc(100% - 20px);
 }
+
+/* 앞/뒤/왼쪽/오른쪽 시점 버튼 */
+.view-btns{
+  position:absolute; top:10px; right:10px; display:flex; gap:4px;
+  background:rgba(15,46,44,0.72); padding:4px; border-radius:999px;
+}
+.view-btns button{
+  font-family:inherit; font-size:11.5px; font-weight:600; color:var(--paper);
+  background:transparent; border:none; padding:5px 9px; border-radius:999px; cursor:pointer;
+}
+.view-btns button.active{ background:var(--star); color:var(--deep); }
+
+/* 도구 */
+.tool-row{ display:flex; gap:6px; margin-bottom:16px; background:var(--mist); padding:4px; border-radius:12px; }
+.tool-chip{
+  flex:1; font-family:inherit; font-size:13px; font-weight:600; padding:9px 8px;
+  border-radius:9px; border:none; background:transparent; color:var(--ink-soft); cursor:pointer;
+}
+.tool-chip.active{ background:var(--deep); color:var(--paper); }
+
+/* 색 */
+.color-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:14px; }
+.color-swatch{
+  width:30px; height:30px; border-radius:50%; cursor:pointer; padding:0;
+  border:2px solid var(--paper); box-shadow:0 0 0 1px var(--line);
+}
+.color-swatch.active{ box-shadow:0 0 0 2px var(--coral); }
+.color-swatch.fabric-default{
+  width:auto; height:30px; border-radius:999px; padding:0 10px; font-family:inherit; font-size:11px;
+  font-weight:600; color:var(--ink-soft); background:var(--paper);
+}
+.color-custom{
+  position:relative; width:30px; height:30px; border-radius:50%; overflow:hidden; cursor:pointer;
+  box-shadow:0 0 0 1px var(--line);
+  background:conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+}
+.color-custom.active{ box-shadow:0 0 0 2px var(--coral); }
+.color-custom input{ position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; border:none; padding:0; }
+
+.brush-size-row{ display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft); margin-bottom:12px; }
+.brush-size-row[hidden]{ display:none; }
+.brush-size-row input{ flex:1; }
+
+.mirror-toggle{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink); margin-bottom:20px; cursor:pointer; }
+.mirror-toggle input{ width:16px; height:16px; }
 
 .size-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px; }
 .size-grid label{ display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:var(--ink-soft); }
@@ -40,19 +86,28 @@
 .fabric-swatch .swatch-chip{
   width:52px; height:52px; border-radius:10px; border:2px solid var(--line); background-size:cover; background-position:center;
 }
+.fabric-swatch .swatch-chip.plain{
+  background:repeating-linear-gradient(45deg, #fff 0 6px, #eee 6px 12px);
+}
 .fabric-swatch.active .swatch-chip{ border-color:var(--coral); }
 .fabric-swatch .swatch-label{ font-size:11px; color:var(--ink-soft); }
 
-.part-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:26px; }
-.part-row{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  padding:10px 14px; border:1px solid var(--line); border-radius:12px; background:var(--paper);
-  font-size:13.5px; cursor:pointer; font-family:inherit; color:var(--ink); text-align:left;
+/* 부위 격자: 행 = 어깨/팔/몸판(또는 허리/다리), 열 = 왼쪽 앞/왼쪽 뒤/오른쪽 앞/오른쪽 뒤 */
+.region-grid{
+  display:grid; grid-template-columns:58px repeat(4, 1fr); gap:6px; margin-bottom:10px;
 }
-.part-row.just-tapped{ border-color:var(--coral); }
-.part-row .part-fabric{ display:flex; align-items:center; gap:8px; color:var(--ink-soft); font-size:12.5px; }
-.part-row .part-fabric .dot{ width:16px; height:16px; border-radius:4px; border:1px solid var(--line); background-size:cover; }
+.rg-head{ font-size:11px; color:var(--ink-soft); text-align:center; line-height:1.3; padding-bottom:2px; }
+.rg-row-label{ font-size:12.5px; font-weight:600; color:var(--ink); display:flex; align-items:center; }
+.rg-cell{
+  display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px;
+  border:1px solid var(--line); border-radius:10px; background:var(--paper); cursor:pointer; font-family:inherit;
+}
+.rg-cell.just-tapped{ border-color:var(--coral); box-shadow:0 0 0 1px var(--coral); }
+.rg-cell .dot{ width:22px; height:22px; border-radius:6px; border:1px solid var(--line); }
+.rg-cell .rg-name{ font-size:10px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 
-.reset-row{ display:flex; justify-content:flex-end; }
+.studio-status{ font-size:12px; color:var(--star-dark); min-height:18px; margin:0 0 18px; }
+
+.reset-row{ display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
 .btn{ font-family:inherit; padding:10px 18px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--line); background:var(--paper); color:var(--ink); }
 .btn-ghost-dark{ background:transparent; color:var(--deep); border:1px solid var(--deep); }

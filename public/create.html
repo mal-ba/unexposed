@@ -12,7 +12,7 @@
       <div class="sec-head" style="text-align:left; margin-bottom:16px;">
         <div class="eyebrow">제작 스튜디오 (베타)</div>
         <h2 class="serif" style="font-size:24px; margin:4px 0 6px;">내 치수·원단으로 옷 만들기</h2>
-        <p style="margin:0;">옷 종류를 정하고, 기장·둘레 배율 숫자를 직접 입력한 뒤 원하는 원단을 골라 채색해보세요.</p>
+        <p style="margin:0;">옷 종류와 기장·둘레를 정한 뒤, 어깨·팔·몸판을 왼쪽/오른쪽, 앞/뒤로 나눠서 따로 채우거나 브러시로 직접 그려보세요.</p>
       </div>
 
       <div class="type-row" id="type-row"></div>
@@ -20,8 +20,33 @@
       <div class="viewer-box">
         <div id="create-3d"></div>
         <p class="viewer-loading" id="create-loading" hidden></p>
-        <p class="viewer-hint">드래그로 회전 · 옷을 탭해서 채색</p>
+        <div class="view-btns" id="view-btns">
+          <button type="button" data-view="front">앞</button>
+          <button type="button" data-view="back">뒤</button>
+          <button type="button" data-view="left">왼쪽</button>
+          <button type="button" data-view="right">오른쪽</button>
+        </div>
+        <p class="viewer-hint" id="viewer-hint">드래그로 회전 · 옷을 탭하면 그 부위를 채워요</p>
       </div>
+
+      <div class="tool-row" id="tool-row">
+        <button class="tool-chip active" type="button" data-tool="fill">부위 채우기</button>
+        <button class="tool-chip" type="button" data-tool="brush">브러시</button>
+        <button class="tool-chip" type="button" data-tool="eraser">지우개</button>
+      </div>
+
+      <div class="section-label">색</div>
+      <div class="color-row" id="color-row"></div>
+
+      <div class="brush-size-row" id="brush-size-row" hidden>
+        <span>브러시 굵기</span>
+        <input type="range" id="brush-size" min="0.01" max="0.12" step="0.005" value="0.035">
+      </div>
+
+      <label class="mirror-toggle">
+        <input type="checkbox" id="mirror-toggle">
+        <span>좌우 대칭으로 칠하기</span>
+      </label>
 
       <div class="size-grid">
         <label>
@@ -34,13 +59,16 @@
         </label>
       </div>
 
-      <div class="section-label">원단 선택 <span class="hint">(고른 뒤 옷을 탭하세요)</span></div>
+      <div class="section-label">원단 선택 <span class="hint">(부위 채우기에 쓰여요)</span></div>
       <div class="fabric-row" id="fabric-row"></div>
 
-      <div class="section-label">부위별 배정 현황</div>
-      <div class="part-list" id="part-list"></div>
+      <div class="section-label">부위별 채우기 <span class="hint">(칸을 누르면 지금 고른 원단·색으로 채워요 · 좌우는 입는 사람 기준)</span></div>
+      <div class="region-grid" id="region-grid"></div>
+      <p class="studio-status" id="studio-status"></p>
 
       <div class="reset-row">
+        <button class="btn btn-ghost-dark" id="fill-all-btn" type="button">전체 채우기</button>
+        <button class="btn btn-ghost-dark" id="clear-paint-btn" type="button">브러시 자국 지우기</button>
         <button class="btn btn-ghost-dark" id="reset-btn" type="button">이 옷 초기화</button>
       </div>
     </div>
