@@ -266,6 +266,7 @@ const el = {
   loading: document.getElementById('create-loading'),
   hint: document.getElementById('viewer-hint'),
   viewBtns: document.getElementById('view-btns'),
+  regionHint: document.getElementById('region-hint'),
 };
 
 /* ---------- 모달 열기/닫기 ----------
@@ -496,6 +497,34 @@ function fillRegion(key, withMirror = true){
   renderRegionGrid();
 }
 
+// 지우개로 부위를 통째로 지워요 — 채운 원단/색 + 그 부위의 브러시 자국까지 모두.
+function clearRegion(key, withMirror = true){
+  const cache = GLB_CACHE[state.typeKey];
+  const design = getDesign(state.typeKey);
+  const targets = [key];
+  if(withMirror && state.mirror) targets.push(mirrorRegionKey(key));
+  targets.forEach(k => {
+    delete design.regions[k];
+    applyRegionLook(k, null);
+    const idx = cache && cache.regionIndex[k];
+    const paint = state.paintAttr && state.paintAttr.array;
+    const mask = state.fillAttr && state.fillAttr.array;
+    if(!idx || !paint || !mask) return;
+    for(let j = 0; j < idx.length; j++){
+      const i = idx[j];
+      paint[i*4+3] = 0;
+      mask[i] = 1;
+      if(i < dirtyMin) dirtyMin = i;
+      if(i > dirtyMax) dirtyMax = i;
+    }
+  });
+  flushPaint();
+  state.lastTappedRegion = key;
+  const kind = GARMENT_TYPES[state.typeKey].kind;
+  setStatus(`${targets.map(k => regionLabel(kind, k)).join(', ')} → 지웠어요`);
+  renderRegionGrid();
+}
+
 // 부위에 속한 정점들의 fillMask를 1로 되돌려요(지우개로 지운 부분을 다시 채움).
 function restoreFillMask(key){
   const cache = GLB_CACHE[state.typeKey];
@@ -659,8 +688,11 @@ function handleStrokeMove(e){
 function endStroke(e){
   if(!stroke || (e && e.pointerId !== stroke.id)) return;
   if(queuedStroke){ const ev = queuedStroke; queuedStroke = null; handleStrokeMove(ev); }
+  const s = stroke;
   stroke = null;
   controls.enabled = true;
+  // 지우개로 "탭"만 했으면(거의 안 움직였으면) 그 부위를 통째로 지워요 — 부위 채우기와 같은 방식.
+  if(state.tool === 'eraser' && s.moved <= 6 && s.region) clearRegion(s.region);
 }
 
 function setupPointerInteractions(){
@@ -677,7 +709,7 @@ function setupPointerInteractions(){
     const hit = hitTest(e);
     if(!hit) return;   // 옷 밖을 누르면 평소처럼 회전
     controls.enabled = false;
-    stroke = { id: e.pointerId, last: null };
+    stroke = { id: e.pointerId, last: null, startX: e.clientX, startY: e.clientY, moved: 0, region: hit.object.userData.region };
     _brushColor.set(state.activeColor || '#14201E');
     try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
     strokeTo(hit);
@@ -685,7 +717,10 @@ function setupPointerInteractions(){
   }, { capture: true });
 
   canvas.addEventListener('pointermove', e => {
-    if(stroke && e.pointerId === stroke.id) queuedStroke = e; // 프레임당 한 번만 처리
+    if(stroke && e.pointerId === stroke.id){
+      stroke.moved = Math.max(stroke.moved, Math.abs(e.clientX - stroke.startX) + Math.abs(e.clientY - stroke.startY));
+      queuedStroke = e; // 프레임당 한 번만 처리
+    }
   });
   window.addEventListener('pointerup', endStroke);
   window.addEventListener('pointercancel', endStroke);
@@ -729,11 +764,14 @@ function renderTypeRow(){
 const TOOL_HINTS = {
   fill: '드래그로 회전 · 옷을 탭하면 그 부위를 채워요',
   brush: '옷 위를 드래그해서 그리기 · 옷 바깥을 드래그하면 회전',
-  eraser: '옷 위를 드래그해서 브러시 자국·채운 색 지우기 · 옷 바깥은 회전',
+  eraser: '옷을 탭하면 그 부위 전체를 지우고, 드래그하면 문지른 곳만 지워요 · 옷 바깥은 회전',
 };
 function renderToolRow(){
   el.toolRow.querySelectorAll('.tool-chip').forEach(b => b.classList.toggle('active', b.dataset.tool === state.tool));
   el.brushSizeRow.hidden = state.tool === 'fill';
+  if(el.regionHint) el.regionHint.textContent = state.tool === 'eraser'
+    ? '(칸을 누르면 그 부위를 지워요 · 좌우는 입는 사람 기준)'
+    : '(칸을 누르면 지금 고른 원단·색으로 채워요 · 좌우는 입는 사람 기준)';
   if(el.hint) el.hint.textContent = TOOL_HINTS[state.tool];
 }
 el.toolRow.querySelectorAll('.tool-chip').forEach(btn => {
@@ -823,7 +861,10 @@ function renderRegionGrid(){
   }).join('');
   el.regionGrid.innerHTML = head + rows;
   el.regionGrid.querySelectorAll('.rg-cell').forEach(btn => {
-    btn.addEventListener('click', () => fillRegion(btn.dataset.region));
+    btn.addEventListener('click', () => {
+      if(state.tool === 'eraser') clearRegion(btn.dataset.region);
+      else fillRegion(btn.dataset.region);
+    });
   });
 }
 
