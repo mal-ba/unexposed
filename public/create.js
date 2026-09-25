@@ -693,6 +693,7 @@ function endStroke(e){
   controls.enabled = true;
   // 지우개로 "탭"만 했으면(거의 안 움직였으면) 그 부위를 통째로 지워요 — 부위 채우기와 같은 방식.
   if(state.tool === 'eraser' && s.moved <= 6 && s.region) clearRegion(s.region);
+  updateQuote();
 }
 
 function setupPointerInteractions(){
@@ -866,6 +867,7 @@ function renderRegionGrid(){
       else fillRegion(btn.dataset.region);
     });
   });
+  updateQuote();
 }
 
 /* ---------- 입력 ---------- */
@@ -900,12 +902,219 @@ el.clearPaintBtn.addEventListener('click', () => {
     state.paintAttr.needsUpdate = true;
   }
   setStatus('브러시로 그린 자국을 모두 지웠어요.');
+  updateQuote();
 });
 el.resetBtn.addEventListener('click', () => {
   delete state.designByType[state.typeKey];
   state.lastTappedRegion = null;
   setStatus('이 옷을 처음 상태로 되돌렸어요.');
   rebuildGarment();
+});
+
+
+/* ---------- 주문하기 ----------
+   지금 보고 있는 옷(종류·기장/둘레·부위별 원단/색·브러시 그림)을 그대로 주문해요.
+   화면의 견적은 안내용이고, 실제 금액은 서버가 같은 규칙으로 다시 계산해요(위변조 방지). */
+const ORDER_BASE = 30000;
+const FABRIC_TIER = { cotton: 0, linen: 0, silk: 20000, denim: 20000, knit: 20000, leather: 40000 };
+const TIER_LABEL = { 0: '베이직', 20000: '프리미엄', 40000: '스페셜' };
+const PAINT_AMOUNT = 10000;
+const won = n => n.toLocaleString('ko-KR') + '원';
+
+const orderEl = {
+  finishChoices: document.getElementById('create-finish-choices'),
+  finishNote: document.getElementById('create-finish-note'),
+  quote: document.getElementById('create-quote'),
+  openBtn: document.getElementById('create-order-open-btn'),
+  modal: document.getElementById('create-order-modal'),
+  preview: document.getElementById('create-order-preview'),
+  summary: document.getElementById('create-order-summary'),
+  shippingSection: document.getElementById('create-order-shipping-section'),
+  consent: document.getElementById('create-order-consent'),
+  name: document.getElementById('create-order-name'),
+  phone: document.getElementById('create-order-phone'),
+  zipcode: document.getElementById('create-order-zipcode'),
+  address1: document.getElementById('create-order-address1'),
+  address2: document.getElementById('create-order-address2'),
+  note: document.getElementById('create-order-note'),
+  modalNote: document.getElementById('create-order-modal-note'),
+  cancelBtn: document.getElementById('create-order-cancel-btn'),
+  payBtn: document.getElementById('create-order-pay-btn'),
+};
+let orderFinish = 0;
+
+function designHasPaint(design){
+  const p = design && design.paint;
+  if(!p) return false;
+  for(let i = 3; i < p.length; i += 4) if(p[i] > 0.05) return true;
+  return false;
+}
+
+function computeQuote(){
+  const design = getDesign(state.typeKey);
+  let fabricAmount = 0;
+  const used = new Set();
+  Object.values(design.regions).forEach(look => {
+    if(!look || !look.fabric) return;
+    const f = FABRICS.find(x => x.id === look.fabric);
+    if(f) used.add(f.name);
+    fabricAmount = Math.max(fabricAmount, FABRIC_TIER[look.fabric] || 0);
+  });
+  const hasPaint = designHasPaint(design);
+  const paintAmount = hasPaint ? PAINT_AMOUNT : 0;
+  return {
+    fabricAmount, paintAmount, hasPaint, usedFabrics: [...used],
+    finishAmount: orderFinish,
+    total: ORDER_BASE + fabricAmount + paintAmount + orderFinish,
+  };
+}
+
+function quoteHtml(q){
+  const def = GARMENT_TYPES[state.typeKey];
+  const rows = [
+    [`기본 제작비 · ${def.label}`, won(ORDER_BASE)],
+    [`원단 ${TIER_LABEL[q.fabricAmount]}${q.usedFabrics.length ? ' (' + q.usedFabrics.join(', ') + ')' : ''}`, '+' + won(q.fabricAmount)],
+  ];
+  if(q.hasPaint) rows.push(['브러시 그림(나염)', '+' + won(q.paintAmount)]);
+  rows.push([q.finishAmount ? 'Premium · 재봉사 매칭 + 완제품 배송' : 'Lite · 패턴 PDF만', '+' + won(q.finishAmount)]);
+  return rows.map(([a, b]) => `<div class="q-row"><span>${a}</span><span>${b}</span></div>`).join('')
+    + `<div class="q-row q-total"><span>예상 견적</span><span>${won(q.total)}</span></div>`
+    + `<div class="q-sub">기장 ×${state.lengthMul.toFixed(2)} · 둘레 ×${state.girthMul.toFixed(2)} · 부위 ${Object.keys(getDesign(state.typeKey).regions).length}곳 채움</div>`;
+}
+
+function updateQuote(){
+  if(!orderEl.quote) return;
+  orderEl.quote.innerHTML = quoteHtml(computeQuote());
+}
+
+if(orderEl.finishChoices){
+  orderEl.finishChoices.querySelectorAll('.calc-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      orderEl.finishChoices.querySelectorAll('.calc-chip').forEach(c => c.classList.toggle('active', c === chip));
+      orderFinish = Number(chip.dataset.finish) || 0;
+      orderEl.finishNote.hidden = orderFinish !== 30000;
+      updateQuote();
+    });
+  });
+}
+
+const shippingInputs = () => [orderEl.name, orderEl.phone, orderEl.zipcode, orderEl.address1, orderEl.address2, orderEl.note];
+
+function updateShippingLock(){
+  const unlocked = orderEl.consent.checked;
+  shippingInputs().forEach(i => { i.disabled = !unlocked; });
+}
+function updatePayBtn(){
+  if(orderEl.shippingSection.hidden){ orderEl.payBtn.disabled = false; return; }
+  const filled = orderEl.name.value.trim() && orderEl.phone.value.trim()
+    && orderEl.zipcode.value.trim() && orderEl.address1.value.trim();
+  orderEl.payBtn.disabled = !(filled && orderEl.consent.checked);
+}
+[orderEl.name, orderEl.phone, orderEl.zipcode, orderEl.address1].forEach(i => i.addEventListener('input', updatePayBtn));
+orderEl.consent.addEventListener('change', () => { updateShippingLock(); updatePayBtn(); });
+
+// 프로필에 저장해둔 배송지가 있으면 자동으로 채워요(직접 수정 가능).
+function prefillShipping(){
+  const p = window.userProfile;
+  if(!p || !p.shippingConsent) return;
+  if(!orderEl.name.value) orderEl.name.value = p.name || '';
+  if(!orderEl.phone.value) orderEl.phone.value = p.phone || '';
+  if(!orderEl.zipcode.value) orderEl.zipcode.value = p.zipcode || '';
+  if(!orderEl.address1.value) orderEl.address1.value = p.address1 || '';
+  if(!orderEl.address2.value) orderEl.address2.value = p.address2 || '';
+  orderEl.consent.checked = true;
+}
+
+// 주문 확인창에 보여줄 3D 화면 캡처 (보여주기용, 서버에는 안 보내요)
+function captureDesignSnapshot(){
+  try {
+    if(!renderer || !scene || !camera) return null;
+    renderer.render(scene, camera);
+    return renderer.domElement.toDataURL('image/png');
+  } catch(err){ return null; }
+}
+
+orderEl.openBtn.addEventListener('click', () => {
+  const auth = window.authState;
+  if(!auth || !auth.loggedIn){
+    alert('주문하려면 먼저 왼쪽 상단 메뉴에서 Google 로그인을 해주세요.');
+    return;
+  }
+  if(!GLB_CACHE[state.typeKey]){
+    setStatus('옷 모델을 불러온 뒤에 주문할 수 있어요.');
+    return;
+  }
+  const q = computeQuote();
+  orderEl.summary.innerHTML = quoteHtml(q);
+  const snap = captureDesignSnapshot();
+  orderEl.preview.hidden = !snap;
+  if(snap) orderEl.preview.src = snap;
+  const needsShipping = q.finishAmount === 30000;
+  orderEl.shippingSection.hidden = !needsShipping;
+  if(needsShipping) prefillShipping();
+  updateShippingLock();
+  orderEl.modalNote.textContent = '';
+  orderEl.payBtn.textContent = '결제하기';
+  updatePayBtn();
+  orderEl.modal.hidden = false;
+});
+orderEl.cancelBtn.addEventListener('click', () => { orderEl.modal.hidden = true; });
+orderEl.modal.addEventListener('click', e => { if(e.target === orderEl.modal) orderEl.modal.hidden = true; });
+
+orderEl.payBtn.addEventListener('click', async () => {
+  const q = computeQuote();
+  const needsShipping = q.finishAmount === 30000;
+  const auth = window.authState || {};
+  orderEl.payBtn.disabled = true;
+  orderEl.payBtn.textContent = '주문 생성 중...';
+  const fail = msg => {
+    orderEl.modalNote.textContent = msg;
+    orderEl.payBtn.textContent = '결제하기';
+    updatePayBtn();
+  };
+  try {
+    const design = getDesign(state.typeKey);
+    const res = await fetch('/api/orders/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        designMode: 'studio',
+        finishAmount: q.finishAmount,
+        finishLabel: q.finishAmount ? 'Premium · 재봉사 매칭 + 완제품 배송 · +30,000원' : 'Lite · 패턴 PDF만 · +0원',
+        studio: {
+          typeKey: state.typeKey,
+          lengthMul: state.lengthMul,
+          girthMul: state.girthMul,
+          regions: design.regions,
+          hasPaint: q.hasPaint,
+        },
+        consent: needsShipping ? orderEl.consent.checked : false,
+        shipping: needsShipping ? {
+          name: orderEl.name.value.trim(),
+          phone: orderEl.phone.value.trim(),
+          zipcode: orderEl.zipcode.value.trim(),
+          address1: orderEl.address1.value.trim(),
+          address2: orderEl.address2.value.trim(),
+          note: orderEl.note.value.trim(),
+        } : null,
+      }),
+    });
+    const order = await res.json();
+    if(!order.ok) return fail(order.error || '주문 생성에 실패했어요.');
+    const clientKey = window.TOSS_CLIENT_KEY || (typeof TOSS_CLIENT_KEY !== 'undefined' ? TOSS_CLIENT_KEY : null);
+    if(typeof window.TossPayments !== 'function' || !clientKey) return fail('결제 모듈을 불러오지 못했어요. 새로고침 후 다시 시도해주세요.');
+    window.TossPayments(clientKey).requestPayment('카드', {
+      amount: order.amount,
+      orderId: order.orderId,
+      orderName: order.orderName,
+      customerName: auth.name,
+      customerEmail: auth.email,
+      successUrl: `${window.location.origin}/payment-success.html`,
+      failUrl: `${window.location.origin}/payment-fail.html`,
+    });
+  } catch(err){
+    fail('결제창을 여는 중 오류가 발생했어요.');
+  }
 });
 
 /* ---------- 시작 ---------- */

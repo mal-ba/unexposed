@@ -852,18 +852,81 @@ const ORDER_DETAIL_AMOUNTS = new Set([0, 10000, 15000, 25000]); // 디테일은 
 const ORDER_FINISH_AMOUNTS = new Set([0, 30000]);
 const ORDER_BASE_PRICE = 30000;
 
-app.post('/api/orders/create-order', requireLogin, async (req, res) => {
-  const {
-    fabricAmount, detailAmount, finishAmount,
-    fabricLabel, detailLabels, finishLabel, fabricNote, detailNote,
-    shipping, consent, designMode,
-  } = req.body || {};
+/* 제작 스튜디오(create.html) 주문용 — 클라이언트가 보낸 디자인을 보고 서버가 직접 견적을 계산해요. */
+const STUDIO_TYPES = { shortSleeve: '반팔 티셔츠', longSleeve: '긴팔 티셔츠', shortPants: '반바지', longPants: '긴바지' };
+const STUDIO_FABRICS = {
+  cotton: { name: '면', amount: 0 }, linen: { name: '린넨', amount: 0 },
+  silk: { name: '실크', amount: 20000 }, denim: { name: '데님', amount: 20000 }, knit: { name: '니트', amount: 20000 },
+  leather: { name: '가죽', amount: 40000 },
+};
+const STUDIO_TIER_LABELS = { 0: '베이직', 20000: '프리미엄', 40000: '스페셜' };
+const STUDIO_PAINT_AMOUNT = 10000; // 브러시로 직접 그린 그림 → 나염 비용
+const STUDIO_ROWS = { shoulder: '어깨', sleeve: '팔(소매)', body: '몸판', waist: '허리', leg: '다리' };
+const STUDIO_COLS = { LF: ['왼쪽', '앞'], LB: ['왼쪽', '뒤'], RF: ['오른쪽', '앞'], RB: ['오른쪽', '뒤'] };
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
-  const fa = Number(fabricAmount), da = Number(detailAmount), fi = Number(finishAmount);
-  if (!ORDER_FABRIC_AMOUNTS.has(fa) || !ORDER_DETAIL_AMOUNTS.has(da) || !ORDER_FINISH_AMOUNTS.has(fi)) {
+function buildStudioOrder(studio){
+  if(!studio || typeof studio !== 'object') return { error: '스튜디오 디자인 정보가 없어요.' };
+  const typeLabel = STUDIO_TYPES[studio.typeKey];
+  if(!typeLabel) return { error: '알 수 없는 옷 종류예요.' };
+  const lengthMul = Math.min(1.6, Math.max(0.6, Number(studio.lengthMul) || 1));
+  const girthMul = Math.min(1.5, Math.max(0.7, Number(studio.girthMul) || 1));
+  const regions = (studio.regions && typeof studio.regions === 'object') ? studio.regions : {};
+
+  let fabricAmount = 0;
+  const usedFabrics = new Set();
+  const regionLines = [];
+  for(const [key, look] of Object.entries(regions).slice(0, 40)){
+    const [row, col] = String(key).split('_');
+    if(!STUDIO_ROWS[row] || !STUDIO_COLS[col] || !look || typeof look !== 'object') continue;
+    const fabric = look.fabric ? STUDIO_FABRICS[look.fabric] : null;
+    if(look.fabric && !fabric) continue;
+    const color = HEX_COLOR.test(look.color || '') ? look.color.toUpperCase() : null;
+    if(!fabric && !color) continue;
+    if(fabric){ usedFabrics.add(fabric.name); fabricAmount = Math.max(fabricAmount, fabric.amount); }
+    const [side, face] = STUDIO_COLS[col];
+    regionLines.push(`${side} ${STUDIO_ROWS[row]} ${face}: ${fabric ? fabric.name : '단색'}${color ? ' ' + color : ''}`);
+  }
+  const hasPaint = !!studio.hasPaint;
+  const detailAmount = hasPaint ? STUDIO_PAINT_AMOUNT : 0;
+
+  const fabricLabel = `원단 ${STUDIO_TIER_LABELS[fabricAmount]}${usedFabrics.size ? ' (' + [...usedFabrics].join(', ') + ')' : ''} · +${fabricAmount.toLocaleString('ko-KR')}원`;
+  const detailLabels = hasPaint ? [`브러시 그림(나염) · +${STUDIO_PAINT_AMOUNT.toLocaleString('ko-KR')}원`] : [];
+  const fabricNote = [
+    `[제작 스튜디오] ${typeLabel} · 기장 ×${lengthMul.toFixed(2)} · 둘레 ×${girthMul.toFixed(2)}`,
+    regionLines.length ? regionLines.join(' / ') : '부위 채우기 없음(기본 옷감색)',
+  ].join('\n');
+  const detailNote = hasPaint ? '브러시로 직접 그린 그림이 있어요 (나염 필요).' : null;
+  return { fabricAmount, detailAmount, fabricLabel, detailLabels, fabricNote, detailNote };
+}
+
+app.post('/api/orders/create-order', requireLogin, async (req, res) => {
+  const body = req.body || {};
+  const { shipping, consent, designMode } = body;
+  const fi = Number(body.finishAmount);
+  if(!ORDER_FINISH_AMOUNTS.has(fi)){
     return res.status(400).json({ ok: false, error: '옵션 금액이 올바르지 않아요.' });
   }
-  const safeDesignMode = (designMode === '3d' || designMode === '2d') ? designMode : null;
+
+  let fa, da, fabricLabel, detailLabels, fabricNote, detailNote, safeDesignMode;
+  if(designMode === 'studio'){
+    // 제작 스튜디오: 금액은 클라이언트 값을 쓰지 않고, 보낸 디자인으로 서버가 다시 계산해요.
+    const built = buildStudioOrder(body.studio);
+    if(built.error) return res.status(400).json({ ok: false, error: built.error });
+    ({ fabricAmount: fa, detailAmount: da, fabricLabel, detailLabels, fabricNote, detailNote } = built);
+    safeDesignMode = 'studio';
+  } else {
+    fa = Number(body.fabricAmount); da = Number(body.detailAmount);
+    if (!ORDER_FABRIC_AMOUNTS.has(fa) || !ORDER_DETAIL_AMOUNTS.has(da)) {
+      return res.status(400).json({ ok: false, error: '옵션 금액이 올바르지 않아요.' });
+    }
+    fabricLabel = body.fabricLabel || null;
+    detailLabels = Array.isArray(body.detailLabels) ? body.detailLabels : null;
+    fabricNote = body.fabricNote || null;
+    detailNote = body.detailNote || null;
+    safeDesignMode = (designMode === '3d' || designMode === '2d') ? designMode : null;
+  }
+  const finishLabel = body.finishLabel || null;
 
   // "완제품 도어투도어 배송"을 선택했을 때만 배송지·동의가 필요해요 (패턴 PDF만이면 배송이 없어요).
   const needsShipping = fi === 30000;
@@ -880,14 +943,14 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   const amount = ORDER_BASE_PRICE + fa + da + fi;
   const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  const { error } = await supabase.from('orders').insert({
+  const row = {
     order_id: orderId,
     email: req.user.email,
     amount,
     design_mode: safeDesignMode,
     fabric_label: fabricLabel || null,
-    detail_labels: Array.isArray(detailLabels) ? detailLabels : null,
-    finish_label: finishLabel || null,
+    detail_labels: detailLabels && detailLabels.length ? detailLabels : null,
+    finish_label: finishLabel,
     fabric_note: fabricNote || null,
     detail_note: detailNote || null,
     shipping_name: needsShipping ? s.name : null,
@@ -898,13 +961,22 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     shipping_note: needsShipping ? (s.note || null) : null,
     shipping_consent: !!consent,
     status: 'pending',
-  });
+  };
+  let { error } = await supabase.from('orders').insert(row);
+  // design_mode 컬럼에 '3d'/'2d'만 허용하는 제약이 걸려 있으면, 스튜디오 표시는 빼고 다시 저장해요.
+  // (주문 내용은 fabric_note 첫 줄의 [제작 스튜디오]로 구분돼요)
+  if (error && safeDesignMode === 'studio' && /design_mode|check/i.test(`${error.message} ${error.details || ''} ${error.code || ''}`)) {
+    ({ error } = await supabase.from('orders').insert({ ...row, design_mode: null }));
+  }
   if (error) {
     console.error('주문 생성 오류:', error);
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했어요.' });
   }
 
-  res.json({ ok: true, orderId, amount, orderName: 'UNEXPOSED 맞춤 제작 주문' });
+  res.json({
+    ok: true, orderId, amount,
+    orderName: safeDesignMode === 'studio' ? `UNEXPOSED 제작 스튜디오 주문` : 'UNEXPOSED 맞춤 제작 주문',
+  });
 });
 
 // Toss 결제창에서 successUrl로 돌아온 뒤, 프론트가 이 API로 실제 결제를 승인(confirm)해요.

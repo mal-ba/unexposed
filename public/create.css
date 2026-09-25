@@ -111,3 +111,25 @@
 .reset-row{ display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
 .btn{ font-family:inherit; padding:10px 18px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--line); background:var(--paper); color:var(--ink); }
 .btn-ghost-dark{ background:transparent; color:var(--deep); border:1px solid var(--deep); }
+
+/* ---------- 주문하기 ---------- */
+.studio-order{ margin-top:28px; padding-top:22px; border-top:1px dashed var(--line); }
+.studio-order-desc{ font-size:12.5px; color:var(--ink-soft); margin:0 0 12px; line-height:1.55; }
+.studio-order .calc-choices{ margin-bottom:10px; }
+.studio-order-note{ font-size:12px; color:var(--star-dark); margin:0 0 10px; line-height:1.5; }
+.studio-order-note[hidden]{ display:none; }
+.studio-quote{ background:var(--mist); border-radius:12px; padding:12px 14px; margin:10px 0 14px; font-size:13px; }
+.studio-quote .q-row{ display:flex; justify-content:space-between; gap:12px; padding:3px 0; color:var(--ink-soft); }
+.studio-quote .q-row span:last-child{ white-space:nowrap; color:var(--ink); }
+.studio-quote .q-total{ border-top:1px solid var(--line); margin-top:6px; padding-top:8px; font-weight:700; color:var(--ink); }
+.studio-quote .q-total span:last-child{ font-size:16px; }
+.studio-quote .q-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:6px; line-height:1.5; }
+/* create.css의 .btn이 기본 배경을 덮어써서, 주문 버튼은 여기서 다시 강조색을 줘요. */
+.studio-order .btn-primary, #create-order-modal .btn-primary{ background:var(--deep); color:var(--paper); border-color:var(--deep); }
+.studio-order .btn-primary:disabled, #create-order-modal .btn-primary:disabled{ opacity:0.4; cursor:not-allowed; }
+.studio-order-btn{ width:100%; justify-content:center; padding:13px 18px; font-size:14px; }
+.studio-order-preview{ display:block; width:100%; max-height:220px; object-fit:contain; background:var(--deep-2); border-radius:12px; margin-bottom:6px; }
+.studio-order-preview[hidden]{ display:none; }
+.studio-order-actions{ display:flex; gap:10px; margin-top:14px; }
+.studio-order-actions .btn{ flex:1; justify-content:center; }
+#create-order-modal .order-shipping-fields input:disabled{ opacity:0.5; }
