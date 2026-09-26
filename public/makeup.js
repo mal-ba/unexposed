@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { MAKEUP_PROP_DEFS, recolorProp, FACE_PATCH_ANGLES, FACE_PATCH_Y, HAIR_BAND_ANGLES, HAIR_BAND_Y } from '/makeup-props.js';
+import { MAKEUP_PROP_DEFS, recolorProp } from '/makeup-props.js';
 import { SEG_CATEGORY, analyzePhotoBySegments, sampleAverageColorFromPhoto } from '/segment-utils.js';
 
 /* ==========================================================================
@@ -166,44 +166,53 @@ rescanBtn.addEventListener('click', () => {
 renderStageUI();
 
 // ---------- 머리카락·얼굴 AI 인식 (공용 segment-utils.js 사용) ----------
-// 혹시 이 모델을 못 불러오면(네트워크 문제 등) 자동으로 예전 방식(사진 위쪽 색 평균)으로 대체해요.
+// 사진 한 장에서 세 가지를 오려내요 (셋 다 원본 사진 기준 위치 정보 cropInfo를 갖고 있어요).
+//  - all  : 머리카락 + 얼굴 피부 + 목/몸 피부 → 실제로 3D에 입히는 텍스처
+//  - face : 얼굴 피부만 → 턱 끝·얼굴 폭·코 끝 위치를 재서 크기 맞추기용
+//  - hair : 머리카락만 → 정수리(머리 꼭대기) 위치를 재서 크기 맞추기용
 function analyzePhotoSegments(dataUrl){
   return analyzePhotoBySegments(dataUrl, {
-    hairCutout: [SEG_CATEGORY.HAIR],
-    faceCutout: [SEG_CATEGORY.BODY_SKIN, SEG_CATEGORY.FACE_SKIN], // 얼굴 패치에는 얼굴 피부 + 목/몸 피부까지 살짝 포함해서, 턱선에서 뚝 끊기지 않게 해요.
+    all: [SEG_CATEGORY.HAIR, SEG_CATEGORY.BODY_SKIN, SEG_CATEGORY.FACE_SKIN],
+    face: [SEG_CATEGORY.FACE_SKIN],
+    hair: [SEG_CATEGORY.HAIR],
   });
 }
 const sampleHairColorFromPhoto = dataUrl => sampleAverageColorFromPhoto(dataUrl, 0.22);
 
 let pendingPhotosApply = null; // 얼굴 모델이 아직 안 불러와졌을 때, 분석 결과를 잠시 담아둬요.
-let activeFacePatches = []; // 정면/좌/우 얼굴 패치들
-let activeHairBandPatches = []; // 정면/좌/우/뒤 머리카락 밴드 패치들
+let activePhotoLayers = [];    // 얼굴에 입혀진 사진 레이어들 (각도별)
 
-// STEP 2 진입 시 자동으로 호출돼요: 찍은 사진들(최대 4장)을 각각 AI로 분석해서,
-// 각도에 맞는 얼굴 패치·머리카락 밴드를 만들어요.
+// 각 사진을 어느 방향에서 찍었는지 (θ=0 정면(+Z), +π/2 = +X = 사진 속 "얼굴 왼쪽", π = 뒤)
+const PHOTO_VIEW_THETA = { front: 0, left: Math.PI / 2, right: -Math.PI / 2, back: Math.PI };
+
+// makeup-face.glb를 직접 측정한 기준점이에요 (모델 중심 기준 좌표).
+const MODEL_CHIN_Y = -0.21;       // 턱 끝 아래
+const MODEL_HAIRLINE_Y = 0.80;    // 이마 위 머리선 (머리카락 인식이 안 됐을 때만 사용)
+const HAIR_VOLUME = 0.04;         // 사진 속 머리카락 꼭대기는 두피보다 이만큼 위에 있다고 봐요.
+
+// STEP 2 진입 시 자동으로 호출돼요: 찍은 사진들(최대 4장)을 각각 AI로 분석해요.
 async function applyAllPhotosAI(photos){
   if(statusEl) statusEl.textContent = '사진에서 얼굴과 머리카락을 인식하는 중이에요... (사진이 많으면 조금 걸려요)';
 
-  const faceCutouts = {}; // { front: canvas, left: canvas, right: canvas }
-  const hairCutouts = {}; // { front: canvas, left: canvas, right: canvas, back: canvas }
+  const segmentsByView = {}; // { front: {all, face, hair}, ... }
   let anyFaceFound = false;
 
   for(const stage of SCAN_STAGES){
     const dataUrl = photos[stage.key];
     if(!dataUrl) continue;
     try{
-      const segments = await analyzePhotoSegments(dataUrl);
-      if(segments.faceCutout){ faceCutouts[stage.key] = segments.faceCutout; anyFaceFound = true; }
-      if(segments.hairCutout) hairCutouts[stage.key] = segments.hairCutout;
+      const seg = await analyzePhotoSegments(dataUrl);
+      if(seg.all){ segmentsByView[stage.key] = seg; }
+      if(seg.face) anyFaceFound = true;
     } catch(err){
       console.error(`${stage.label} 사진 AI 인식 실패:`, err);
     }
   }
 
-  applyPhotosToScene({ faceCutouts, hairCutouts, frontDataUrl: photos.front });
+  applyPhotosToScene({ segmentsByView, frontDataUrl: photos.front });
 
   if(anyFaceFound){
-    if(statusEl) statusEl.textContent = '사진 속 얼굴·머리카락을 3D에 입혔어요! 각도별로 잘 안 맞으면 소품처럼 슬라이더로 미세조정할 수 있어요.';
+    if(statusEl) statusEl.textContent = '사진 속 얼굴·머리카락을 3D 얼굴 크기에 맞춰서 입혔어요!';
   } else if(statusEl){
     statusEl.textContent = '얼굴 인식에는 실패했어요. 조명이 밝은 정면 사진으로 다시 시도해보세요.';
   }
@@ -215,46 +224,21 @@ function applyPhotosToScene(payload){
     pendingPhotosApply = payload;
     return;
   }
-  const { faceCutouts, hairCutouts, frontDataUrl } = payload;
+  const { segmentsByView, frontDataUrl } = payload;
 
-  // 기존에 붙어있던 패치들은 지우고 새로 붙여요 (다시 스캔했을 때 중복 방지).
-  activeFacePatches.forEach(disposeProjectedLayer);
-  activeHairBandPatches.forEach(disposeProjectedLayer);
-  activeFacePatches = [];
-  activeHairBandPatches = [];
+  // 기존에 붙어있던 사진 레이어는 지우고 새로 붙여요 (다시 스캔했을 때 중복 방지).
+  activePhotoLayers.forEach(disposeProjectedLayer);
+  activePhotoLayers = [];
 
-  // 예전에는 사진을 얼굴 앞에 떠 있는 원통 곡면에 붙여서, 코·입술처럼 튀어나온 부분이랑 안 맞았어요.
-  // 이제는 같은 각도·높이 기준으로 사진을 "프로젝터처럼" 실제 3D 얼굴 표면에 직접 비춰서 입혀요.
-  let layerIndex = 0;
-  FACE_PATCH_ANGLES.forEach(angle => {
-    const cutout = faceCutouts[angle.key];
-    if(!cutout) return;
-    const layers = createProjectedLayers({
-      cutoutCanvas: cutout,
-      thetaCenter: angle.thetaCenter,
-      thetaWidth: angle.thetaWidth,
-      yTop: FACE_PATCH_Y.yTop,
-      yBottom: FACE_PATCH_Y.yBottom,
-      radius: FACE_PATCH_Y.radius,
-      layerIndex: layerIndex++,
-    });
-    activeFacePatches.push(...layers);
+  // 각 사진마다 "사진 픽셀 ↔ 3D 좌표" 대응(크기·위치)을 자동으로 계산해요.
+  const views = [];
+  Object.entries(segmentsByView).forEach(([key, seg]) => {
+    const theta = PHOTO_VIEW_THETA[key];
+    if(theta === undefined) return;
+    const fit = computePhotoFit(key, theta, seg);
+    if(fit) views.push({ key, theta, fit, canvas: seg.all });
   });
-
-  HAIR_BAND_ANGLES.forEach(angle => {
-    const cutout = hairCutouts[angle.key];
-    if(!cutout) return;
-    const layers = createProjectedLayers({
-      cutoutCanvas: cutout,
-      thetaCenter: angle.thetaCenter,
-      thetaWidth: angle.thetaWidth,
-      yTop: HAIR_BAND_Y.yTop,
-      yBottom: HAIR_BAND_Y.yBottom,
-      radius: HAIR_BAND_Y.radius,
-      layerIndex: layerIndex++,
-    });
-    activeHairBandPatches.push(...layers);
-  });
+  if(views.length) activePhotoLayers = createProjectedLayers(views);
 
   // 정수리 캡(작은 단색 돔)은 정면 사진에서 뽑은 머리색으로 자동으로 씌워줘요.
   if(frontDataUrl){
@@ -264,13 +248,13 @@ function applyPhotosToScene(payload){
   }
 }
 
-/* ---------- 사진을 3D 얼굴 표면에 직접 비춰 입히기 (프로젝션 매핑) ----------
-   원리: 얼굴 메시의 정점마다 "이 정점이 사진의 어느 픽셀에 해당하는지"(UV)를 계산해서,
-   메시와 똑같은 모양의 레이어에 사진을 텍스처로 입혀요. 그래서 코·입술·광대 굴곡을 그대로 따라가요.
-   UV 계산은 예전 원통 패치와 똑같은 기준(thetaCenter/thetaWidth/yTop/yBottom/radius)을 써서,
-   정면에서 봤을 때 위치는 예전이랑 똑같이 맞아요. */
-let faceBaseMeshes = [];           // glb에서 불러온 원본 얼굴 메시들 (소품/패치 제외)
+/* ---------- 사진을 3D 얼굴 크기에 맞추기 ----------
+   사진 속 기준점(머리 꼭대기, 턱 끝, 얼굴 가운데/코 끝)을 찾아서, 3D 모델의 같은 기준점에 오도록
+   "사진 1픽셀 = 모델 몇 단위"(scale)와 위치(anchor)를 계산해요. 가로·세로 같은 비율이라 얼굴이
+   찌그러지지 않고, 사람마다 얼굴 크기·촬영 거리가 달라도 모델 얼굴 크기에 맞춰져요. */
+let faceBaseMeshes = [];             // glb에서 불러온 원본 얼굴 메시들 (소품/패치 제외)
 const faceMeshDataCache = new Map(); // mesh → { pos, index } (faceModel 좌표계 기준)
+let modelTopY = 1.0;
 
 function getFaceMeshData(mesh){
   if(faceMeshDataCache.has(mesh)) return faceMeshDataCache.get(mesh);
@@ -292,100 +276,176 @@ function getFaceMeshData(mesh){
   return data;
 }
 
-function createProjectedLayers({ cutoutCanvas, thetaCenter, thetaWidth, yTop, yBottom, radius, layerIndex = 0 }){
-  const texture = new THREE.CanvasTexture(cutoutCanvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+// 어떤 방향(theta)에서 봤을 때 모델의 가로 좌표 범위를 재요 (yMin~yMax 높이 구간, 앞쪽 절반만 옵션).
+function measureModelHorizontal(theta, yMin, yMax){
+  const c = Math.cos(theta), s = Math.sin(theta);
+  let min = Infinity, max = -Infinity;
+  faceBaseMeshes.forEach(mesh => {
+    const { pos } = getFaceMeshData(mesh);
+    for(let i = 0; i < pos.length; i += 3){
+      const y = pos[i + 1];
+      if(y < yMin || y > yMax) continue;
+      const h = pos[i] * c - pos[i + 2] * s;
+      if(h < min) min = h;
+      if(h > max) max = h;
+    }
+  });
+  return { min, max };
+}
 
-  const cosC = Math.cos(thetaCenter), sinC = Math.sin(thetaCenter);
-  const half = thetaWidth / 2;
-  const height = yTop - yBottom;
-  // 사진 찍은 방향에서 "보이는" 정점에만 입혀요 (뒤통수·코 밑 가려진 곳 제외).
-  // 이 glb는 법선/면 방향이 뒤죽박죽이라 법선 대신, 사진 방향으로 본 깊이 지도(z-buffer)로 판단해요.
-  const GRID = 160;
+function computePhotoFit(key, theta, seg){
+  const face = seg.face && seg.face.cropInfo;
+  const hair = seg.hair && seg.hair.cropInfo;
+  const c = Math.cos(theta), s = Math.sin(theta);
+
+  if(key === 'back'){
+    // 뒷모습: 얼굴이 안 보이니까 머리카락 폭 ↔ 뒤통수 폭, 머리카락 꼭대기 ↔ 정수리로 맞춰요.
+    if(!hair) return null;
+    const m = measureModelHorizontal(theta, 0.45, 0.9); // 귀(Y≈0.2~0.43) 아래는 빼고 재요
+    const scale = (m.max - m.min) / hair.w;
+    return {
+      scale,
+      anchorPx: hair.x + hair.w / 2, anchorH: (m.min + m.max) / 2,
+      topPx: hair.y, topY: modelTopY + HAIR_VOLUME,
+    };
+  }
+
+  if(!face) return null;
+  const chinPx = face.y + face.h;
+  // 머리 꼭대기: 머리카락이 인식되면 머리카락 맨 위, 아니면 얼굴 피부 맨 위(머리선)를 써요.
+  let topPx, topY;
+  if(hair && hair.y < face.y){ topPx = hair.y; topY = modelTopY + HAIR_VOLUME; }
+  else { topPx = face.y; topY = MODEL_HAIRLINE_Y; }
+  if(chinPx - topPx < 10) return null;
+  const scale = (topY - MODEL_CHIN_Y) / (chinPx - topPx); // 모델 단위 / 사진 픽셀
+
+  let anchorPx, anchorH;
+  if(key === 'front'){
+    // 정면: 얼굴 피부의 가운데 ↔ 모델 얼굴 가운데(0)
+    anchorPx = face.x + face.w / 2;
+    anchorH = 0;
+  } else {
+    // 옆모습: 사진 속 코 끝(얼굴 피부가 가장 앞으로 나온 쪽) ↔ 모델의 코 끝
+    const noseH = 0 * c - 0.62 * s; // 모델 코 끝(0, 0.26, 0.62)이 이 각도에서 어느 쪽인지
+    const m = measureModelHorizontal(theta, MODEL_CHIN_Y, 0.6);
+    if(noseH < 0){ anchorPx = face.x; anchorH = m.min; }
+    else { anchorPx = face.x + face.w; anchorH = m.max; }
+  }
+  return { scale, anchorPx, anchorH, topPx, topY };
+}
+
+/* ---------- 사진을 3D 얼굴 표면에 직접 비춰 입히기 (프로젝션 매핑) ----------
+   정점마다 "어느 사진의 어느 픽셀인지"를 계산해서 텍스처(UV)로 입혀요.
+   - 정점이 머리 둘레의 어느 방향에 있는지 보고, 가장 정면으로 찍힌 사진 하나만 골라요
+     (정면·옆 사진이 겹쳐서 얼굴이 두 개로 보이는 문제 방지).
+   - 그 사진 방향에서 가려진 곳(코 밑 등)은 깊이 지도로 걸러내요. */
+function angleDiff(a, b){
+  let d = Math.abs(a - b) % (Math.PI * 2);
+  return d > Math.PI ? Math.PI * 2 - d : d;
+}
+
+function createProjectedLayers(views){
+  const GRID = 200;
   const DEPTH_EPS = 0.04;
   const layers = [];
 
-  faceBaseMeshes.forEach(mesh => {
-    const { pos, index } = getFaceMeshData(mesh);
-    const count = pos.length / 3;
-    const uv = new Float32Array(count * 2);
-    const inside = new Uint8Array(count);
+  views.forEach((view, layerIndex) => {
+    const cutout = view.canvas;
+    const crop = cutout.cropInfo;
+    const { scale, anchorPx, anchorH, topPx, topY } = view.fit;
+    const cosC = Math.cos(view.theta), sinC = Math.sin(view.theta);
 
-    for(let i = 0; i < count; i++){
-      const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
-      // 사진을 찍은 방향에서 봤을 때의 가로 위치 → 예전 원통 패치와 같은 각도로 바꿔서 u를 구해요.
-      const t = (x * cosC - z * sinC) / radius;
-      if(t <= -1 || t >= 1) continue;
-      const u = (Math.asin(t) + half) / thetaWidth;
-      const vv = (y - yBottom) / height;
-      if(u < 0 || u > 1 || vv < 0 || vv > 1) continue;
-      uv[i * 2] = u; uv[i * 2 + 1] = vv;
-      inside[i] = 1;
-    }
+    const texture = new THREE.CanvasTexture(cutout);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
 
-    // 1) 칸마다 사진 방향으로 가장 앞에 있는 깊이를 기록해요.
-    const cellOf = new Int32Array(count).fill(-1);
-    const depthOf = new Float32Array(count);
-    const maxDepth = new Float32Array(GRID * GRID).fill(-Infinity);
-    for(let i = 0; i < count; i++){
-      if(!inside[i]) continue;
-      const cx = Math.min(GRID - 1, Math.floor(uv[i * 2] * GRID));
-      const cy = Math.min(GRID - 1, Math.floor(uv[i * 2 + 1] * GRID));
-      const cell = cy * GRID + cx;
-      const d = pos[i * 3] * sinC + pos[i * 3 + 2] * cosC;
-      cellOf[i] = cell; depthOf[i] = d;
-      if(d > maxDepth[cell]) maxDepth[cell] = d;
-    }
-    // 2) 옆 칸까지 같이 봐서(3x3), 정점이 듬성한 칸에서 뒤쪽 면이 새어 나오지 않게 해요.
-    const nearMax = new Float32Array(GRID * GRID).fill(-Infinity);
-    for(let cy = 0; cy < GRID; cy++){
-      for(let cx = 0; cx < GRID; cx++){
-        let m = -Infinity;
-        for(let oy = -1; oy <= 1; oy++){
-          const yy = cy + oy; if(yy < 0 || yy >= GRID) continue;
-          for(let ox = -1; ox <= 1; ox++){
-            const xx = cx + ox; if(xx < 0 || xx >= GRID) continue;
-            const d = maxDepth[yy * GRID + xx]; if(d > m) m = d;
-          }
+    faceBaseMeshes.forEach(mesh => {
+      const { pos, index } = getFaceMeshData(mesh);
+      const count = pos.length / 3;
+      const uv = new Float32Array(count * 2);
+      const inside = new Uint8Array(count);
+
+      for(let i = 0; i < count; i++){
+        const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+        // 이 정점을 가장 정면으로 찍은 사진이 이 사진일 때만 입혀요.
+        const phi = Math.atan2(x, z);
+        const myDiff = angleDiff(phi, view.theta);
+        let best = true;
+        for(const other of views){
+          if(other !== view && angleDiff(phi, other.theta) < myDiff){ best = false; break; }
         }
-        nearMax[cy * GRID + cx] = m;
+        if(!best) continue;
+        // 3D 좌표 → 원본 사진 픽셀 → 잘라낸 텍스처 UV
+        const h = x * cosC - z * sinC;
+        const px = anchorPx + (h - anchorH) / scale;
+        const py = topPx + (topY - y) / scale;
+        const u = (px - crop.x) / crop.w;
+        const v = 1 - (py - crop.y) / crop.h;
+        if(u < 0 || u > 1 || v < 0 || v > 1) continue;
+        uv[i * 2] = u; uv[i * 2 + 1] = v;
+        inside[i] = 1;
       }
-    }
-    for(let i = 0; i < count; i++){
-      if(inside[i] && depthOf[i] < nearMax[cellOf[i]] - DEPTH_EPS) inside[i] = 0;
-    }
 
-    const kept = [];
-    for(let f = 0; f < index.length; f += 3){
-      const a = index[f], b = index[f + 1], c = index[f + 2];
-      if(inside[a] && inside[b] && inside[c]) kept.push(a, b, c);
-    }
-    if(!kept.length) return;
+      // 사진 방향에서 가려진 정점은 빼요 (칸마다 가장 앞에 있는 깊이 기준, 옆 칸까지 같이 봐요).
+      const cellOf = new Int32Array(count).fill(-1);
+      const depthOf = new Float32Array(count);
+      const maxDepth = new Float32Array(GRID * GRID).fill(-Infinity);
+      for(let i = 0; i < count; i++){
+        if(!inside[i]) continue;
+        const cx = Math.min(GRID - 1, Math.floor(uv[i * 2] * GRID));
+        const cy = Math.min(GRID - 1, Math.floor(uv[i * 2 + 1] * GRID));
+        const cell = cy * GRID + cx;
+        const d = pos[i * 3] * sinC + pos[i * 3 + 2] * cosC;
+        cellOf[i] = cell; depthOf[i] = d;
+        if(d > maxDepth[cell]) maxDepth[cell] = d;
+      }
+      const nearMax = new Float32Array(GRID * GRID).fill(-Infinity);
+      for(let cy = 0; cy < GRID; cy++){
+        for(let cx = 0; cx < GRID; cx++){
+          let m = -Infinity;
+          for(let oy = -1; oy <= 1; oy++){
+            const yy = cy + oy; if(yy < 0 || yy >= GRID) continue;
+            for(let ox = -1; ox <= 1; ox++){
+              const xx = cx + ox; if(xx < 0 || xx >= GRID) continue;
+              const d = maxDepth[yy * GRID + xx]; if(d > m) m = d;
+            }
+          }
+          nearMax[cy * GRID + cx] = m;
+        }
+      }
+      for(let i = 0; i < count; i++){
+        if(inside[i] && depthOf[i] < nearMax[cellOf[i]] - DEPTH_EPS) inside[i] = 0;
+      }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', mesh.geometry.attributes.position);
-    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-    geo.setIndex(new THREE.BufferAttribute(new Uint32Array(kept), 1));
+      const kept = [];
+      for(let f = 0; f < index.length; f += 3){
+        const a = index[f], b = index[f + 1], c = index[f + 2];
+        if(inside[a] && inside[b] && inside[c]) kept.push(a, b, c);
+      }
+      if(!kept.length) return;
 
-    // 사진에 이미 실제 조명(음영)이 들어있어서, 조명 계산 없이 사진 색 그대로 보여줘요.
-    const mat = new THREE.MeshBasicMaterial({
-      map: texture,
-      transparent: true,
-      alphaTest: 0.3,
-      side: THREE.DoubleSide, // 이 glb는 면 방향이 섞여 있어서 양면으로 그려야 구멍이 안 나요.
-      polygonOffset: true,
-      polygonOffsetFactor: -1,
-      polygonOffsetUnits: -(layerIndex + 1) * 2, // 레이어끼리 겹쳐도 깜빡이지 않게 조금씩 앞으로
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', mesh.geometry.attributes.position);
+      geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      geo.setIndex(new THREE.BufferAttribute(new Uint32Array(kept), 1));
+
+      // 사진에 이미 실제 조명(음영)이 들어있어서, 조명 계산 없이 사진 색 그대로 보여줘요.
+      const mat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        alphaTest: 0.3,
+        side: THREE.DoubleSide, // 이 glb는 면 방향이 섞여 있어서 양면으로 그려야 구멍이 안 나요.
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -(layerIndex + 1) * 2,
+      });
+      const layer = new THREE.Mesh(geo, mat);
+      layer.name = 'projectedPhotoLayer';
+      layer.renderOrder = layerIndex + 1;
+      mesh.add(layer); // 원본 메시의 자식이라 위치·회전·크기를 그대로 따라가요.
+      layers.push(layer);
     });
-    const layer = new THREE.Mesh(geo, mat);
-    layer.name = 'projectedPhotoLayer';
-    layer.renderOrder = layerIndex + 1;
-    mesh.add(layer); // 원본 메시의 자식이라 위치·회전·크기를 그대로 따라가요.
-    layers.push(layer);
   });
-
-  if(!layers.length) texture.dispose();
   return layers;
 }
 
@@ -394,7 +454,7 @@ function disposeProjectedLayer(layer){
   // position은 원본 얼굴 메시와 공유 중이라, 원본 GPU 버퍼가 같이 지워지지 않게 먼저 떼어내요.
   layer.geometry.deleteAttribute('position');
   layer.geometry.dispose();
-  if(layer.material.map) layer.material.map.dispose();
+  if(layer.material.map) layer.material.map.dispose(); // 같은 텍스처를 여러 번 dispose해도 괜찮아요.
   layer.material.dispose();
 }
 
@@ -459,6 +519,13 @@ function initViewer(){
       faceModel = gltf.scene;
       faceBaseMeshes = [];
       faceModel.traverse(o => { if(o.isMesh) faceBaseMeshes.push(o); });
+      // 모델 정수리 높이(사진 속 머리 꼭대기를 맞출 기준)를 재둬요.
+      modelTopY = -Infinity;
+      faceBaseMeshes.forEach(mesh => {
+        const { pos } = getFaceMeshData(mesh);
+        for(let i = 1; i < pos.length; i += 3) if(pos[i] > modelTopY) modelTopY = pos[i];
+      });
+      if(!isFinite(modelTopY)) modelTopY = 1.0;
       scene.add(faceModel);
 
       const box0 = new THREE.Box3().setFromObject(faceModel);

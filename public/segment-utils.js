@@ -70,6 +70,8 @@ function cropByCategories(srcCanvas, originalImgData, maskData, maskW, maskH, ca
   cropCanvas.width = w;
   cropCanvas.height = h;
   cropCanvas.getContext('2d').drawImage(cutCanvas, minX, minY, w, h, 0, 0, w, h);
+  // 잘라낸 조각이 원본 사진의 어디였는지 기억해둬요 (여러 부위를 같은 좌표로 맞춰 쓸 때 필요해요).
+  cropCanvas.cropInfo = { x: minX, y: minY, w, h, fullW: w0, fullH: h0 };
   return cropCanvas;
 }
 
