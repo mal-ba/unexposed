@@ -5,8 +5,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { MAKEUP_PROP_DEFS, recolorProp } from '/makeup-props.js';
-import { SEG_CATEGORY, analyzePhotoBySegments, sampleAverageColorFromPhoto } from '/segment-utils.js';
+import { MAKEUP_PROP_DEFS as ALL_MAKEUP_PROP_DEFS, recolorProp } from '/makeup-props.js';
+// 머리카락(정수리) 캡은 사진 머리카락을 가려서 목록에서 뺐어요.
+const MAKEUP_PROP_DEFS = ALL_MAKEUP_PROP_DEFS.filter(d => d.id !== 'hair');
+import { SEG_CATEGORY, analyzePhotoBySegments } from '/segment-utils.js';
 
 /* ==========================================================================
    STEP 1 : 얼굴 스캔 — 정면 → 왼쪽 옆모습 → 오른쪽 옆모습 → 뒷모습, 4단계로 찍어요.
@@ -177,7 +179,6 @@ function analyzePhotoSegments(dataUrl){
     hair: [SEG_CATEGORY.HAIR],
   });
 }
-const sampleHairColorFromPhoto = dataUrl => sampleAverageColorFromPhoto(dataUrl, 0.22);
 
 let pendingPhotosApply = null; // 얼굴 모델이 아직 안 불러와졌을 때, 분석 결과를 잠시 담아둬요.
 let activePhotoLayers = [];    // 얼굴에 입혀진 사진 레이어들 (각도별)
@@ -209,7 +210,7 @@ async function applyAllPhotosAI(photos){
     }
   }
 
-  applyPhotosToScene({ segmentsByView, frontDataUrl: photos.front });
+  applyPhotosToScene({ segmentsByView });
 
   if(anyFaceFound){
     if(statusEl) statusEl.textContent = '사진 속 얼굴·머리카락을 3D 얼굴 크기에 맞춰서 입혔어요!';
@@ -224,7 +225,7 @@ function applyPhotosToScene(payload){
     pendingPhotosApply = payload;
     return;
   }
-  const { segmentsByView, frontDataUrl } = payload;
+  const { segmentsByView } = payload;
 
   // 기존에 붙어있던 사진 레이어는 지우고 새로 붙여요 (다시 스캔했을 때 중복 방지).
   activePhotoLayers.forEach(disposeProjectedLayer);
@@ -240,12 +241,6 @@ function applyPhotosToScene(payload){
   });
   if(views.length) activePhotoLayers = createProjectedLayers(views);
 
-  // 정수리 캡(작은 단색 돔)은 정면 사진에서 뽑은 머리색으로 자동으로 씌워줘요.
-  if(frontDataUrl){
-    sampleHairColorFromPhoto(frontDataUrl).then(hex => {
-      if(hex) applyHairCrown(hex);
-    });
-  }
 }
 
 /* ---------- 사진을 3D 얼굴 크기에 맞추기 ----------
@@ -463,19 +458,6 @@ function disposeProjectedLayer(layer){
   layer.material.dispose();
 }
 
-// 정수리 캡을 특정 색으로 추가/교체해요.
-function applyHairCrown(hex){
-  const card = document.getElementById('makeup-prop-card-hair');
-  if(!card) return;
-  const colorInput = card.querySelector('.makeup-prop-color');
-  colorInput.value = hex;
-  if(activeProps['hair']){
-    faceModel.remove(activeProps['hair'].object3d);
-    delete activeProps['hair'];
-  }
-  toggleProp('hair');
-}
-
 /* ==========================================================================
    STEP 2 : 3D 얼굴 뷰어 — 사진 속 얼굴/머리카락을 AI로 오려서 앞면에 입혀요.
    ========================================================================== */
@@ -607,12 +589,12 @@ function propCardHTML(def){
         <input type="color" class="makeup-prop-color" data-prop-id="${def.id}" value="${def.defaultColor}">
       </div>
       <button type="button" class="btn btn-ghost-dark makeup-prop-toggle-btn" data-prop-id="${def.id}">추가하기</button>
-      ${def.id === 'hair' ? '' : `<div class="makeup-prop-fine-tune" data-prop-id="${def.id}" hidden>
+      <div class="makeup-prop-fine-tune" data-prop-id="${def.id}" hidden>
         <label>좌우 <input type="range" class="prop-x" data-prop-id="${def.id}" min="-0.25" max="0.25" step="0.005" value="0"></label>
         <label>위아래 <input type="range" class="prop-y" data-prop-id="${def.id}" min="-0.25" max="0.25" step="0.005" value="0"></label>
         <label>앞뒤 <input type="range" class="prop-z" data-prop-id="${def.id}" min="-0.15" max="0.15" step="0.005" value="0"></label>
         <label>크기 <input type="range" class="prop-scale" data-prop-id="${def.id}" min="0.3" max="2.5" step="0.01" value="1"></label>
-      </div>`}
+      </div>
     </div>`;
 }
 
