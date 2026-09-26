@@ -417,17 +417,22 @@ function createProjectedLayers(views){
         if(inside[i] && depthOf[i] < nearMax[cellOf[i]] - DEPTH_EPS) inside[i] = 0;
       }
 
-      const kept = [];
+      // 일반 배열에 수백만 개를 push하면 폰에서 메모리가 튀어서, 타입 배열에 바로 담아요.
+      const keptBuf = new Uint32Array(index.length);
+      let keptLen = 0;
       for(let f = 0; f < index.length; f += 3){
         const a = index[f], b = index[f + 1], c = index[f + 2];
-        if(inside[a] && inside[b] && inside[c]) kept.push(a, b, c);
+        if(inside[a] && inside[b] && inside[c]){
+          keptBuf[keptLen++] = a; keptBuf[keptLen++] = b; keptBuf[keptLen++] = c;
+        }
       }
-      if(!kept.length) return;
+      if(!keptLen) return;
+      const kept = keptBuf.slice(0, keptLen); // 필요한 만큼만 복사하고 큰 버퍼는 버려요
 
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', mesh.geometry.attributes.position);
       geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-      geo.setIndex(new THREE.BufferAttribute(new Uint32Array(kept), 1));
+      geo.setIndex(new THREE.BufferAttribute(kept, 1));
 
       // 사진에 이미 실제 조명(음영)이 들어있어서, 조명 계산 없이 사진 색 그대로 보여줘요.
       const mat = new THREE.MeshBasicMaterial({
@@ -496,9 +501,23 @@ function initViewer(){
   camera.position.set(0, 0, 2.2);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 폰 GPU 메모리 절약 (2배는 너무 무거워요)
   renderer.setSize(width, height);
   container.appendChild(renderer.domElement);
+
+  // 폰 GPU 메모리가 부족하면 브라우저가 3D(WebGL)를 강제로 끊어요 → 흰 화면 + 깨진 아이콘.
+  // 끊겨도 기다렸다가 다시 살아나면 Three.js가 모델·사진을 자동으로 다시 올려요.
+  renderer.domElement.addEventListener('webglcontextlost', e => {
+    e.preventDefault();
+    if(loadingEl){
+      loadingEl.hidden = false;
+      loadingEl.style.display = '';
+      loadingEl.textContent = '3D 화면이 잠깐 끊겼어요. 다시 불러오는 중...';
+    }
+  });
+  renderer.domElement.addEventListener('webglcontextrestored', () => {
+    if(loadingEl){ loadingEl.hidden = true; loadingEl.style.display = 'none'; }
+  });
 
   scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2a2a, 1.3));
   const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);

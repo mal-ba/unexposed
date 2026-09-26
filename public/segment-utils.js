@@ -85,8 +85,18 @@ export async function analyzePhotoBySegments(dataUrl, groups){
     el.src = dataUrl;
   });
 
+  // 폰 사진(1200만 화소 등)을 그대로 쓰면 메모리가 폭발해서 3D 화면이 죽어요.
+  // 긴 변을 최대 1024px로 줄여서 분석·오려내기를 해요 (얼굴 텍스처로는 이 정도면 충분해요).
+  const MAX_SIDE = 1024;
+  const ratio = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+  const srcCanvas = document.createElement('canvas');
+  srcCanvas.width = Math.max(1, Math.round(img.naturalWidth * ratio));
+  srcCanvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+  const ctx = srcCanvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, srcCanvas.width, srcCanvas.height);
+
   const segmenter = await getImageSegmenter();
-  const result = segmenter.segment(img);
+  const result = segmenter.segment(srcCanvas);
   const mask = result.categoryMask;
   const out = {};
   Object.keys(groups).forEach(key => { out[key] = null; });
@@ -95,11 +105,6 @@ export async function analyzePhotoBySegments(dataUrl, groups){
   const maskData = mask.getAsUint8Array();
   const maskW = mask.width, maskH = mask.height;
 
-  const srcCanvas = document.createElement('canvas');
-  srcCanvas.width = img.naturalWidth;
-  srcCanvas.height = img.naturalHeight;
-  const ctx = srcCanvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
   const originalImgData = ctx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
 
   Object.entries(groups).forEach(([key, categories]) => {
