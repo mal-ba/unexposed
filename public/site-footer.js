@@ -87,14 +87,14 @@
           });
           const data = await res.json();
           if(data.ok){
-            bugreportNote.textContent = '제보 감사해요! 확인 후 처리할게요.';
+            bugreportNote.textContent = '제보 감사합니다! 확인 후 처리하겠습니다.';
             bugreportInput.value = '';
             setTimeout(() => { bugreportModal.hidden = true; }, 1200);
           } else {
-            bugreportNote.textContent = data.error || '전송에 실패했어요.';
+            bugreportNote.textContent = data.error || '전송에 실패했습니다.';
           }
         } catch(err){
-          bugreportNote.textContent = '전송 중 오류가 발생했어요.';
+          bugreportNote.textContent = '전송 중 오류가 발생했습니다.';
         } finally {
           bugreportSubmitBtn.disabled = false;
           bugreportSubmitBtn.textContent = '제보하기';

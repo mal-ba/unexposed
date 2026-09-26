@@ -132,7 +132,7 @@
   function initMannequinViewer(){
     const container = document.getElementById('scan-avatar-3d');
     if(!container){
-      if(scanAvatarLoading) scanAvatarLoading.textContent = '3D 뷰어를 불러올 수 없어요.';
+      if(scanAvatarLoading) scanAvatarLoading.textContent = '3D 뷰어를 불러올 수 없습니다.';
       return;
     }
     const width = container.clientWidth || 300;
@@ -177,7 +177,7 @@
             rawWidth = localBounds.width;
             rawMinY = localBounds.minY;
           } else {
-            console.warn('마네킹에서 메쉬를 못 찾았어요 — 예전 방식(전체 계층 측정)으로 대체해요. 스킨/관절이 있는 모델이면 크기가 부정확할 수 있어요.');
+            console.warn('마네킹에서 메쉬를 못 찾았습니다 — 예전 방식(전체 계층 측정)으로 대체합니다. 스킨/관절이 있는 모델이면 크기가 부정확할 수 있습니다.');
             const box0 = new THREE.Box3().setFromObject(scanMannequin);
             rawHeight = box0.max.y - box0.min.y;
             rawWidth = Math.max(box0.max.x - box0.min.x, box0.max.z - box0.min.z);
@@ -190,7 +190,7 @@
           // 만큼 커지거나 작아지고, 카메라도 엉뚱한 곳을 보게 돼요. 말이 안 되는 값이면
           // 콘솔에 경고를 남기고 안전한 기본값(사람 키다운 범위)으로 대체해요.
           if(!isFinite(rawHeight) || rawHeight <= 0 || rawHeight > 100){
-            console.warn(`mannequin.glb 모델 크기가 이상해요 (원본 높이: ${rawHeight}). 기본값(1.6)으로 대체해요. GLB 안에 스케일이 이상한 요소가 섞여 있는지 확인해보세요.`);
+            console.warn(`mannequin.glb 모델 크기가 이상합니다 (원본 높이: ${rawHeight}). 기본값(1.6)으로 대체합니다. GLB 안에 스케일이 이상한 요소가 섞여 있는지 확인해보세요.`);
             rawHeight = 1.6;
           }
           scanMannequinDefaultHeight = rawHeight;
@@ -213,13 +213,13 @@
           // 여기서 에러가 나면 예전엔 "불러오는 중" 문구만 뜬 채로 조용히 멈춰서 원인을
           // 알 수 없었어요. 이제는 에러를 콘솔에 남기고, 화면에도 실패했다고 알려줘요.
           console.error('마네킹 초기 설정 중 오류:', err);
-          if(scanAvatarLoading) scanAvatarLoading.textContent = '3D 마네킹 설정 중 오류가 발생했어요. (콘솔 확인)';
+          if(scanAvatarLoading) scanAvatarLoading.textContent = '3D 마네킹 설정 중 오류가 발생했습니다. (콘솔 확인)';
         }
       },
       undefined,
       err => {
         console.error('마네킹 로드 실패:', err);
-        if(scanAvatarLoading) scanAvatarLoading.textContent = '3D 마네킹을 불러오지 못했어요.';
+        if(scanAvatarLoading) scanAvatarLoading.textContent = '3D 마네킹을 불러오지 못했습니다.';
       }
     );
 
@@ -363,7 +363,7 @@
       return;
     }
     const scanStatusEl = document.getElementById('scan-status');
-    if(scanStatusEl) scanStatusEl.textContent += ' · 몸통 사진을 인식하는 중이에요...';
+    if(scanStatusEl) scanStatusEl.textContent += ' · 몸통 사진을 인식하는 중입니다...';
 
     const torsoCutouts = {}; // { front, left, right, back }
     for(const key of ['front', 'left', 'right', 'back']){
@@ -399,8 +399,8 @@
 
     if(scanStatusEl){
       scanStatusEl.textContent = Object.keys(torsoCutouts).length > 0
-        ? '몸통에 사진을 입혔어요! 옆·뒤가 안 맞으면 다른 각도 사진을 다시 올려보세요.'
-        : '몸통 인식에는 실패했어요. 밝은 곳에서 찍은 사진으로 다시 시도해보세요.';
+        ? '몸통에 사진을 입혔습니다! 옆·뒤가 안 맞으면 다른 각도 사진을 다시 올려보세요.'
+        : '몸통 인식에는 실패했습니다. 밝은 곳에서 찍은 사진으로 다시 시도해보세요.';
     }
   };
 
@@ -451,7 +451,7 @@
       chip.addEventListener('click', () => {
         activeGarmentCategory = chip.dataset.category;
         renderWornGarmentChips();
-        garmentStatus.textContent = `${CATEGORY_LABEL_3D[activeGarmentCategory] || activeGarmentCategory} 색상/무늬를 편집할 수 있어요.`;
+        garmentStatus.textContent = `${CATEGORY_LABEL_3D[activeGarmentCategory] || activeGarmentCategory} 색상/무늬를 편집할 수 있습니다.`;
         garmentColorInput.value = '#ffffff';
         if(typeof window.refreshPatternPartOptions === 'function') window.refreshPatternPartOptions();
       });
@@ -686,14 +686,14 @@
         activeGarmentCategory = cat; // 방금 입은 걸 바로 색칠/무늬 편집할 수 있게 활성화해요.
         garmentColorInput.value = '#ffffff';
         renderWornGarmentChips();
-        garmentStatus.textContent = `${label || '아이템'}을(를) 몸에 맞춰 입혔어요! (${CATEGORY_LABEL_3D[cat] || cat})`;
+        garmentStatus.textContent = `${label || '아이템'}을(를) 몸에 맞춰 입혔습니다! (${CATEGORY_LABEL_3D[cat] || cat})`;
         garmentControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         // 새 옷을 입었으니, 2단계 무늬 패널의 "적용할 부위" 목록도 새로 고쳐줘요.
         if(typeof window.refreshPatternPartOptions === 'function') window.refreshPatternPartOptions();
       },
       undefined,
       () => {
-        garmentStatus.textContent = '아이템을 불러오지 못했어요. .glb 파일이 맞는지 확인해주세요.';
+        garmentStatus.textContent = '아이템을 불러오지 못했습니다. .glb 파일이 맞는지 확인해주세요.';
       }
     );
   }
@@ -713,7 +713,7 @@
       const remaining = GARMENT_CATEGORIES.filter(cat => wornGarments[cat]);
       activeGarmentCategory = remaining[0] || null;
       renderWornGarmentChips();
-      garmentStatus.textContent = `${removedLabel}을(를) 벗었어요.`;
+      garmentStatus.textContent = `${removedLabel}을(를) 벗었습니다.`;
       if(typeof window.refreshPatternPartOptions === 'function') window.refreshPatternPartOptions();
     }
   });
@@ -820,17 +820,17 @@
       });
       const data = await res.json();
       if(data.ok){
-        wardrobeEditStatus.textContent = '저장됐어요!';
+        wardrobeEditStatus.textContent = '저장되었습니다!';
         setTimeout(() => {
           wardrobeEditBox.hidden = true;
           editingItemId = null;
           loadWardrobeBrowse(document.querySelector('.wardrobe-filter-chip.active')?.dataset.category || '');
         }, 700);
       } else {
-        wardrobeEditStatus.textContent = data.error || '저장에 실패했어요.';
+        wardrobeEditStatus.textContent = data.error || '저장에 실패했습니다.';
       }
     } catch(err){
-      wardrobeEditStatus.textContent = '저장 중 오류가 발생했어요.';
+      wardrobeEditStatus.textContent = '저장 중 오류가 발생했습니다.';
     }
   });
 
@@ -853,13 +853,13 @@
       const res = await fetch(url);
       const data = await res.json();
       if(!data.items || data.items.length === 0){
-        wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">아직 등록된 아이템이 없어요.</p>';
+        wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">아직 등록된 아이템이 없습니다.</p>';
         return;
       }
       wardrobeBrowseResults.innerHTML = data.items.map(it => wardrobeCardHTML(it)).join('');
       wireWearButtons(wardrobeBrowseResults, data.items);
     } catch(err){
-      wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">옷장을 불러오지 못했어요.</p>';
+      wardrobeBrowseResults.innerHTML = '<p class="wardrobe-hint">옷장을 불러오지 못했습니다.</p>';
     }
   }
 
@@ -879,13 +879,13 @@
       const res = await fetch(`/api/wardrobe/recommend?${params.toString()}`);
       const data = await res.json();
       if(!data.recommended || data.recommended.length === 0){
-        recommendResults.innerHTML = '<p class="wardrobe-hint">조건에 맞는 추천 아이템이 아직 없어요.</p>';
+        recommendResults.innerHTML = '<p class="wardrobe-hint">조건에 맞는 추천 아이템이 아직 없습니다.</p>';
         return;
       }
       recommendResults.innerHTML = data.recommended.map(it => wardrobeCardHTML(it, it.reason)).join('');
       wireWearButtons(recommendResults, data.recommended);
     } catch(err){
-      recommendResults.innerHTML = '<p class="wardrobe-hint">추천을 불러오지 못했어요.</p>';
+      recommendResults.innerHTML = '<p class="wardrobe-hint">추천을 불러오지 못했습니다.</p>';
     }
   });
 
@@ -940,7 +940,7 @@
       });
       const data = await res.json();
       if(data.ok){
-        uploadStatus.textContent = '옷장에 올렸어요! "옷장 둘러보기" 탭에서 확인할 수 있어요.';
+        uploadStatus.textContent = '옷장에 올렸습니다! "옷장 둘러보기" 탭에서 확인할 수 있습니다.';
         document.getElementById('upload-item-name').value = '';
         document.getElementById('upload-item-color').value = '';
         document.querySelectorAll('.upload-occasion, .upload-agegroup').forEach(el => { el.checked = false; });
@@ -950,10 +950,10 @@
         // 메이크업 아이템을 올렸으면, 페이지 아래쪽 독립 메이크업 구역의 목록도 새로고침해요.
         if(typeof window.refreshMakeupWardrobe === 'function') window.refreshMakeupWardrobe();
       } else {
-        uploadStatus.textContent = data.error || '업로드에 실패했어요.';
+        uploadStatus.textContent = data.error || '업로드에 실패했습니다.';
       }
     } catch(err){
-      uploadStatus.textContent = '업로드 중 오류가 발생했어요.';
+      uploadStatus.textContent = '업로드 중 오류가 발생했습니다.';
     }
   });
 

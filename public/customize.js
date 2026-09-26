@@ -92,7 +92,7 @@
     if(typeof window.hasGarmentWorn === 'function' && window.hasGarmentWorn() && typeof window.applyGarmentColor === 'function'){
       window.applyGarmentColor(color);
       if(fabricColorGarmentNote){
-        fabricColorGarmentNote.textContent = '지금 입혀본 옷 색상에도 바로 반영됐어요.';
+        fabricColorGarmentNote.textContent = '지금 입혀본 옷 색상에도 바로 반영되었습니다.';
         fabricColorGarmentNote.hidden = false;
       }
     } else if(fabricColorGarmentNote){
@@ -169,9 +169,9 @@
     if(!patternGarmentNote) return;
     if(currentPatternMode === 'none'){ patternGarmentNote.hidden = true; return; }
     if(typeof window.hasGarmentWorn === 'function' && window.hasGarmentWorn()){
-      patternGarmentNote.textContent = '지금 입혀본 옷에도 바로 반영됐어요.';
+      patternGarmentNote.textContent = '지금 입혀본 옷에도 바로 반영되었습니다.';
     } else {
-      patternGarmentNote.textContent = '1단계에서 옷을 입어보면, 그 옷 표면에 이 무늬가 바로 입혀져요.';
+      patternGarmentNote.textContent = '1단계에서 옷을 입어보면, 그 옷 표면에 이 무늬가 바로 입혀집니다.';
     }
     patternGarmentNote.hidden = false;
   }
@@ -592,7 +592,7 @@
         });
         const order = await res.json();
         if(!order.ok){
-          orderModalNote.textContent = order.error || '주문 생성에 실패했어요.';
+          orderModalNote.textContent = order.error || '주문 생성에 실패했습니다.';
           orderPayBtn.disabled = false;
           orderPayBtn.textContent = '결제하기';
           return;
@@ -608,7 +608,7 @@
           failUrl: `${window.location.origin}/payment-fail.html`,
         });
       } catch(err){
-        orderModalNote.textContent = '결제창을 여는 중 오류가 발생했어요.';
+        orderModalNote.textContent = '결제창을 여는 중 오류가 발생했습니다.';
         orderPayBtn.disabled = false;
         orderPayBtn.textContent = '결제하기';
       }
@@ -685,8 +685,8 @@
     const desc = document.getElementById('scan-step-desc');
     if(title) title.textContent = is2D ? '카메라로 내 2D 캐릭터 만들기' : '카메라로 체형 스캔해보기';
     if(desc) desc.textContent = is2D
-      ? '정면 사진을 촬영하거나 업로드하면, 그 사진이 그대로 내 2D 캐릭터가 돼요. 다음 단계에서 원단·색상·디테일로 꾸며볼 수 있어요.'
-      : '정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)';
+      ? '정면 사진을 촬영하거나 업로드하면, 그 사진이 그대로 내 2D 캐릭터가 됩니다. 다음 단계에서 원단·색상·디테일로 꾸며볼 수 있습니다.'
+      : '정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정됩니다. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영됩니다)';
   }
 
   function closeDesignModal(){
@@ -771,7 +771,7 @@
       scanRecordBtn.textContent = '동영상 녹화 (5초)';
       scanHint.textContent = '"사진 촬영"으로 한 장 찍거나, "동영상 녹화"로 한 바퀴 돌면서 5초간 찍어보세요.';
     } catch(err){
-      scanHint.textContent = '카메라를 사용할 수 없어요. 아래 업로드 버튼으로 진행해주세요.';
+      scanHint.textContent = '카메라를 사용할 수 없습니다. 아래 업로드 버튼으로 진행해주세요.';
     }
   });
 
@@ -787,7 +787,7 @@
     stopScanStream();
     scanVideo.srcObject = null;
     resetCameraButtons();
-    scanHint.textContent = '촬영이 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
+    scanHint.textContent = '촬영이 완료되었습니다. 키를 입력하고 아바타를 생성해보세요.';
   });
 
   scanRecordBtn.addEventListener('click', () => {
@@ -798,7 +798,7 @@
     try{
       mediaRecorder = mimeType ? new MediaRecorder(scanStream, { mimeType }) : new MediaRecorder(scanStream);
     } catch(err){
-      scanHint.textContent = '이 브라우저에서는 동영상 녹화가 지원되지 않아요. "사진 촬영"을 이용해주세요.';
+      scanHint.textContent = '이 브라우저에서는 동영상 녹화가 지원되지 않습니다. "사진 촬영"을 이용해주세요.';
       return;
     }
     mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
@@ -809,7 +809,7 @@
       stopScanStream();
       scanVideo.srcObject = null;
       resetCameraButtons();
-      scanHint.textContent = '녹화가 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
+      scanHint.textContent = '녹화가 완료되었습니다. 키를 입력하고 아바타를 생성해보세요.';
     };
 
     mediaRecorder.start();
@@ -837,7 +837,7 @@
     const reader = new FileReader();
     reader.onload = e => {
       showScanPhoto(e.target.result);
-      scanHint.textContent = '사진 업로드가 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
+      scanHint.textContent = '사진 업로드가 완료되었습니다. 키를 입력하고 아바타를 생성해보세요.';
     };
     reader.readAsDataURL(file);
   });
@@ -847,7 +847,7 @@
     if(!file) return;
     const url = URL.createObjectURL(file);
     showScanVideo(url);
-    scanHint.textContent = '동영상 업로드가 완료됐어요. 키를 입력하고 아바타를 생성해보세요.';
+    scanHint.textContent = '동영상 업로드가 완료되었습니다. 키를 입력하고 아바타를 생성해보세요.';
   });
 
   /* ---------- 몸통 추가 각도 사진 (왼쪽/오른쪽/뒷모습, 선택사항) ---------- */
@@ -889,7 +889,7 @@
     }
     scanStatus.textContent = height
       ? `${validHeight}cm 체형 데이터 기반 아바타 생성 완료 (데모)`
-      : '키를 입력하지 않아 기본값(165cm) 비율로 생성했어요.';
+      : '키를 입력하지 않아 기본값(165cm) 비율로 생성했습니다.';
     saveScanDataIfConsented(validHeight);
 
     // 정면 사진(필수) + 추가 각도 사진(선택)을 AI로 분석해서, 몸통에 사진 패치를 입혀요.
@@ -921,7 +921,7 @@
       });
       const data = await res.json();
       if(data.ok){
-        scanStatus.textContent += ' · 동의하신 대로 서버에 저장됐어요.';
+        scanStatus.textContent += ' · 동의하신 대로 서버에 저장되었습니다.';
       }
     } catch(err){ /* 저장 실패해도 아바타 생성 자체엔 영향 없어요 */ }
   }

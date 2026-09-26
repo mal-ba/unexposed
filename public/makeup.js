@@ -15,10 +15,10 @@ import { SEG_CATEGORY, analyzePhotoBySegments } from '/segment-utils.js';
    정면·좌·우 사진은 얼굴에, 4장 전부는 머리카락(옆·뒤통수까지)에 쓰여요.
    ========================================================================== */
 const SCAN_STAGES = [
-  { key: 'front', label: '정면', instruction: '정면을 카메라로 봐주세요. 이 사진으로 얼굴이랑 앞머리를 만들어요.', required: true },
+  { key: 'front', label: '정면', instruction: '정면을 카메라로 봐주세요. 이 사진으로 얼굴이랑 앞머리를 만듭니다.', required: true },
   { key: 'left', label: '왼쪽 옆모습', instruction: '고개를 오른쪽으로 돌려서, 얼굴 왼쪽이 보이게 찍어주세요.', required: false },
   { key: 'right', label: '오른쪽 옆모습', instruction: '고개를 왼쪽으로 돌려서, 얼굴 오른쪽이 보이게 찍어주세요.', required: false },
-  { key: 'back', label: '뒷모습', instruction: '뒤돌아서 뒤통수가 보이게 찍어주세요 (다른 사람이 찍어줘도 좋아요).', required: false },
+  { key: 'back', label: '뒷모습', instruction: '뒤돌아서 뒤통수가 보이게 찍어주세요 (다른 사람이 찍어줘도 좋습니다).', required: false },
 ];
 
 const scanStepEl = document.getElementById('makeup-scan-step');
@@ -74,7 +74,7 @@ function renderStageUI(){
     scanPhotoSlot.appendChild(img);
     scanNextBtn.disabled = false;
   } else {
-    scanPhotoSlot.innerHTML = '<span class="scan-photo-placeholder">촬영하거나 업로드한 사진이 여기에 표시돼요</span>';
+    scanPhotoSlot.innerHTML = '<span class="scan-photo-placeholder">촬영하거나 업로드한 사진이 여기에 표시됩니다</span>';
     scanNextBtn.disabled = true;
   }
 
@@ -102,7 +102,7 @@ scanStartBtn.addEventListener('click', async () => {
     scanStartBtn.hidden = true;
     scanCaptureBtn.hidden = false;
   } catch(err){
-    alert('카메라를 켤 수 없어요. 파일 업로드를 이용해주세요.');
+    alert('카메라를 켤 수 없습니다. 파일 업로드를 이용해주세요.');
   }
 });
 
@@ -193,7 +193,7 @@ const HAIR_VOLUME = 0.04;         // 사진 속 머리카락 꼭대기는 두피
 
 // STEP 2 진입 시 자동으로 호출돼요: 찍은 사진들(최대 4장)을 각각 AI로 분석해요.
 async function applyAllPhotosAI(photos){
-  if(statusEl) statusEl.textContent = '사진에서 얼굴과 머리카락을 인식하는 중이에요... (사진이 많으면 조금 걸려요)';
+  if(statusEl) statusEl.textContent = '사진에서 얼굴과 머리카락을 인식하는 중입니다... (사진이 많으면 조금 걸립니다)';
 
   const segmentsByView = {}; // { front: {all, face, hair}, ... }
   let anyFaceFound = false;
@@ -213,9 +213,9 @@ async function applyAllPhotosAI(photos){
   applyPhotosToScene({ segmentsByView });
 
   if(anyFaceFound){
-    if(statusEl) statusEl.textContent = '사진 속 얼굴·머리카락을 3D 얼굴 크기에 맞춰서 입혔어요!';
+    if(statusEl) statusEl.textContent = '사진 속 얼굴·머리카락을 3D 얼굴 크기에 맞춰서 입혔습니다!';
   } else if(statusEl){
-    statusEl.textContent = '얼굴 인식에는 실패했어요. 조명이 밝은 정면 사진으로 다시 시도해보세요.';
+    statusEl.textContent = '얼굴 인식에는 실패했습니다. 조명이 밝은 정면 사진으로 다시 시도해보세요.';
   }
 }
 
@@ -472,7 +472,7 @@ let viewerStarted = false;
 function initViewer(){
   const container = document.getElementById('landing-makeup-3d');
   if(!container){
-    if(loadingEl) loadingEl.textContent = '3D 뷰어를 불러올 수 없어요.';
+    if(loadingEl) loadingEl.textContent = '3D 뷰어를 불러올 수 없습니다.';
     return;
   }
   const width = container.clientWidth || 300;
@@ -494,7 +494,7 @@ function initViewer(){
     if(loadingEl){
       loadingEl.hidden = false;
       loadingEl.style.display = '';
-      loadingEl.textContent = '3D 화면이 잠깐 끊겼어요. 다시 불러오는 중...';
+      loadingEl.textContent = '3D 화면이 잠깐 끊겼습니다. 다시 불러오는 중...';
     }
   });
   renderer.domElement.addEventListener('webglcontextrestored', () => {
@@ -547,7 +547,7 @@ function initViewer(){
     undefined,
     err => {
       console.error('메이크업 얼굴 모델 로드 실패:', err);
-      if(loadingEl) loadingEl.textContent = '3D 얼굴 모델을 아직 못 찾았어요. /models/makeup-face.glb 파일을 올려주세요.';
+      if(loadingEl) loadingEl.textContent = '3D 얼굴 모델을 아직 못 찾았습니다. /models/makeup-face.glb 파일을 올려주세요.';
     }
   );
 
@@ -646,7 +646,7 @@ function toggleProp(propId){
     return;
   }
   if(!faceModel){
-    alert('얼굴 모델을 아직 불러오는 중이에요. 잠시만 기다려주세요.');
+    alert('얼굴 모델을 아직 불러오는 중입니다. 잠시만 기다려주세요.');
     return;
   }
   // 정수리 캡(머리카락)은 이제 사진으로 오려낸 밴드 패치들이 옆/뒤를 덮어주기 때문에,
@@ -726,12 +726,12 @@ function wearItemFromUrl(url, label){
       colorInput.value = '#ffffff';
       updateItemTransform();
       fitControls.hidden = false;
-      statusEl.textContent = `${label || '메이크업'}을(를) 적용했어요! 크기·위치·색상을 슬라이더로 맞춰보세요.`;
+      statusEl.textContent = `${label || '메이크업'}을(를) 적용했습니다! 크기·위치·색상을 슬라이더로 맞춰보세요.`;
       fitControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
     undefined,
     () => {
-      statusEl.textContent = '메이크업 파일을 불러오지 못했어요. .glb 파일이 맞는지 확인해주세요.';
+      statusEl.textContent = '메이크업 파일을 불러오지 못했습니다. .glb 파일이 맞는지 확인해주세요.';
     }
   );
 }
@@ -794,13 +794,13 @@ async function loadMakeupWardrobe(){
     const res = await fetch('/api/wardrobe?category=makeup');
     const data = await res.json();
     if(!data.items || data.items.length === 0){
-      resultsEl.innerHTML = '<p class="wardrobe-hint">아직 등록된 메이크업 아이템이 없어요. 3D 디자인 팝업의 "내 아이템 올리기"에서 첫 메이크업을 올려보세요.</p>';
+      resultsEl.innerHTML = '<p class="wardrobe-hint">아직 등록된 메이크업 아이템이 없습니다. 3D 디자인 팝업의 "내 아이템 올리기"에서 첫 메이크업을 올려보세요.</p>';
       return;
     }
     resultsEl.innerHTML = data.items.map(it => cardHTML(it)).join('');
     wireWearButtons(data.items);
   } catch(err){
-    resultsEl.innerHTML = '<p class="wardrobe-hint">메이크업 아이템을 불러오지 못했어요.</p>';
+    resultsEl.innerHTML = '<p class="wardrobe-hint">메이크업 아이템을 불러오지 못했습니다.</p>';
   }
 }
 

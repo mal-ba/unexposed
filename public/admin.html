@@ -162,8 +162,8 @@
 </div>
 
 <div id="denied-view" class="status-box" hidden>
-  <h1>접근 권한이 없어요</h1>
-  <p id="denied-text">이 계정은 관리자로 등록되어 있지 않아요. 관리자 이메일로 다시 로그인해주세요.</p>
+  <h1>접근 권한이 없습니다</h1>
+  <p id="denied-text">이 계정은 관리자로 등록되어 있지 않습니다. 관리자 이메일로 다시 로그인해주세요.</p>
   <button class="logout-btn" id="denied-logout-btn" type="button">다른 계정으로 로그인</button>
 </div>
 
@@ -200,11 +200,11 @@
       </thead>
       <tbody id="orders-tbody"></tbody>
     </table>
-    <div class="empty-note" id="orders-empty" hidden>아직 주문이 없어요.</div>
+    <div class="empty-note" id="orders-empty" hidden>아직 주문이 없습니다.</div>
   </div>
 
   <div class="section-title">구독 플랜</div>
-  <p class="sub-help">구독하기 버튼은 외부 결제(penworldwide)로 연결돼서 자동으로 기록되지 않아요. 결제를 확인한 뒤 여기서 등록하면, 그 사람은 주문할 때 구독에 포함된 재봉사 매칭·배송비(30,000원)가 빠져요.</p>
+  <p class="sub-help">구독하기 버튼은 외부 결제(penworldwide)로 연결돼서 자동으로 기록되지 않습니다. 결제를 확인한 뒤 여기서 등록하면, 그 사람은 주문할 때 구독에 포함된 재봉사 매칭·배송비(30,000원)가 빠집니다.</p>
   <form class="admin-add-form" id="sub-add-form">
     <input type="email" name="email" placeholder="구독자 Google 이메일" required>
     <select name="plan" class="sub-plan-select">
@@ -229,7 +229,7 @@
       </thead>
       <tbody id="subs-tbody"></tbody>
     </table>
-    <div class="empty-note" id="subs-empty" hidden>아직 구독자가 없어요.</div>
+    <div class="empty-note" id="subs-empty" hidden>아직 구독자가 없습니다.</div>
   </div>
 
   <div class="section-title">버그 제보함</div>
@@ -239,7 +239,7 @@
     <button class="bugreports-filter-chip" data-filter="all" type="button">전체</button>
   </div>
   <div id="bugreports-list"></div>
-  <div class="empty-note" id="bugreports-empty" hidden>해당하는 제보가 없어요.</div>
+  <div class="empty-note" id="bugreports-empty" hidden>해당하는 제보가 없습니다.</div>
 
   <div class="section-title">접속자 통계</div>
   <div class="visits-date-row">
@@ -406,7 +406,7 @@
       renderOrders(data.orders);
     } catch(err){
       ordersEmpty.hidden = false;
-      ordersEmpty.textContent = '주문 목록을 불러오지 못했어요.';
+      ordersEmpty.textContent = '주문 목록을 불러오지 못했습니다.';
     }
   }
 
@@ -517,8 +517,8 @@
     if(visitsAvgDaycount) visitsAvgDaycount.textContent = dayCount;
     if(visitsPeakNote){
       visitsPeakNote.textContent = dayCount > 0
-        ? `일반 사용자들이 평균적으로 가장 많이 접속하는 시간대는 ${peakHour}시예요.`
-        : '아직 쌓인 방문 기록이 없어요.';
+        ? `일반 사용자들이 평균적으로 가장 많이 접속하는 시간대는 ${peakHour}시입니다.`
+        : '아직 쌓인 방문 기록이 없습니다.';
     }
     if(!visitsChartAvg) return;
     const max = Math.max(...hourlyAverage, 0.01); // 0으로 나누는 걸 방지
@@ -618,10 +618,10 @@
         adminAddForm.reset();
         loadAdmins();
       } else {
-        adminFormError.textContent = data.error || '추가에 실패했어요.';
+        adminFormError.textContent = data.error || '추가에 실패했습니다.';
       }
     } catch(err){
-      adminFormError.textContent = '추가 중 오류가 발생했어요.';
+      adminFormError.textContent = '추가 중 오류가 발생했습니다.';
     }
   });
 
@@ -650,7 +650,7 @@
     overlay.innerHTML = `
       <div class="confirm-box">
         <h3 style="margin:0 0 4px;">이 관리자를 삭제할까요?</h3>
-        <p>${email} 계정의 관리자 권한이 즉시 사라져요.</p>
+        <p>${email} 계정의 관리자 권한이 즉시 사라집니다.</p>
         <div class="confirm-actions">
           <button class="confirm-cancel" type="button">취소</button>
           <button class="confirm-delete" type="button">삭제하기</button>
@@ -668,10 +668,10 @@
           overlay.remove();
           loadAdmins();
         } else {
-          overlay.querySelector('p').textContent = data.error || '삭제에 실패했어요.';
+          overlay.querySelector('p').textContent = data.error || '삭제에 실패했습니다.';
         }
       } catch(err){
-        overlay.querySelector('p').textContent = '삭제 중 오류가 발생했어요.';
+        overlay.querySelector('p').textContent = '삭제 중 오류가 발생했습니다.';
       }
     });
   }
@@ -690,7 +690,7 @@
     overlay.innerHTML = `
       <div class="confirm-box">
         <h3 style="margin:0 0 4px;">정말 삭제할까요?</h3>
-        <p>이 주문 기록은 삭제하면 되돌릴 수 없어요.</p>
+        <p>이 주문 기록은 삭제하면 되돌릴 수 없습니다.</p>
         <div class="confirm-actions">
           <button class="confirm-cancel" type="button">취소</button>
           <button class="confirm-delete" type="button">삭제하기</button>
@@ -708,10 +708,10 @@
           overlay.remove();
           loadOrders();
         } else {
-          overlay.querySelector('p').textContent = data.error || '삭제에 실패했어요.';
+          overlay.querySelector('p').textContent = data.error || '삭제에 실패했습니다.';
         }
       } catch(err){
-        overlay.querySelector('p').textContent = '삭제 중 오류가 발생했어요.';
+        overlay.querySelector('p').textContent = '삭제 중 오류가 발생했습니다.';
       }
     });
   }
@@ -732,9 +732,9 @@
       });
       const data = await res.json();
       if(data.ok){ subAddForm.reset(); loadSubscriptions(); }
-      else subFormError.textContent = data.error || '등록에 실패했어요.';
+      else subFormError.textContent = data.error || '등록에 실패했습니다.';
     } catch(err){
-      subFormError.textContent = '등록 중 오류가 발생했어요.';
+      subFormError.textContent = '등록 중 오류가 발생했습니다.';
     } finally { btn.disabled = false; }
   });
 
@@ -751,7 +751,7 @@
     overlay.innerHTML = `
       <div class="confirm-box">
         <h3 style="margin:0 0 4px;">이 구독자를 삭제할까요?</h3>
-        <p>${email} 님의 구독 기록이 삭제되면 되돌릴 수 없어요.</p>
+        <p>${email} 님의 구독 기록이 삭제되면 되돌릴 수 없습니다.</p>
         <div class="confirm-actions">
           <button class="confirm-cancel" type="button">취소</button>
           <button class="confirm-delete" type="button">삭제하기</button>
@@ -769,10 +769,10 @@
           overlay.remove();
           loadSubscriptions();
         } else {
-          overlay.querySelector('p').textContent = data.error || '삭제에 실패했어요.';
+          overlay.querySelector('p').textContent = data.error || '삭제에 실패했습니다.';
         }
       } catch(err){
-        overlay.querySelector('p').textContent = '삭제 중 오류가 발생했어요.';
+        overlay.querySelector('p').textContent = '삭제 중 오류가 발생했습니다.';
       }
     });
   }
@@ -815,10 +815,10 @@
       if(data.ok){
         checkAdminAndLoad();
       } else {
-        alert(data.error || '로그인에 실패했어요.');
+        alert(data.error || '로그인에 실패했습니다.');
       }
     } catch(err){
-      alert('로그인 중 오류가 발생했어요.');
+      alert('로그인 중 오류가 발생했습니다.');
     }
   };
 

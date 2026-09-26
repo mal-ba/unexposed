@@ -392,7 +392,7 @@ function rebuildGarment(){
   const cache = GLB_CACHE[state.typeKey];
   if(!cache){
     if(GLB_FAILED[state.typeKey]){
-      if(el.loading){ el.loading.hidden = false; el.loading.textContent = '옷 모델을 불러오지 못했어요. 새로고침 후 다시 시도해주세요.'; }
+      if(el.loading){ el.loading.hidden = false; el.loading.textContent = '옷 모델을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'; }
     } else {
       pendingGlbType = state.typeKey;
       if(el.loading){ el.loading.hidden = false; el.loading.textContent = '옷 모델을 불러오는 중...'; }
@@ -522,7 +522,7 @@ function clearRegion(key, withMirror = true){
   flushPaint();
   state.lastTappedRegion = key;
   const kind = GARMENT_TYPES[state.typeKey].kind;
-  setStatus(`${targets.map(k => regionLabel(kind, k)).join(', ')} → 지웠어요`);
+  setStatus(`${targets.map(k => regionLabel(kind, k)).join(', ')} → 지웠습니다`);
   renderRegionGrid();
 }
 
@@ -546,7 +546,7 @@ function fillAllRegions(){
   const kind = GARMENT_TYPES[state.typeKey].kind;
   regionKeysFor(kind).forEach(k => fillRegion(k, false));
   state.lastTappedRegion = null;
-  setStatus('옷 전체를 채웠어요.');
+  setStatus('옷 전체를 채웠습니다.');
   renderRegionGrid();
 }
 
@@ -764,16 +764,16 @@ function renderTypeRow(){
 }
 
 const TOOL_HINTS = {
-  fill: '드래그로 회전 · 옷을 탭하면 그 부위를 채워요',
+  fill: '드래그로 회전 · 옷을 탭하면 그 부위를 채웁니다',
   brush: '옷 위를 드래그해서 그리기 · 옷 바깥을 드래그하면 회전',
-  eraser: '옷을 탭하면 그 부위 전체를 지우고, 드래그하면 문지른 곳만 지워요 · 옷 바깥은 회전',
+  eraser: '옷을 탭하면 그 부위 전체를 지우고, 드래그하면 문지른 곳만 지웁니다 · 옷 바깥은 회전',
 };
 function renderToolRow(){
   el.toolRow.querySelectorAll('.tool-chip').forEach(b => b.classList.toggle('active', b.dataset.tool === state.tool));
   el.brushSizeRow.hidden = state.tool === 'fill';
   if(el.regionHint) el.regionHint.textContent = state.tool === 'eraser'
-    ? '(칸을 누르면 그 부위를 지워요 · 좌우는 입는 사람 기준)'
-    : '(칸을 누르면 지금 고른 원단·색으로 채워요 · 좌우는 입는 사람 기준)';
+    ? '(칸을 누르면 그 부위를 지웁니다 · 좌우는 입는 사람 기준)'
+    : '(칸을 누르면 지금 고른 원단·색으로 채웁니다 · 좌우는 입는 사람 기준)';
   if(el.hint) el.hint.textContent = TOOL_HINTS[state.tool];
 }
 el.toolRow.querySelectorAll('.tool-chip').forEach(btn => {
@@ -902,13 +902,13 @@ el.clearPaintBtn.addEventListener('click', () => {
     if(typeof state.paintAttr.clearUpdateRanges === 'function') state.paintAttr.clearUpdateRanges();
     state.paintAttr.needsUpdate = true;
   }
-  setStatus('브러시로 그린 자국을 모두 지웠어요.');
+  setStatus('브러시로 그린 자국을 모두 지웠습니다.');
   updateQuote();
 });
 el.resetBtn.addEventListener('click', () => {
   delete state.designByType[state.typeKey];
   state.lastTappedRegion = null;
-  setStatus('이 옷을 처음 상태로 되돌렸어요.');
+  setStatus('이 옷을 처음 상태로 되돌렸습니다.');
   rebuildGarment();
 });
 
@@ -996,7 +996,7 @@ function quoteHtml(q){
   if(q.subDiscount) rows.push([`구독 포함 (${subscriber.plan === 'Premium' ? '연간' : '월간'} 구독 중)`, '-' + won(q.subDiscount)]);
   return rows.map(([a, b]) => `<div class="q-row"><span>${a}</span><span>${b}</span></div>`).join('')
     + `<div class="q-row q-total"><span>예상 견적</span><span>${won(q.total)}</span></div>`
-    + (subscriber && !q.finishAmount ? `<div class="q-sub">구독 중이라 Premium을 고르면 재봉사 매칭·배송비가 빠져요.</div>` : '')
+    + (subscriber && !q.finishAmount ? `<div class="q-sub">구독 중이라 Premium을 고르면 재봉사 매칭·배송비가 빠집니다.</div>` : '')
     + `<div class="q-sub">기장 ×${state.lengthMul.toFixed(2)} · 둘레 ×${state.girthMul.toFixed(2)} · 부위 ${Object.keys(getDesign(state.typeKey).regions).length}곳 채움</div>`;
 }
 
@@ -1059,7 +1059,7 @@ orderEl.openBtn.addEventListener('click', async () => {
     return;
   }
   if(!GLB_CACHE[state.typeKey]){
-    setStatus('옷 모델을 불러온 뒤에 주문할 수 있어요.');
+    setStatus('옷 모델을 불러온 뒤에 주문할 수 있습니다.');
     return;
   }
   await refreshSubscription();
@@ -1119,9 +1119,9 @@ orderEl.payBtn.addEventListener('click', async () => {
       }),
     });
     const order = await res.json();
-    if(!order.ok) return fail(order.error || '주문 생성에 실패했어요.');
+    if(!order.ok) return fail(order.error || '주문 생성에 실패했습니다.');
     const clientKey = window.TOSS_CLIENT_KEY || (typeof TOSS_CLIENT_KEY !== 'undefined' ? TOSS_CLIENT_KEY : null);
-    if(typeof window.TossPayments !== 'function' || !clientKey) return fail('결제 모듈을 불러오지 못했어요. 새로고침 후 다시 시도해주세요.');
+    if(typeof window.TossPayments !== 'function' || !clientKey) return fail('결제 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.');
     window.TossPayments(clientKey).requestPayment('카드', {
       amount: order.amount,
       orderId: order.orderId,
@@ -1132,7 +1132,7 @@ orderEl.payBtn.addEventListener('click', async () => {
       failUrl: `${window.location.origin}/payment-fail.html`,
     });
   } catch(err){
-    fail('결제창을 여는 중 오류가 발생했어요.');
+    fail('결제창을 여는 중 오류가 발생했습니다.');
   }
 });
 

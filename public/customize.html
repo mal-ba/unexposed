@@ -14,7 +14,7 @@
       <div class="sec-head" style="text-align:left; margin-bottom:20px;">
         <div class="eyebrow">STEP 1</div>
         <h2 class="serif" style="font-size:26px;" id="scan-step-title">카메라로 체형 스캔해보기</h2>
-        <p id="scan-step-desc">정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정돼요. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영돼요)</p>
+        <p id="scan-step-desc">정면 사진을 촬영하거나 업로드하고 키를 입력하면, 입력한 키 비율에 맞춰 마네킹 아바타 크기가 자동으로 조정됩니다. (데모 버전 — 실제 서비스에서는 3D 체형 데이터로 정밀하게 반영됩니다)</p>
       </div>
       <div class="scan-wrap">
         <div class="scan-camera">
@@ -33,11 +33,11 @@
               <input type="file" accept="video/*" id="scan-video-file-input" hidden>
             </label>
           </div>
-          <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타나요. 동영상으로 한 바퀴 돌면서 찍으면 체형이 더 잘 담겨요. 카메라를 쓸 수 없다면 파일을 업로드해도 돼요.</p>
+          <p class="scan-hint" id="scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타납니다. 동영상으로 한 바퀴 돌면서 찍으면 체형이 더 잘 담깁니다. 카메라를 쓸 수 없다면 파일을 업로드해도 됩니다.</p>
         </div>
         <div class="scan-result">
           <div class="scan-photo-slot" id="scan-photo-slot">
-            <span class="scan-photo-placeholder">촬영/녹화하거나 업로드한 사진·동영상이 여기에 표시돼요</span>
+            <span class="scan-photo-placeholder">촬영/녹화하거나 업로드한 사진·동영상이 여기에 표시됩니다</span>
           </div>
           <div class="scan-height-row">
             <label for="scan-height-input">키 (cm)</label>
@@ -50,7 +50,7 @@
           </div>
 
           <div class="calc-label" style="margin-top:14px;">추가 각도 사진 (선택)</div>
-          <p class="wardrobe-hint">있으면 몸통 옆·뒤쪽 피부/옷도 사진 그대로 보여요. 정면 사진만 있어도 아바타는 만들어져요.</p>
+          <p class="wardrobe-hint">있으면 몸통 옆·뒤쪽 피부/옷도 사진 그대로 보입니다. 정면 사진만 있어도 아바타는 만들어집니다.</p>
           <div class="body-scan-extra-angles" id="body-scan-extra-angles">
             <label class="scan-upload-label">왼쪽 옆모습<input type="file" accept="image/*" id="body-scan-left-input" hidden></label>
             <label class="scan-upload-label">오른쪽 옆모습<input type="file" accept="image/*" id="body-scan-right-input" hidden></label>
@@ -93,7 +93,7 @@
                 </select>
                 <button class="btn btn-primary" id="recommend-btn" type="button">추천받기</button>
               </div>
-              <p class="wardrobe-hint">태그 매칭 기반 추천이에요 (생성형 AI 추천은 추후 연동 가능해요).</p>
+              <p class="wardrobe-hint">태그 매칭 기반 추천입니다 (생성형 AI 추천은 추후 연동 가능합니다).</p>
               <div class="wardrobe-grid" id="recommend-results"></div>
             </div>
 
@@ -162,7 +162,7 @@
                 <label>썸네일 이미지 (필수)
                   <input type="file" accept="image/*" id="upload-item-thumbnail">
                 </label>
-                <label>3D 파일 .glb (선택 — 없으면 카탈로그에만 표시돼요)
+                <label>3D 파일 .glb (선택 — 없으면 카탈로그에만 표시됩니다)
                   <input type="file" accept=".glb,.gltf" id="upload-item-glb">
                 </label>
                 <button class="btn btn-primary" type="button" id="upload-item-submit-btn">옷장에 올리기</button>
@@ -172,7 +172,7 @@
 
             <div class="garment-fit-controls" id="garment-controls" hidden>
               <div class="calc-label">입은 아이템</div>
-              <p class="garment-fit-note">몸 크기·부위에 맞춰 자동으로 입혀져요. 상의·하의 등 여러 부위를 동시에 입어볼 수 있어요 — 아래에서 색을 바꿀 부위를 골라주세요.</p>
+              <p class="garment-fit-note">몸 크기·부위에 맞춰 자동으로 입혀집니다. 상의·하의 등 여러 부위를 동시에 입어볼 수 있습니다 — 아래에서 색을 바꿀 부위를 골라주세요.</p>
               <div class="worn-garment-chips" id="worn-garment-chips"></div>
               <label>선택한 아이템 색상 <input type="color" id="garment-color" value="#ffffff"></label>
               <div class="garment-fit-actions">
@@ -197,13 +197,13 @@
         <h2 class="serif" style="font-size:26px;">원단·디테일을 선택해보세요</h2>
         <p>실제 제작 비용은 원단·디테일·완성도에 따라 달라집니다. 아래에서 직접 옵션을 눌러보세요.</p>
       </div>
-      <p class="wardrobe-hint" id="wizard-2d-mode-note" hidden>2D 모드로 진행 중이에요 — 방금 스캔한 사진이 내 2D 캐릭터예요. 아래에서 원단·색상·디테일을 골라 꾸며보세요.</p>
+      <p class="wardrobe-hint" id="wizard-2d-mode-note" hidden>2D 모드로 진행 중입니다 — 방금 스캔한 사진이 내 2D 캐릭터입니다. 아래에서 원단·색상·디테일을 골라 꾸며보세요.</p>
       <div class="scan-2d-character-preview" id="scan-2d-character-preview" hidden>
         <img id="scan-2d-character-img" alt="내 2D 캐릭터">
       </div>
 
       <div class="template-quickstart">
-        <div class="calc-label">빠른 시작 템플릿 <span class="template-quickstart-note">뭐부터 할지 막막하면, 하나 골라서 시작해보세요. 골라도 자유롭게 더 바꿀 수 있어요.</span></div>
+        <div class="calc-label">빠른 시작 템플릿 <span class="template-quickstart-note">뭐부터 할지 막막하면, 하나 골라서 시작해보세요. 골라도 자유롭게 더 바꿀 수 있습니다.</span></div>
         <div class="template-quickstart-grid" id="template-quickstart-grid"></div>
       </div>
 
@@ -256,7 +256,7 @@
                 <label>굵기 <input type="range" id="pattern-draw-size" min="2" max="24" value="6"></label>
                 <button class="btn btn-ghost-dark" id="pattern-draw-clear-btn" type="button">지우기</button>
               </div>
-              <p class="wardrobe-hint">캔버스에 마우스(또는 손가락)로 그려보세요. 옷 표면에 타일처럼 반복돼서 입혀져요.</p>
+              <p class="wardrobe-hint">캔버스에 마우스(또는 손가락)로 그려보세요. 옷 표면에 타일처럼 반복돼서 입혀집니다.</p>
             </div>
 
             <div class="pattern-mode-panel" id="pattern-mode-upload" hidden>
@@ -289,13 +289,13 @@
             </div>
             <div class="calc-custom" id="calc-custom-fabric" hidden>
               <label for="custom-fabric-note">원하시는 원단·재질이나 디자인 방식을 자유롭게 적어주세요</label>
-              <textarea id="custom-fabric-note" placeholder="예: 리사이클 폴리에스터로 제작하고 싶어요 / 특정 원단 샘플 참고 가능 / 발수 가공 원단 원해요"></textarea>
+              <textarea id="custom-fabric-note" placeholder="예: 리사이클 폴리에스터로 제작하고 싶습니다 / 특정 원단 샘플 참고 가능 / 발수 가공 원단 원합니다"></textarea>
               <label class="calc-custom-file-label">
                 + 참고 이미지 첨부
                 <input type="file" accept="image/*" id="custom-fabric-file" hidden>
               </label>
               <div class="calc-custom-file-preview" id="custom-fabric-file-preview"></div>
-              <div class="calc-custom-note">직접 요청 원단은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
+              <div class="calc-custom-note">직접 요청 원단은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드립니다.</div>
             </div>
           </div>
           <div class="calc-group">
@@ -313,7 +313,7 @@
                 <input type="file" accept="image/*" id="custom-detail-file" hidden>
               </label>
               <div class="calc-custom-file-preview" id="custom-detail-file-preview"></div>
-              <div class="calc-custom-note">직접 요청 디테일·디자인은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드려요.</div>
+              <div class="calc-custom-note">직접 요청 디테일·디자인은 파트너사 확인 후 최종 견적과 가능 여부를 별도로 안내드립니다.</div>
             </div>
           </div>
           <div class="calc-group">
@@ -322,7 +322,7 @@
               <button class="calc-chip active" data-value="0">Lite · 패턴 PDF만 · +0원</button>
               <button class="calc-chip" data-value="30000">Premium · 재봉사 매칭 + 완제품 배송 · +30,000원</button>
             </div>
-            <p class="wardrobe-hint" id="finish-tailor-note" hidden>AI 패턴을 검증된 지역 재봉사와 1:1 매칭해서 제작하고, 완성 후 아바타 데이터 기준으로 핏을 검수(QC)한 다음 보내드려요.</p>
+            <p class="wardrobe-hint" id="finish-tailor-note" hidden>AI 패턴을 검증된 지역 재봉사와 1:1 매칭해서 제작하고, 완성 후 아바타 데이터 기준으로 핏을 검수(QC)한 다음 보내드립니다.</p>
           </div>
         </div>
         <div class="calc-total">
@@ -348,7 +348,7 @@
 
     <div class="consent-section" id="order-shipping-section" hidden>
       <div class="consent-title">배송지 입력</div>
-      <p class="consent-desc">검증된 지역 재봉사와 매칭해서 제작한 완제품을 도어투도어로 보내드리기 위해 필요해요. 결제 전에 입력해주세요.</p>
+      <p class="consent-desc">검증된 지역 재봉사와 매칭해서 제작한 완제품을 도어투도어로 보내드리기 위해 필요합니다. 결제 전에 입력해주세요.</p>
       <div class="order-shipping-fields">
         <label>받는 분 이름 <input type="text" id="order-shipping-name" placeholder="예: 홍길동"></label>
         <label>연락처 <input type="tel" id="order-shipping-phone" placeholder="예: 010-1234-5678"></label>
@@ -358,8 +358,8 @@
         <label>배송 메모 (선택) <input type="text" id="order-shipping-note" placeholder="예: 부재 시 경비실에 맡겨주세요"></label>
       </div>
       <div class="consent-desc" style="margin-top:10px;">
-        입력하신 이름·연락처·주소는 제작·배송 목적으로만 쓰이고, 배송 완료 후 일정 기간 뒤 파기돼요.
-        정식 개인정보처리방침은 서비스 정식 출시 전 별도로 안내드릴게요.
+        입력하신 이름·연락처·주소는 제작·배송 목적으로만 쓰이고, 배송 완료 후 일정 기간 뒤 파기됩니다.
+        정식 개인정보처리방침은 서비스 정식 출시 전 별도로 안내드리겠습니다.
       </div>
       <label class="consent-check">
         <input type="checkbox" id="order-shipping-consent-checkbox">
