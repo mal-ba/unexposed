@@ -69,65 +69,148 @@
   .see-also a{ color:var(--star-dark); font-weight:600; }
   .see-also a:hover{ text-decoration:underline; }
 
+  .ps-list{ display:grid; gap:14px; grid-template-columns:1fr; margin-bottom:8px; }
+  @media(min-width:640px){ .ps-list{ grid-template-columns:1fr 1fr; } }
+  .ps{ border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; }
+  .ps h3{ font-size:15px; font-weight:600; margin:0 0 10px; }
+  .ps .row{ font-size:13.5px; color:var(--ink-soft); margin:0 0 8px; }
+  .ps .row:last-child{ margin-bottom:0; }
+  .ps .row b{ display:inline-block; font-size:11.5px; letter-spacing:0.04em; color:var(--star-dark); margin-right:6px; }
+  .ps .row.solve b{ color:var(--coral); }
+  .feature-list{ margin:0; padding-left:18px; color:var(--ink-soft); font-size:14px; }
+  .feature-list li{ margin-bottom:6px; }
+  .choice-list{ margin:10px 0 0; padding-left:18px; font-size:14px; color:var(--ink-soft); }
+
   .nav-left{ display:flex; align-items:center; gap:14px; }
   .menu-toggle-btn{
     width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--paper);
-    color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
-  }
-  .menu-toggle-btn:hover{ border-color:var(--star-dark); }
-</style>
-</head>
-<body>
-
-<header>
-  <div class="nav-left">
-    <button class="menu-toggle-btn" id="menu-toggle-btn" type="button" aria-label="메뉴 열기">
-      <svg viewBox="0 0 20 14" width="20" height="14"><rect width="20" height="2" rx="1" fill="currentColor"/><rect y="6" width="20" height="2" rx="1" fill="currentColor"/><rect y="12" width="20" height="2" rx="1" fill="currentColor"/></svg>
-    </button>
-    <a class="brand" href="/">
-      <svg viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#0F2E2C"/><polygon points="50,20 78,42 67,80 33,80 22,42" fill="#F5F2EA"/></svg>
-      UNEXPOSED
-    </a>
-  </div>
-  <a class="back-link" href="/">← 홈으로</a>
-</header>
-
-<div id="side-menu-mount"></div>
-
-<main>
+    color:var(--ink); display:flex; align-items:center; justify-content:center; cursor:pointer;<main>
   <div class="eyebrow">OUR MODEL</div>
   <h1>한 사람의 몸에 맞춰,<br>한 사람의 손끝으로</h1>
-  <p class="lede">UNEXPOSED가 지금 이 방식으로 옷을 만드는 이유예요.</p>
+  <p class="lede">UNEXPOSED가 지금의 방식으로 옷을 만들게 된 이유를 소개합니다.</p>
 
   <div class="cover">
-    <div class="tag">POSITIONING</div>
+    <div class="tag">POSITIONING · UNEXPOSED (Alter)</div>
     <blockquote>
-      “AI가 생성한 초개인화 맞춤 패턴을, 숙련된 지역 재봉사와 1:1로 매칭해 완벽한 핏의 실물 의류로 배송하는
+      “AI가 생성한 초개인화 맞춤 패턴을 숙련된 지역 재봉사와 1:1로 매칭해, 완벽한 핏의 실물 의류로 배송하는
       &nbsp;<b>상생형 온디맨드 패션 C2C 풀스택 플랫폼</b>”
     </blockquote>
     <svg class="star-mark" width="180" height="180" viewBox="0 0 100 100"><polygon points="50,4 91,35 75,90 25,90 9,35" fill="#6FB8C2"/></svg>
   </div>
 
+  <h2>처음 만들었던 것</h2>
+  <p class="section-lede">UNEXPOSED v1.0–v2.0 Alpha는 패턴을 만들어 드리는 디자인 툴이었습니다.</p>
+  <div class="value">
+    <p style="margin-bottom:12px">AI 기반 3D 바디 스캔과 2D/3D 드레이핑 기술로, 비정형·비대칭 체형을 가진 사용자에게 맞춤형 재봉 패턴(Sewing Pattern)과 시각적 청사진(Visual Blueprint)을 생성·배송하는 패션 CAD/디자인 툴입니다.</p>
+    <ul class="feature-list">
+      <li>고정밀 신체 스캔으로 수술 흉터, 곡선, 비대칭까지 반영한 1:1 개인 아바타를 생성합니다.</li>
+      <li>2D 벡터 왜곡과 AI 라인 분리를 결합한 하이브리드 알고리즘으로 2D 도면을 실시간 추출합니다.</li>
+      <li>CLO(월 56,000원), 마블러스 디자이너(월 58,000원)보다 진입 장벽을 낮춘 월 25,000원 구독제로 운영했습니다.</li>
+    </ul>
+  </div>
+
+  <h2>우리가 마주한 문제</h2>
+  <p class="section-lede">직접 써 본 사람들의 반응에서 네 가지 문제가 드러났습니다.</p>
+  <div class="ps-list">
+    <div class="ps">
+      <h3>결과물이 믿을 만한가?</h3>
+      <p class="row"><b>문제</b>고객은 "그래서 실제로 내가 원하는 옷이 나오나요?"라고 의심합니다.</p>
+      <p class="row solve"><b>해결</b>"99.9% 정확합니다"라고 주장하기보다, 실제 고객 사례와 Before &amp; After, 실제 착용 결과, 핏 정확도로 직접 증명합니다.</p>
+    </div>
+    <div class="ps">
+      <h3>개인정보에 대한 불신</h3>
+      <p class="row"><b>문제</b>사용자는 자기 몸 사진을 회사에 올리는 것에 거부감을 느낍니다.</p>
+      <p class="row solve"><b>해결</b>신체 사진 원본을 저장하지 않는 Zero-Photo-Retention 원칙을 분명하게 알립니다.</p>
+    </div>
+    <div class="ps">
+      <h3>사용자가 해야 할 일이 너무 많았다</h3>
+      <p class="row"><b>기존</b>스캔 → 아바타 → 디자인 → 시뮬레이션 → 패턴 → 패턴 배송</p>
+      <p class="row"><b>문제</b>결국 옷 제작은 사용자가 직접 해야 했습니다.</p>
+      <p class="row solve"><b>해결</b>재봉사와 연결합니다. 수수료 수익을 얻는 동시에 사용자의 불편도 덜 수 있습니다.</p>
+    </div>
+    <div class="ps">
+      <h3>사용하기 어렵다</h3>
+      <p class="row"><b>기존</b>그림판처럼 쉬운 2D UI에 AI 모델 제작 기능을 더했습니다.</p>
+      <p class="row"><b>문제</b>"나는 패션 감각이 없다"는 사람들은 빈 캔버스를 보면 오히려 막막해합니다. 전문 툴보다 쉽다고 해서 일반인에게도 쉬운 것은 아닙니다.</p>
+      <p class="row solve"><b>해결</b>바로 시작할 수 있는 기본 디자인을 제공합니다.</p>
+    </div>
+  </div>
+
+  <h2>사용자에게서 들은 이야기</h2>
+  <p class="section-lede">문제 뒤에 숨어 있던 사용자의 고통과 욕구를 정리했습니다.</p>
+  <div class="value-list">
+    <div class="value">
+      <h3>표면적 고통</h3>
+      <p>패턴 파일(PDF)이나 도면을 받아도 실물 옷으로 만들어 줄 재단사를 찾기 어렵고, 직접 공장을 수소문해야 합니다. 설계와 제작 사이가 끊겨 있습니다.</p>
+    </div>
+    <div class="value">
+      <h3>숨은 욕구</h3>
+      <p>복잡한 유통·수선 과정 없이, 내가 디자인한 옷이 전문 재봉사의 손을 거쳐 완벽한 핏의 완성품으로 집 앞까지 배송되기를 원합니다.</p>
+    </div>
+    <div class="value">
+      <h3>정체성</h3>
+      <p>AI 확산으로 일자리를 위협받는 숙련 재봉사들과 상생하면서, 자신의 개성을 윤리적이고 온디맨드 방식으로 표현하는 가치 소비자입니다.</p>
+    </div>
+    <div class="value">
+      <h3>두려움</h3>
+      <p>C2C로 제작을 맡겼을 때 "원하는 퀄리티가 안 나오거나 사기를 당하면 어떡하지?" 하는 품질·신뢰 불안을 느낍니다.</p>
+    </div>
+  </div>
+
+  <h2>옷이 필요한 순간</h2>
+  <div class="reason-list">
+    <div class="reason">
+      <div class="num">!</div>
+      <div>
+        <h3>기성복이 맞지 않는 특별한 상황</h3>
+        <p>코스플레이 행사, 데이트, 입사·학업 같은 중요한 순간이나 체중 변동처럼 체형이 급격히 바뀌었을 때, 기성복으로는 해결할 수 없는 상황에서 구매가 일어납니다.</p>
+      </div>
+    </div>
+    <div class="reason">
+      <div class="num">✓</div>
+      <div>
+        <h3>디자인을 마친 바로 그 순간</h3>
+        <p>AI로 나만의 아웃핏 디자인을 마친 직후, 사용자는 필요와 예산에 따라 둘 중 하나를 선택합니다.</p>
+        <ol class="choice-list">
+          <li>저렴하게 패턴만 배송·다운로드받습니다.</li>
+          <li>검증된 재봉사와 매칭되어 완성품을 집 앞에서 받습니다.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <h2>시장에 비어 있던 자리</h2>
+  <div class="value-list">
+    <div class="value">
+      <h3>기존 제품</h3>
+      <p>CLO 3D(월 56,000원)와 Marvelous Designer(월 58,000원)는 가격이 높고 CAD 조작이 어려우며, 표준 마네킹 중심의 B2B·전문가용 소프트웨어입니다.</p>
+    </div>
+    <div class="value">
+      <h3>White Space</h3>
+      <p>"AI 시대의 재봉사 긱 이코노미 매칭 네트워크"는 아직 없습니다. AI 도입으로 숙련 재봉사·수선사의 입지는 줄어들고 있지만, 이들을 C2C 온디맨드로 연결해 AI 패턴 생성부터 재봉사 1:1 매칭, 완제품 검수·배송까지 엔드투엔드로 해결하는 풀스택 패션 플랫폼은 존재하지 않습니다. 도면만 파는 SaaS를 넘어서는 이 지점이 UNEXPOSED가 들어갈 자리입니다.</p>
+    </div>
+  </div>
+
   <h2>왜 이 방식을 선택했나</h2>
-  <p class="section-lede">패턴 파일 하나만 건네주던 이전 방식에서, 완성된 옷 한 벌을 끝까지 책임지는 방식으로 바꿨어요.</p>
+  <p class="section-lede">패턴 파일 하나만 건네던 방식에서, 완성된 옷 한 벌을 끝까지 책임지는 방식으로 바꿨습니다.</p>
 
   <div class="reason-list">
     <div class="reason">
       <div class="num">1</div>
       <div>
-        <h3>라스트마일까지 완결 — 구매 장벽 제거</h3>
-        <p>패턴 파일을 다운로드한 뒤 "직접 만들어야 하는 숙제"를 남기던 이전 모델과 달리, 디자인부터 제작·배송까지 유저의 여정을 끝까지 마무리해요. 사용자가 중간에 멈추지 않도록, 구매 전환을 가로막는 마지막 장벽을 없앴어요.</p>
+        <h3>라스트마일까지 완결 — 전환율 극대화</h3>
+        <p>이전 모델은 사용자에게 패턴 다운로드라는 "과제"를 남겼습니다. 이제는 디자인부터 제작·배송까지 사용자의 여정을 끝까지 완결해, 구매를 가로막던 마지막 장벽을 없앱니다.</p>
       </div>
     </div>
 
     <div class="reason">
       <div class="num">2</div>
       <div>
-        <h3>수익 구조의 변화 — ARPU 증대</h3>
-        <p>소프트웨어 구독료 하나에 기대던 수익 구조를, 여러 겹의 수익원으로 확장했어요.</p>
+        <h3>수익 모델의 퀀텀 점프 — ARPU 증대</h3>
+        <p>소프트웨어 구독료 하나에 기대던 수익 구조를 여러 겹의 수익원으로 확장해, 사용자당 평균 매출(ARPU)을 크게 높입니다.</p>
         <div class="delta">
           <span class="before">기존 · 월 구독료 또는 저가 패턴 판매 단일 수익</span>
-          <span>피봇 후 · AI 패턴 생성비 + 재봉 중개 마진(Take-rate) + 원단·배송 마진</span>
+          <span>피봇 후 · AI 패턴 생성비 + 재봉 중개 수수료(Take-rate) + 원단·배송 마진</span>
         </div>
       </div>
     </div>
@@ -135,16 +218,16 @@
     <div class="reason">
       <div class="num">3</div>
       <div>
-        <h3>ESG 상생 서사 — 신뢰와 브랜드 가치</h3>
-        <p>AI 자동화로 일감이 줄어드는 전통 재봉사들에게 새로운 C2C 일거리를 연결해요. "기술이 사람을 대체한다"는 이야기가 아니라, "기술과 사람이 함께 일한다"는 상생 모델로 브랜드에 대한 신뢰를 쌓아가요.</p>
+        <h3>ESG 상생 서사 — 마케팅과 신뢰 확보</h3>
+        <p>AI 자동화로 일자리를 잃을 위기에 놓인 전통 재봉사들에게 새로운 C2C 일자리를 제공합니다. "기술이 사람을 대체한다"가 아니라 "기술과 사람이 함께 일한다"는 상생 모델로 브랜드 가치를 높이고 신뢰를 쌓습니다.</p>
       </div>
     </div>
 
     <div class="reason">
       <div class="num">4</div>
       <div>
-        <h3>투트랙(Two-Track) 요금제 — 가격 저항 해소</h3>
-        <p>예산과 필요에 따라 두 가지 방식 중에서 고를 수 있어요.</p>
+        <h3>투트랙(Two-Track) 요금제 — 가격 저항 극복</h3>
+        <p>예산과 필요에 따라 두 가지 방식 중에서 선택할 수 있습니다. 가격에 부담을 느끼는 Z세대에게도 폭넓은 선택권을 드립니다.</p>
         <div class="delta">
           <span>Lite · 자가 제작용 패턴 PDF/도면 저가 제공</span>
           <span>Premium · 패턴 생성비 + 재봉사 공임비가 포함된 완성품 제작</span>
@@ -156,31 +239,31 @@
       <div class="num">5</div>
       <div>
         <h3>아바타 기반 핏 보장제(QC) — 품질 불안 해소</h3>
-        <p>신체 스캔 아바타 데이터를 기준으로 재봉사의 완성품 오차를 검수해요. 기준을 벗어나면 보상해 드리는 결함 보상 시스템으로, C2C 방식에서 생길 수 있는 품질 리스크를 관리해요.</p>
+        <p>신체 스캔 아바타 데이터를 기준으로 재봉사의 완성품 오차를 검수합니다. 기준을 벗어나면 보상해 드리는 결함 보상 시스템으로, C2C 방식에서 생길 수 있는 품질 리스크를 관리합니다.</p>
       </div>
     </div>
   </div>
 
   <h2>절대 바꾸지 않는 것</h2>
-  <p class="section-lede">방식은 바뀌어도, UNEXPOSED가 처음부터 지켜온 가치는 그대로예요.</p>
+  <p class="section-lede">방식은 바뀌어도, UNEXPOSED가 처음부터 지켜 온 가치는 그대로입니다.</p>
 
   <div class="value-list">
     <div class="value">
       <h3>체형 포용성 &amp; 감정적 공감</h3>
-      <p>수술 흉터, 비대칭, 굴곡진 체형 같은 신체적 특징을 "감추고 교정할 대상"이 아니라, 나만의 독창적인 예술을 시작하는 첫 번째 정체성으로 바라봐요.</p>
+      <p>수술 흉터, 비대칭, 굴곡진 체형 같은 신체적 특징을 "감추고 교정할 대상"이 아니라, 나만의 예술을 시작하는 첫 번째 정체성으로 바라봅니다.</p>
     </div>
     <div class="value">
       <h3>데이터 프라이버시</h3>
-      <p>신체 사진이나 스캔 데이터를 서버에 영구 저장하지 않아요. 즉시 암호화하고 삭제하는 것을 원칙으로 해요.</p>
+      <p>신체 사진과 스캔 데이터는 서버에 영구 저장하지 않습니다. 즉시 암호화하고 삭제하는 것을 원칙으로 합니다.</p>
     </div>
     <div class="value">
       <h3>그림판 수준의 초간편 UI</h3>
-      <p>퀵 스타트 모드와 AI 라인 분리 기능으로, 단 3번의 탭 안에 디자인을 완결 지을 수 있도록 만들어요.</p>
+      <p>퀵 스타트 모드와 AI 라인 분리 기능으로, 단 3번의 탭 안에 디자인을 완성할 수 있도록 만듭니다.</p>
     </div>
   </div>
 
   <div class="callout">
-    지금은 PentaCorp 학생 팀이 운영하는 데모/시제품 단계예요. 실제 재봉사 매칭·원단 제작·배송 파트너 연결은 준비 중이며, 위 내용은 저희가 지향하는 서비스 방향을 설명해요.
+    현재 UNEXPOSED는 PentaCorp 학생 팀이 운영하는 데모·시제품 단계입니다. 실제 재봉사 매칭, 원단 제작, 배송 파트너 연결은 준비 중이며, 위 내용은 저희가 지향하는 서비스 방향을 설명합니다.
   </div>
 
   <p class="see-also">
