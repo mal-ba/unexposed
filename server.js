@@ -46,7 +46,7 @@ const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 // 서버 메모리/로컬 디스크 대신 Supabase에 저장해서, Render 서버가
 // 재시작되거나 잠들었다 깨어나도 데이터와 업로드한 파일이 사라지지 않아요.
 if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
-  console.warn('⚠️  SUPABASE_URL / SUPABASE_SECRET_KEY가 설정되어 있지 않아요. .env 파일을 확인하세요.');
+  console.warn('⚠️  SUPABASE_URL / SUPABASE_SECRET_KEY가 설정되어 있지 않습니다. .env 파일을 확인하세요.');
 }
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
 
@@ -85,7 +85,7 @@ async function refreshAdminEmailsCache() {
   try {
     const { data, error } = await supabase.from('admin_accounts').select('email');
     if (error) {
-      console.error('관리자 목록을 불러오지 못했어요:', error.message);
+      console.error('관리자 목록을 불러오지 못했습니다:', error.message);
       return;
     }
     dynamicAdminEmails = (data || []).map(row => String(row.email || '').toLowerCase());
@@ -258,7 +258,7 @@ async function seedBuiltinWardrobeIfEmpty() {
 
   const { error: insertError } = await supabase.from('wardrobe_items').insert(items);
   if (insertError) console.error('옷장 초기 데이터 생성 실패:', insertError.message);
-  else console.log('옷장 기본 아이템 6개를 만들었어요.');
+  else console.log('옷장 기본 아이템 6개를 만들었습니다.');
 }
 
 function isOfficialUploader(uploadedBy) {
@@ -327,7 +327,7 @@ const communityUpload = multer({
 app.get('/', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'index.html');
   fs.readFile(filePath, 'utf8', (err, html) => {
-    if (err) return res.status(500).send('index.html을 읽을 수 없어요.');
+    if (err) return res.status(500).send('index.html을 읽을 수 없습니다.');
     const rendered = html
       .replaceAll('%%GOOGLE_CLIENT_ID%%', GOOGLE_CLIENT_ID)
       .replaceAll('%%TOSS_CLIENT_KEY%%', TOSS_CLIENT_KEY);
@@ -340,7 +340,7 @@ app.get('/', (req, res) => {
 app.get('/admin.html', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'admin.html');
   fs.readFile(filePath, 'utf8', (err, html) => {
-    if (err) return res.status(500).send('admin.html을 읽을 수 없어요.');
+    if (err) return res.status(500).send('admin.html을 읽을 수 없습니다.');
     res.send(html.replaceAll('%%GOOGLE_CLIENT_ID%%', GOOGLE_CLIENT_ID));
   });
 });
@@ -373,12 +373,12 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.post('/api/auth/google', async (req, res) => {
   const { credential } = req.body || {};
   if (!credential) {
-    return res.status(400).json({ ok: false, error: 'credential이 없어요.' });
+    return res.status(400).json({ ok: false, error: 'credential이 없습니다.' });
   }
   if (!GOOGLE_CLIENT_ID) {
     return res.status(500).json({
       ok: false,
-      error: '서버에 GOOGLE_CLIENT_ID가 설정되어 있지 않아요. .env 파일을 확인하세요.',
+      error: '서버에 GOOGLE_CLIENT_ID가 설정되어 있지 않습니다. .env 파일을 확인하세요.',
     });
   }
 
@@ -426,7 +426,7 @@ app.post('/api/auth/google', async (req, res) => {
     });
   } catch (err) {
     console.error('Google 토큰 검증 실패:', err.message);
-    return res.status(401).json({ ok: false, error: '로그인 검증에 실패했어요.' });
+    return res.status(401).json({ ok: false, error: '로그인 검증에 실패했습니다.' });
   }
 });
 
@@ -492,7 +492,7 @@ app.post('/api/profile', requireLogin, async (req, res) => {
   const { error } = await supabase.from('user_profiles').upsert(row);
   if (error) {
     console.error('프로필 저장 오류:', error);
-    return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했어요.' });
+    return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
   }
   res.json({ ok: true, profile: row });
 });
@@ -517,7 +517,7 @@ app.get('/api/profile', requireLogin, async (req, res) => {
 function requireLogin(req, res, next) {
   const user = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]);
   if (!user) {
-    return res.status(401).json({ ok: false, error: '로그인이 필요해요.' });
+    return res.status(401).json({ ok: false, error: '로그인이 필요합니다.' });
   }
   req.user = user;
   next();
@@ -527,12 +527,12 @@ function requireLogin(req, res, next) {
 app.post('/api/consent/body-data', requireLogin, async (req, res) => {
   const { consent } = req.body || {};
   if (typeof consent !== 'boolean') {
-    return res.status(400).json({ ok: false, error: 'consent 값은 true/false여야 해요.' });
+    return res.status(400).json({ ok: false, error: 'consent 값은 true/false여야 합니다.' });
   }
   const { error } = await supabase
     .from('body_data_consents')
     .upsert({ email: req.user.email, consent, updated_at: new Date().toISOString() });
-  if (error) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
 
   // 동의를 철회하면(false), 그동안 쌓인 데이터도 즉시 삭제해요.
   if (!consent) {
@@ -554,15 +554,15 @@ app.post('/api/scan/save', requireLogin, async (req, res) => {
     .eq('email', req.user.email)
     .maybeSingle();
   if (!consentRecord || !consentRecord.consent) {
-    return res.status(403).json({ ok: false, error: '신체 데이터 수집에 동의하지 않아서 저장할 수 없어요.' });
+    return res.status(403).json({ ok: false, error: '신체 데이터 수집에 동의하지 않아서 저장할 수 없습니다.' });
   }
   const { heightCm, photoThumbnail } = req.body || {};
   if (!heightCm) {
-    return res.status(400).json({ ok: false, error: 'heightCm이 필요해요.' });
+    return res.status(400).json({ ok: false, error: 'heightCm이 필요합니다.' });
   }
   // 썸네일은 용량을 제한해요 (base64 기준 대략 300KB 이하만 허용).
   if (photoThumbnail && photoThumbnail.length > 400000) {
-    return res.status(400).json({ ok: false, error: '이미지 용량이 너무 커요.' });
+    return res.status(400).json({ ok: false, error: '이미지 용량이 너무 큽니다.' });
   }
 
   const { error: insertError } = await supabase.from('body_scan_records').insert({
@@ -570,7 +570,7 @@ app.post('/api/scan/save', requireLogin, async (req, res) => {
     height_cm: Number(heightCm),
     photo_thumbnail: photoThumbnail || null,
   });
-  if (insertError) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했어요.' });
+  if (insertError) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
 
   // 사람당 보관 개수를 넘으면 오래된 것부터 정리해요.
   const { data: allRecords } = await supabase
@@ -618,7 +618,7 @@ app.get('/api/wardrobe', async (req, res) => {
   let query = supabase.from('wardrobe_items').select('*');
   if (category) query = query.eq('category', category);
   const { data, error } = await query;
-  if (error) return res.status(500).json({ ok: false, error: '옷장을 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '옷장을 불러오지 못했습니다.' });
 
   const list = (data || []).slice().sort((a, b) => {
     const officialDiff = Number(isOfficialUploader(b.uploaded_by)) - Number(isOfficialUploader(a.uploaded_by));
@@ -638,14 +638,14 @@ app.post('/api/wardrobe', requireLogin, wardrobeUpload.fields([{ name: 'glbFile'
     tags = JSON.parse(req.body.tags || '[]');
     ageGroups = JSON.parse(req.body.ageGroups || '[]');
   } catch (err) {
-    return res.status(400).json({ ok: false, error: '요청 형식이 올바르지 않아요.' });
+    return res.status(400).json({ ok: false, error: '요청 형식이 올바르지 않습니다.' });
   }
 
   if (!name || typeof name !== 'string' || name.length > 60) {
     return res.status(400).json({ ok: false, error: '이름을 1~60자로 입력해주세요.' });
   }
   if (!ALLOWED_CATEGORIES.includes(category)) {
-    return res.status(400).json({ ok: false, error: '카테고리가 올바르지 않아요.' });
+    return res.status(400).json({ ok: false, error: '카테고리가 올바르지 않습니다.' });
   }
   const tagList = Array.isArray(tags) ? tags.filter(t => OCCASIONS.includes(t)) : [];
   const ageGroupList = Array.isArray(ageGroups) ? ageGroups.filter(a => AGE_GROUPS.includes(a)) : [];
@@ -672,7 +672,7 @@ app.post('/api/wardrobe', requireLogin, wardrobeUpload.fields([{ name: 'glbFile'
   } catch (err) {
     console.error('옷장 파일 저장 실패:', err.message || err);
     cleanupTempUploadFiles(req.files);
-    return res.status(500).json({ ok: false, error: '파일 저장 중 오류가 발생했어요.' });
+    return res.status(500).json({ ok: false, error: '파일 저장 중 오류가 발생했습니다.' });
   }
   cleanupTempUploadFiles(req.files);
 
@@ -688,7 +688,7 @@ app.post('/api/wardrobe', requireLogin, wardrobeUpload.fields([{ name: 'glbFile'
     uploaded_by: req.user.email,
   };
   const { data: inserted, error: insertError } = await supabase.from('wardrobe_items').insert(row).select().single();
-  if (insertError) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했어요.' });
+  if (insertError) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
 
   res.json({ ok: true, item: toPublicWardrobeItem(inserted, req.user.email) });
 });
@@ -696,9 +696,9 @@ app.post('/api/wardrobe', requireLogin, wardrobeUpload.fields([{ name: 'glbFile'
 // 본인이 올린 아이템만 삭제할 수 있어요.
 app.delete('/api/wardrobe/:id', requireLogin, async (req, res) => {
   const { data: item } = await supabase.from('wardrobe_items').select('*').eq('id', req.params.id).maybeSingle();
-  if (!item) return res.status(404).json({ ok: false, error: '아이템을 찾을 수 없어요.' });
+  if (!item) return res.status(404).json({ ok: false, error: '아이템을 찾을 수 없습니다.' });
   if (item.uploaded_by !== req.user.email) {
-    return res.status(403).json({ ok: false, error: '본인이 올린 아이템만 삭제할 수 있어요.' });
+    return res.status(403).json({ ok: false, error: '본인이 올린 아이템만 삭제할 수 있습니다.' });
   }
   await Promise.all([
     deleteFromWardrobeBucketIfManaged(item.glb_url),
@@ -712,9 +712,9 @@ app.delete('/api/wardrobe/:id', requireLogin, async (req, res) => {
 // 본인이 올린 아이템은 누구나, 기본 제공(builtin) 아이템은 관리자(ADMIN_EMAILS)만 수정할 수 있어요.
 app.put('/api/wardrobe/:id', requireLogin, wardrobeUpload.fields([{ name: 'glbFile', maxCount: 1 }, { name: 'thumbnailFile', maxCount: 1 }]), async (req, res) => {
   const { data: item } = await supabase.from('wardrobe_items').select('*').eq('id', req.params.id).maybeSingle();
-  if (!item) return res.status(404).json({ ok: false, error: '아이템을 찾을 수 없어요.' });
+  if (!item) return res.status(404).json({ ok: false, error: '아이템을 찾을 수 없습니다.' });
   if (!canEditItem(item, req.user.email)) {
-    return res.status(403).json({ ok: false, error: '이 아이템을 수정할 권한이 없어요.' });
+    return res.status(403).json({ ok: false, error: '이 아이템을 수정할 권한이 없습니다.' });
   }
 
   const glbFile = req.files && req.files.glbFile && req.files.glbFile[0];
@@ -735,7 +735,7 @@ app.put('/api/wardrobe/:id', requireLogin, wardrobeUpload.fields([{ name: 'glbFi
   } catch (err) {
     console.error('옷장 파일 수정 실패:', err.message || err);
     cleanupTempUploadFiles(req.files);
-    return res.status(500).json({ ok: false, error: '파일 저장 중 오류가 발생했어요.' });
+    return res.status(500).json({ ok: false, error: '파일 저장 중 오류가 발생했습니다.' });
   }
   cleanupTempUploadFiles(req.files);
 
@@ -745,7 +745,7 @@ app.put('/api/wardrobe/:id', requireLogin, wardrobeUpload.fields([{ name: 'glbFi
     .eq('id', item.id)
     .select()
     .single();
-  if (updateError) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했어요.' });
+  if (updateError) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
 
   res.json({ ok: true, item: toPublicWardrobeItem(updated, req.user.email) });
 });
@@ -758,7 +758,7 @@ app.get('/api/wardrobe/recommend', async (req, res) => {
     return res.status(400).json({ ok: false, error: '연령대를 올바르게 선택해주세요.' });
   }
   const { data, error } = await supabase.from('wardrobe_items').select('*');
-  if (error) return res.status(500).json({ ok: false, error: '옷장을 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '옷장을 불러오지 못했습니다.' });
 
   const scored = (data || []).map(item => {
     let score = 0;
@@ -796,7 +796,7 @@ app.post('/api/payments/create-order', requireLogin, (req, res) => {
   const { planKey } = req.body || {};
   const plan = PLAN_PRICES[planKey];
   if (!plan) {
-    return res.status(400).json({ ok: false, error: '알 수 없는 플랜이에요.' });
+    return res.status(400).json({ ok: false, error: '알 수 없는 플랜입니다.' });
   }
   const orderId = `${planKey}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   res.json({
@@ -812,13 +812,13 @@ app.post('/api/payments/create-order', requireLogin, (req, res) => {
 app.post('/api/payments/confirm', requireLogin, async (req, res) => {
   const { paymentKey, orderId, amount } = req.body || {};
   if (!paymentKey || !orderId || !amount) {
-    return res.status(400).json({ ok: false, error: '결제 정보가 부족해요.' });
+    return res.status(400).json({ ok: false, error: '결제 정보가 부족합니다.' });
   }
 
   const planKey = String(orderId).split('_')[0];
   const plan = PLAN_PRICES[planKey];
   if (!plan || Number(amount) !== plan.amount) {
-    return res.status(400).json({ ok: false, error: '결제 금액이 일치하지 않아요.' });
+    return res.status(400).json({ ok: false, error: '결제 금액이 일치하지 않습니다.' });
   }
 
   try {
@@ -835,7 +835,7 @@ app.post('/api/payments/confirm', requireLogin, async (req, res) => {
 
     if (!tossRes.ok) {
       console.error('Toss 결제 승인 실패:', data);
-      return res.status(400).json({ ok: false, error: data.message || '결제 승인에 실패했어요.' });
+      return res.status(400).json({ ok: false, error: data.message || '결제 승인에 실패했습니다.' });
     }
 
     await supabase.from('subscriptions').upsert({
@@ -850,7 +850,7 @@ app.post('/api/payments/confirm', requireLogin, async (req, res) => {
     res.json({ ok: true, plan: plan.name, amount: plan.amount, payment: data });
   } catch (err) {
     console.error('결제 승인 중 오류:', err);
-    res.status(500).json({ ok: false, error: '결제 승인 중 오류가 발생했어요.' });
+    res.status(500).json({ ok: false, error: '결제 승인 중 오류가 발생했습니다.' });
   }
 });
 
@@ -880,9 +880,9 @@ const STUDIO_COLS = { LF: ['왼쪽', '앞'], LB: ['왼쪽', '뒤'], RF: ['오른
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 function buildStudioOrder(studio){
-  if(!studio || typeof studio !== 'object') return { error: '스튜디오 디자인 정보가 없어요.' };
+  if(!studio || typeof studio !== 'object') return { error: '스튜디오 디자인 정보가 없습니다.' };
   const typeLabel = STUDIO_TYPES[studio.typeKey];
-  if(!typeLabel) return { error: '알 수 없는 옷 종류예요.' };
+  if(!typeLabel) return { error: '알 수 없는 옷 종류입니다.' };
   const lengthMul = Math.min(1.6, Math.max(0.6, Number(studio.lengthMul) || 1));
   const girthMul = Math.min(1.5, Math.max(0.7, Number(studio.girthMul) || 1));
   const regions = (studio.regions && typeof studio.regions === 'object') ? studio.regions : {};
@@ -910,7 +910,7 @@ function buildStudioOrder(studio){
     `[제작 스튜디오] ${typeLabel} · 기장 ×${lengthMul.toFixed(2)} · 둘레 ×${girthMul.toFixed(2)}`,
     regionLines.length ? regionLines.join(' / ') : '부위 채우기 없음(기본 옷감색)',
   ].join('\n');
-  const detailNote = hasPaint ? '브러시로 직접 그린 그림이 있어요 (나염 필요).' : null;
+  const detailNote = hasPaint ? '브러시로 직접 그린 그림이 있습니다 (나염 필요).' : null;
   return { fabricAmount, detailAmount, fabricLabel, detailLabels, fabricNote, detailNote };
 }
 
@@ -919,7 +919,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   const { shipping, consent, designMode } = body;
   const fi = Number(body.finishAmount);
   if(!ORDER_FINISH_AMOUNTS.has(fi)){
-    return res.status(400).json({ ok: false, error: '옵션 금액이 올바르지 않아요.' });
+    return res.status(400).json({ ok: false, error: '옵션 금액이 올바르지 않습니다.' });
   }
 
   let fa, da, fabricLabel, detailLabels, fabricNote, detailNote, safeDesignMode;
@@ -932,7 +932,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   } else {
     fa = Number(body.fabricAmount); da = Number(body.detailAmount);
     if (!ORDER_FABRIC_AMOUNTS.has(fa) || !ORDER_DETAIL_AMOUNTS.has(da)) {
-      return res.status(400).json({ ok: false, error: '옵션 금액이 올바르지 않아요.' });
+      return res.status(400).json({ ok: false, error: '옵션 금액이 올바르지 않습니다.' });
     }
     fabricLabel = body.fabricLabel || null;
     detailLabels = Array.isArray(body.detailLabels) ? body.detailLabels : null;
@@ -991,7 +991,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   }
   if (error) {
     console.error('주문 생성 오류:', error);
-    return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했어요.' });
+    return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했습니다.' });
   }
 
   res.json({
@@ -1005,7 +1005,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
 app.post('/api/orders/confirm', requireLogin, async (req, res) => {
   const { paymentKey, orderId, amount } = req.body || {};
   if (!paymentKey || !orderId || !amount) {
-    return res.status(400).json({ ok: false, error: '결제 정보가 부족해요.' });
+    return res.status(400).json({ ok: false, error: '결제 정보가 부족합니다.' });
   }
 
   const { data: order } = await supabase
@@ -1014,9 +1014,9 @@ app.post('/api/orders/confirm', requireLogin, async (req, res) => {
     .eq('order_id', orderId)
     .eq('email', req.user.email)
     .maybeSingle();
-  if (!order) return res.status(404).json({ ok: false, error: '주문을 찾을 수 없어요.' });
+  if (!order) return res.status(404).json({ ok: false, error: '주문을 찾을 수 없습니다.' });
   if (Number(amount) !== Number(order.amount)) {
-    return res.status(400).json({ ok: false, error: '결제 금액이 일치하지 않아요.' });
+    return res.status(400).json({ ok: false, error: '결제 금액이 일치하지 않습니다.' });
   }
 
   try {
@@ -1029,7 +1029,7 @@ app.post('/api/orders/confirm', requireLogin, async (req, res) => {
     const data = await tossRes.json();
     if (!tossRes.ok) {
       console.error('Toss 주문 결제 승인 실패:', data);
-      return res.status(400).json({ ok: false, error: data.message || '결제 승인에 실패했어요.' });
+      return res.status(400).json({ ok: false, error: data.message || '결제 승인에 실패했습니다.' });
     }
 
     await supabase
@@ -1040,7 +1040,7 @@ app.post('/api/orders/confirm', requireLogin, async (req, res) => {
     res.json({ ok: true, amount: order.amount, needsShipping: !!order.shipping_address1 });
   } catch (err) {
     console.error('주문 결제 승인 중 오류:', err);
-    res.status(500).json({ ok: false, error: '결제 승인 중 오류가 발생했어요.' });
+    res.status(500).json({ ok: false, error: '결제 승인 중 오류가 발생했습니다.' });
   }
 });
 
@@ -1056,7 +1056,7 @@ function requireAdmin(req, res, next) {
 // 것처럼 특히 민감한 작업에 써요 — 일반 관리자는 여기 못 들어와요.
 function requireSuperAdmin(req, res, next) {
   if (!isSuperAdminEmail(req.user.email)) {
-    return res.status(403).json({ ok: false, error: '최고관리자만 할 수 있어요.' });
+    return res.status(403).json({ ok: false, error: '최고관리자만 할 수 있습니다.' });
   }
   next();
 }
@@ -1067,14 +1067,14 @@ app.get('/api/admin/orders', requireLogin, requireAdmin, async (req, res) => {
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ ok: false, error: '주문 목록을 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '주문 목록을 불러오지 못했습니다.' });
   res.json({ ok: true, orders: data, isAdmin: true });
 });
 
 // 관리자 전용: 주문 하나를 완전히 삭제해요. (admin.html의 삭제 버튼에서 사용)
 app.delete('/api/admin/orders/:orderId', requireLogin, requireAdmin, async (req, res) => {
   const { error } = await supabase.from('orders').delete().eq('order_id', req.params.orderId);
-  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했습니다.' });
   res.json({ ok: true });
 });
 
@@ -1084,7 +1084,7 @@ app.get('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res)
     .from('subscriptions')
     .select('*')
     .order('subscribed_at', { ascending: false });
-  if (error) return res.status(500).json({ ok: false, error: '구독 목록을 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '구독 목록을 불러오지 못했습니다.' });
   res.json({
     ok: true,
     subscriptions: (data || []).map(s => {
@@ -1117,7 +1117,7 @@ app.post('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res
   });
   if (error) {
     console.error('구독자 등록 오류:', error);
-    return res.status(500).json({ ok: false, error: '등록 중 오류가 발생했어요.' });
+    return res.status(500).json({ ok: false, error: '등록 중 오류가 발생했습니다.' });
   }
   res.json({ ok: true });
 });
@@ -1125,7 +1125,7 @@ app.post('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res
 // 관리자 전용: 구독자 한 명을 완전히 삭제해요. (admin.html의 구독 플랜 목록 삭제 버튼에서 사용)
 app.delete('/api/admin/subscriptions/:email', requireLogin, requireAdmin, async (req, res) => {
   const { error } = await supabase.from('subscriptions').delete().eq('email', req.params.email);
-  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했습니다.' });
   res.json({ ok: true });
 });
 
@@ -1149,7 +1149,7 @@ app.get('/api/community/posts', async (req, res) => {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(100);
-  if (error) return res.status(500).json({ ok: false, error: '게시물을 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '게시물을 불러오지 못했습니다.' });
   res.json({
     ok: true,
     posts: (data || []).map(row => ({
@@ -1189,7 +1189,7 @@ app.post('/api/community/posts', requireLogin, communityUpload.single('image'), 
   } catch (err) {
     console.error('커뮤니티 이미지 업로드 실패:', err.message || err);
     fs.unlink(imageFile.path, () => {});
-    return res.status(500).json({ ok: false, error: '이미지 업로드 중 오류가 발생했어요.' });
+    return res.status(500).json({ ok: false, error: '이미지 업로드 중 오류가 발생했습니다.' });
   }
   fs.unlink(imageFile.path, () => {});
 
@@ -1203,19 +1203,19 @@ app.post('/api/community/posts', requireLogin, communityUpload.single('image'), 
     created_at: new Date().toISOString(),
   };
   const { error } = await supabase.from('community_posts').insert(row);
-  if (error) return res.status(500).json({ ok: false, error: '게시물 저장 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '게시물 저장 중 오류가 발생했습니다.' });
   res.json({ ok: true, post: { ...row, imageUrl: row.image_url, authorName: row.author_name } });
 });
 
 // 삭제는 글쓴이 본인이거나 관리자만.
 app.delete('/api/community/posts/:id', requireLogin, async (req, res) => {
   const { data: post } = await supabase.from('community_posts').select('*').eq('id', req.params.id).maybeSingle();
-  if (!post) return res.status(404).json({ ok: false, error: '게시물을 찾을 수 없어요.' });
+  if (!post) return res.status(404).json({ ok: false, error: '게시물을 찾을 수 없습니다.' });
   if (post.author_email !== req.user.email && !isAdminEmail(req.user.email)) {
-    return res.status(403).json({ ok: false, error: '본인 게시물만 지울 수 있어요.' });
+    return res.status(403).json({ ok: false, error: '본인 게시물만 지울 수 있습니다.' });
   }
   const { error } = await supabase.from('community_posts').delete().eq('id', req.params.id);
-  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했습니다.' });
   res.json({ ok: true });
 });
 
@@ -1239,7 +1239,7 @@ app.post('/api/bug-reports', async (req, res) => {
     created_at: new Date().toISOString(),
   };
   const { error } = await supabase.from('bug_reports').insert(row);
-  if (error) return res.status(500).json({ ok: false, error: '제보 저장 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '제보 저장 중 오류가 발생했습니다.' });
   res.json({ ok: true });
 });
 
@@ -1249,7 +1249,7 @@ app.get('/api/admin/bug-reports', requireLogin, requireAdmin, async (req, res) =
     .from('bug_reports')
     .select('*')
     .order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ ok: false, error: '버그 제보를 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '버그 제보를 불러오지 못했습니다.' });
   res.json({
     ok: true,
     reports: (data || []).map(row => ({
@@ -1268,14 +1268,14 @@ app.get('/api/admin/bug-reports', requireLogin, requireAdmin, async (req, res) =
 app.put('/api/admin/bug-reports/:id', requireLogin, requireAdmin, async (req, res) => {
   const status = req.body?.status === 'resolved' ? 'resolved' : 'open';
   const { error } = await supabase.from('bug_reports').update({ status }).eq('id', req.params.id);
-  if (error) return res.status(500).json({ ok: false, error: '상태 변경 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '상태 변경 중 오류가 발생했습니다.' });
   res.json({ ok: true });
 });
 
 // 관리자 전용: 제보 삭제.
 app.delete('/api/admin/bug-reports/:id', requireLogin, requireAdmin, async (req, res) => {
   const { error } = await supabase.from('bug_reports').delete().eq('id', req.params.id);
-  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했습니다.' });
   res.json({ ok: true });
 });
 
@@ -1312,7 +1312,7 @@ app.get('/api/admin/visits', requireLogin, requireAdmin, async (req, res) => {
     .select('visited_at, is_admin')
     .gte('visited_at', startUtc)
     .lt('visited_at', endUtc);
-  if (error) return res.status(500).json({ ok: false, error: '방문 기록을 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '방문 기록을 불러오지 못했습니다.' });
 
   const hourly = new Array(24).fill(0);       // 일반 방문자
   const hourlyAdmin = new Array(24).fill(0);  // 관리자 접속 — 따로 집계해요(빼는 게 아니라 구분해서 같이 보여줘요).
@@ -1343,7 +1343,7 @@ app.get('/api/admin/visits/average', requireLogin, requireAdmin, async (req, res
     .from('page_visits')
     .select('visited_at, is_admin')
     .eq('is_admin', false);
-  if (error) return res.status(500).json({ ok: false, error: '방문 기록을 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '방문 기록을 불러오지 못했습니다.' });
 
   const hourlyTotal = new Array(24).fill(0);
   const daysSeen = new Set(); // 한국 시간 기준 날짜(YYYY-MM-DD)가 며칠치 쌓였는지 세요 — 평균 낼 때 나눌 분모예요.
@@ -1374,7 +1374,7 @@ app.get('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) =
     .from('admin_accounts')
     .select('*')
     .order('created_at', { ascending: true });
-  if (error) return res.status(500).json({ ok: false, error: '관리자 목록을 불러오지 못했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '관리자 목록을 불러오지 못했습니다.' });
   const dbEmails = new Set((data || []).map(row => row.email));
   // Render의 ADMIN_EMAILS 환경변수에 등록된 계정도 같이 보여줘요(이미 DB에도 있거나
   // 대빵인 건 중복이니 빼고). 이 계정들은 사이트에서 추가한 게 아니라 환경변수로
@@ -1400,12 +1400,12 @@ app.post('/api/admin/admins', requireLogin, requireSuperAdmin, async (req, res) 
     return res.status(400).json({ ok: false, error: '올바른 이메일을 입력해주세요.' });
   }
   if (isSuperAdminEmail(email)) {
-    return res.status(400).json({ ok: false, error: '이미 최고관리자 계정이에요.' });
+    return res.status(400).json({ ok: false, error: '이미 최고관리자 계정입니다.' });
   }
   const { error } = await supabase
     .from('admin_accounts')
     .upsert({ email, note, added_by: req.user.email });
-  if (error) return res.status(500).json({ ok: false, error: '관리자 추가 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '관리자 추가 중 오류가 발생했습니다.' });
   await refreshAdminEmailsCache(); // 재배포 없이 즉시 반영돼요.
   res.json({ ok: true });
 });
@@ -1414,17 +1414,17 @@ app.put('/api/admin/admins/:email', requireLogin, requireSuperAdmin, async (req,
   const email = String(req.params.email || '').trim().toLowerCase();
   const note = (req.body?.note || '').trim().slice(0, 200);
   const { error } = await supabase.from('admin_accounts').update({ note }).eq('email', email);
-  if (error) return res.status(500).json({ ok: false, error: '수정 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '수정 중 오류가 발생했습니다.' });
   res.json({ ok: true });
 });
 
 app.delete('/api/admin/admins/:email', requireLogin, requireSuperAdmin, async (req, res) => {
   const email = String(req.params.email || '').trim().toLowerCase();
   if (isSuperAdminEmail(email)) {
-    return res.status(400).json({ ok: false, error: '최고관리자 계정은 삭제할 수 없어요.' });
+    return res.status(400).json({ ok: false, error: '최고관리자 계정은 삭제할 수 없습니다.' });
   }
   const { error } = await supabase.from('admin_accounts').delete().eq('email', email);
-  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했어요.' });
+  if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했습니다.' });
   await refreshAdminEmailsCache(); // 재배포 없이 즉시 반영돼요.
   res.json({ ok: true });
 });
@@ -1433,12 +1433,12 @@ app.delete('/api/admin/admins/:email', requireLogin, requireSuperAdmin, async (r
 app.use((err, req, res, next) => {
   if (err && err.name === 'MulterError') {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ ok: false, error: '파일 용량이 너무 커요 (최대 35MB).' });
+      return res.status(400).json({ ok: false, error: '파일 용량이 너무 큽니다 (최대 35MB).' });
     }
-    return res.status(400).json({ ok: false, error: '파일 업로드 중 오류가 발생했어요.' });
+    return res.status(400).json({ ok: false, error: '파일 업로드 중 오류가 발생했습니다.' });
   }
   console.error('처리되지 않은 서버 오류:', err);
-  res.status(500).json({ ok: false, error: '서버 오류가 발생했어요.' });
+  res.status(500).json({ ok: false, error: '서버 오류가 발생했습니다.' });
 });
 
 async function start() {
@@ -1446,8 +1446,8 @@ async function start() {
   await refreshAdminEmailsCache();
   app.listen(PORT, () => {
     console.log(`UNEXPOSED 서버 실행 중: http://localhost:${PORT}`);
-    if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있어요. .env 파일을 확인하세요.');
-    if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) console.warn('⚠️  Supabase 설정이 비어있어요. .env 파일을 확인하세요.');
+    if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있습니다. .env 파일을 확인하세요.');
+    if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) console.warn('⚠️  Supabase 설정이 비어있습니다. .env 파일을 확인하세요.');
   });
 }
 start();
