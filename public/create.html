@@ -5,7 +5,14 @@
       <div class="wizard-steps">
         <span class="wizard-step active">제작 스튜디오</span>
       </div>
-      <button class="wizard-close" id="create-modal-close" type="button" aria-label="닫기">✕</button>
+      <div class="wizard-header-actions">
+        <button class="cart-open-btn" id="cart-open-btn" type="button" aria-label="장바구니 열기">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 4h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.4" fill="currentColor"/><circle cx="17" cy="19.5" r="1.4" fill="currentColor"/></svg>
+          <span>장바구니</span>
+          <span class="cart-badge" id="cart-badge" hidden>0</span>
+        </button>
+        <button class="wizard-close" id="create-modal-close" type="button" aria-label="닫기">✕</button>
+      </div>
     </div>
 
     <div class="wizard-panel">
@@ -75,24 +82,56 @@
       <!-- 주문하기: 지금 화면의 옷(종류·치수·부위별 원단/색·브러시 그림) 그대로 주문해요. -->
       <div class="studio-order" id="studio-order">
         <div class="section-label">이 디자인으로 주문하기</div>
-        <p class="studio-order-desc">지금 보고 있는 디자인을 그대로 주문합니다. 견적은 쓴 원단 중 가장 높은 등급과 브러시 그림 여부로 자동 계산됩니다.</p>
+        <p class="studio-order-desc">지금 보고 있는 디자인을 그대로 주문하거나 장바구니에 담습니다. 견적은 쓴 원단 중 가장 높은 등급과 브러시 그림 여부로 자동 계산되고, 수량만큼 곱해집니다.</p>
         <div class="calc-choices" id="create-finish-choices">
           <button class="calc-chip active" data-finish="0" type="button">Lite · 패턴 PDF만 · +0원</button>
           <button class="calc-chip" data-finish="30000" type="button">Premium · 재봉사 매칭 + 완제품 배송 · +30,000원</button>
         </div>
         <p class="studio-order-note" id="create-finish-note" hidden>검증된 지역 재봉사와 1:1로 매칭해서 제작하고, 완성 후 핏을 검수(QC)한 다음 집 앞까지 보내드립니다.</p>
+        <div class="qty-row">
+          <span class="qty-label">수량</span>
+          <div class="qty-stepper" id="create-qty-stepper">
+            <button type="button" data-qty="-1" aria-label="수량 줄이기">−</button>
+            <span class="qty-value" id="create-qty-value">1</span>
+            <button type="button" data-qty="1" aria-label="수량 늘리기">+</button>
+          </div>
+          <span class="qty-hint">최대 10벌</span>
+        </div>
         <div class="studio-quote" id="create-quote"></div>
-        <button class="btn btn-primary studio-order-btn" id="create-order-open-btn" type="button">주문하기 →</button>
+        <div class="studio-order-btns">
+          <button class="btn btn-ghost-dark" id="cart-add-btn" type="button">장바구니 담기</button>
+          <button class="btn btn-primary studio-order-btn" id="create-order-open-btn" type="button">바로 주문하기 →</button>
+        </div>
+        <p class="cart-toast" id="cart-toast" hidden></p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 제작 스튜디오 주문 확인 + 배송지 입력 모달 (스튜디오 팝업 위에 떠요) -->
+<!-- 장바구니 모달 (스튜디오 팝업 위에 떠요) — 담은 디자인마다 수량·Lite/Premium을 바꾸고 한 번에 주문해요. -->
+<div class="modal-overlay" id="cart-modal" hidden>
+  <div class="modal-box consent-box cart-box">
+    <div class="cart-head">
+      <h3 class="serif" style="font-size:20px; margin:0;">장바구니</h3>
+      <button class="wizard-close" id="cart-close-btn" type="button" aria-label="닫기">✕</button>
+    </div>
+    <p class="cart-empty" id="cart-empty">아직 담은 옷이 없습니다. 스튜디오에서 옷을 꾸민 뒤 <b>장바구니 담기</b>를 눌러주세요.</p>
+    <div class="cart-list" id="cart-list"></div>
+    <div class="studio-quote" id="cart-summary" hidden></div>
+    <p class="modal-note" id="cart-note"></p>
+    <div class="studio-order-actions" id="cart-actions" hidden>
+      <button class="btn btn-ghost-dark" id="cart-clear-btn" type="button">비우기</button>
+      <button class="btn btn-primary" id="cart-checkout-btn" type="button">전체 주문하기 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- 제작 스튜디오 주문 확인 + 배송지 입력 모달 (스튜디오 팝업·장바구니 위에 떠요) -->
 <div class="modal-overlay" id="create-order-modal" hidden>
   <div class="modal-box consent-box">
     <h3 class="serif" style="font-size:20px; margin-bottom:10px;">주문 확인</h3>
     <img class="studio-order-preview" id="create-order-preview" alt="주문할 디자인 미리보기" hidden>
+    <div class="cart-thumb-strip" id="create-order-thumbs" hidden></div>
     <div class="studio-quote" id="create-order-summary"></div>
 
     <div class="consent-section" id="create-order-shipping-section" hidden>

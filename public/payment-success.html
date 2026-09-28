@@ -64,6 +64,13 @@
       spinner.hidden = true;
       if(data.ok){
         if(isCustomOrder){
+          // 제작 스튜디오 장바구니로 결제한 주문이면, 결제가 끝났으니 장바구니를 비워요.
+          try {
+            if(localStorage.getItem('unexposed-studio-cart-pending') === orderId){
+              localStorage.removeItem('unexposed-studio-cart');
+              localStorage.removeItem('unexposed-studio-cart-pending');
+            }
+          } catch(e){}
           title.textContent = '주문이 접수되었습니다 🎉';
           message.textContent = data.needsShipping
             ? '결제가 완료됐고, 입력하신 배송지로 제작 완료 후 보내드리겠습니다.'
