@@ -12,7 +12,7 @@
       <div class="sec-head" style="text-align:left; margin-bottom:16px;">
         <div class="eyebrow">제작 스튜디오 (베타)</div>
         <h2 class="serif" style="font-size:24px; margin:4px 0 6px;">내 치수·원단으로 옷 만들기</h2>
-        <p style="margin:0;">옷 종류와 기장·둘레를 정한 뒤, 어깨·팔·몸판을 왼쪽/오른쪽, 앞/뒤로 나눠서 따로 채우거나 브러시로 직접 그려보세요.</p>
+        <p style="margin:0;">상의·하의·모자·신발·양말 중에서 종류와 모양을 고른 뒤, 부위별로 원단과 색을 채우거나 브러시로 직접 그려보세요.</p>
       </div>
 
       <div class="type-row" id="type-row"></div>
@@ -50,11 +50,11 @@
 
       <div class="size-grid">
         <label>
-          <span>기장 배율</span>
+          <span id="length-label">기장 배율</span>
           <input type="number" id="length-input" min="0.6" max="1.6" step="0.02" value="1">
         </label>
         <label>
-          <span>둘레 배율</span>
+          <span id="girth-label">둘레 배율</span>
           <input type="number" id="girth-input" min="0.7" max="1.5" step="0.02" value="1">
         </label>
       </div>
@@ -75,7 +75,7 @@
       <!-- 주문하기: 지금 화면의 옷(종류·치수·부위별 원단/색·브러시 그림) 그대로 주문해요. -->
       <div class="studio-order" id="studio-order">
         <div class="section-label">이 디자인으로 주문하기</div>
-        <p class="studio-order-desc">지금 보고 있는 옷을 그대로 주문합니다. 견적은 쓴 원단 중 가장 높은 등급과 브러시 그림 여부로 자동 계산됩니다.</p>
+        <p class="studio-order-desc">지금 보고 있는 디자인을 그대로 주문합니다. 견적은 쓴 원단 중 가장 높은 등급과 브러시 그림 여부로 자동 계산됩니다.</p>
         <div class="calc-choices" id="create-finish-choices">
           <button class="calc-chip active" data-finish="0" type="button">Lite · 패턴 PDF만 · +0원</button>
           <button class="calc-chip" data-finish="30000" type="button">Premium · 재봉사 매칭 + 완제품 배송 · +30,000원</button>

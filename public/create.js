@@ -12,41 +12,118 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ---------- 옷 종류 정의 ----------
-   kind: 'top'이면 어깨/팔/몸판, 'bottom'이면 허리/다리로 나눠요.
+   category: 위쪽 줄(상의/하의/모자/신발/양말) 분류. 같은 분류 안에서 모양(모델)을 골라요.
+   kind: 부위를 나누는 방식 (아래 KINDS 참고).
    sleeveX: 옷 가로 반폭 대비 이 비율보다 바깥이면 "팔(소매)" (실제 모델을 분석해서 맞춘 값)
    shoulderY / waistY: 옷 높이 대비 이 비율보다 위면 "어깨" / "허리"
-   glbWidthMul: 모델 자체가 옆으로 넓게 생성된 경우 가로(X)만 따로 줄이는 보정값(기본 1). */
+   glbWidthMul: 모델 자체가 옆으로 넓게 생성된 경우 가로(X)만 따로 줄이는 보정값(기본 1).
+   ── 모자·신발·양말 전용 ──
+   rotate: 불러온 모델을 앞(+Z)·위(+Y) 방향에 맞춰 돌리는 각도(도). { x, y }
+   mirrorPair: 한 짝만 있는 신발 모델이면, 좌우 반전 복사본을 만들어 한 켤레로 만들어요(값 = 두 짝 사이 간격).
+   displaySize: 마네킹 기준 크기 대신, 뷰어에서 가장 긴 변이 이 길이가 되도록 크게 보여줘요.
+   lengthAxis: "길이 배율"이 늘리는 축(기본 y). 신발은 앞뒤 길이(z)를 늘려요.
+   lazy: 처음 열 때 미리 불러오지 않고, 그 종류를 골랐을 때 불러와요(용량 절약). */
+const CATEGORIES = [
+  ['top', '상의'], ['bottom', '하의'], ['hat', '모자'], ['shoes', '신발'], ['socks', '양말'],
+];
 const GARMENT_TYPES = {
-  shortSleeve: { label: '반팔 티셔츠', kind: 'top', glbHeightFrac: 0.42, sleeveX: 0.6, shoulderY: 0.88,
+  shortSleeve: { category: 'top', label: '반팔 티셔츠', kind: 'top', glbHeightFrac: 0.42, sleeveX: 0.6, shoulderY: 0.88,
     glb: '/wardrobe-assets/Meshy_AI_Classic_White_T_Shirt_0913135306_generate.glb' },
-  longSleeve: { label: '긴팔 티셔츠', kind: 'top', glbHeightFrac: 0.42, sleeveX: 0.6, shoulderY: 0.88,
+  longSleeve: { category: 'top', label: '긴팔 티셔츠', kind: 'top', glbHeightFrac: 0.42, sleeveX: 0.6, shoulderY: 0.88,
     glb: '/wardrobe-assets/Meshy_AI_Gray_Henley_Long_Slee_0925142723_generate.glb' },
-  shortPants: { label: '반바지', kind: 'bottom', glbHeightFrac: 0.22, waistY: 0.88,
+  shortPants: { category: 'bottom', label: '반바지', kind: 'bottom', glbHeightFrac: 0.22, waistY: 0.88,
     glb: '/wardrobe-assets/Meshy_AI_White_Shorts_0913135257_generate.glb' },
-  longPants: { label: '긴바지', kind: 'bottom', glbHeightFrac: 0.54, glbWidthMul: 0.8, waistY: 0.9,
+  longPants: { category: 'bottom', label: '긴바지', kind: 'bottom', glbHeightFrac: 0.54, glbWidthMul: 0.8, waistY: 0.9,
     glb: '/wardrobe-assets/Meshy_AI_Cream_Linen_Drawstrin_0925142806_generate.glb' },
+
+  capBall: { category: 'hat', label: '볼캡', kind: 'hat', displaySize: 0.85, lazy: true,
+    brimZ: 0.5, brimZFar: 0.82, brimY: 0.4, brimNormal: 0.5,
+    glb: '/wardrobe-assets/Meshy_AI_Blue_Denim_Baseball_C_0928035117_generate.glb' },
+
+  shoeClassic: { category: 'shoes', label: '클래식 스니커즈', kind: 'shoes', displaySize: 0.9, lazy: true,
+    rotate: { y: 90 }, mirrorPair: 0.12, lengthAxis: 'z', soleY: 0.25, toeZ: 0.78, heelZ: 0.2,
+    glb: '/wardrobe-assets/Meshy_AI_Adidas_White_Sneaker_0928035205_generate.glb' },
+  shoeCanvas: { category: 'shoes', label: '캔버스 스니커즈', kind: 'shoes', displaySize: 0.9, lazy: true,
+    lengthAxis: 'z', soleY: 0.25, toeZ: 0.78, heelZ: 0.2,
+    glb: '/wardrobe-assets/Meshy_AI_Black_Vans_Sneakers_0928035238_generate.glb' },
+  shoeRunning: { category: 'shoes', label: '러닝 스니커즈', kind: 'shoes', displaySize: 0.9, lazy: true,
+    lengthAxis: 'z', soleY: 0.27, toeZ: 0.78, heelZ: 0.2,
+    glb: '/wardrobe-assets/Meshy_AI_Cream_Skechers_Sneake_0928035311_generate.glb' },
+
+  sockCrew: { category: 'socks', label: '골지 크루삭스', kind: 'socks', displaySize: 0.85, lazy: true,
+    cuffY: 0.9, legY: 0.4, toeFrac: 0.7,
+    glb: '/wardrobe-assets/Meshy_AI_White_Ribbed_Socks_0928035340_generate.glb' },
+  sockAnkle3: { category: 'socks', label: '발목양말 3켤레', kind: 'socks3', displaySize: 0.9, lazy: true,
+    rotate: { x: 90 }, cuffY: 0.82, toeY: 0.22,
+    glb: '/wardrobe-assets/Meshy_AI_Three_Ankle_Socks_on__0928035404_generate.glb' },
 };
 
-const REGION_ROWS = {
-  top: [['shoulder', '어깨'], ['sleeve', '팔(소매)'], ['body', '몸판']],
-  bottom: [['waist', '허리'], ['leg', '다리']],
+/* 부위 나누는 방식 — 행(rows) × 열(cols) 격자로 보여줘요. 부위 키는 `${행}_${열}` 이에요.
+   열의 mirror는 "좌우 대칭으로 칠하기"를 켰을 때 같이 칠해지는 짝이에요.
+   좌우는 입는 사람 기준이에요(정면에서 보면 화면 오른쪽이 입는 사람의 왼쪽, +X = 왼쪽). */
+const COLS_4 = [
+  { key: 'LF', head: '왼쪽<br>앞', pre: '왼쪽', post: '앞', mirror: 'RF' },
+  { key: 'LB', head: '왼쪽<br>뒤', pre: '왼쪽', post: '뒤', mirror: 'RB' },
+  { key: 'RF', head: '오른쪽<br>앞', pre: '오른쪽', post: '앞', mirror: 'LF' },
+  { key: 'RB', head: '오른쪽<br>뒤', pre: '오른쪽', post: '뒤', mirror: 'LB' },
+];
+const COLS_LR = [
+  { key: 'L', head: '왼쪽', pre: '왼쪽', mirror: 'R' },
+  { key: 'R', head: '오른쪽', pre: '오른쪽', mirror: 'L' },
+];
+const COLS_FOOT = [
+  { key: 'L', head: '왼발', pre: '왼발', mirror: 'R' },
+  { key: 'R', head: '오른발', pre: '오른발', mirror: 'L' },
+];
+// 3켤레 세트는 정면에서 봤을 때 왼쪽부터 1·2·3번이에요.
+const COLS_3 = [
+  { key: 'S1', head: '1번', pre: '1번 양말', mirror: 'S3' },
+  { key: 'S2', head: '2번', pre: '2번 양말', mirror: 'S2' },
+  { key: 'S3', head: '3번', pre: '3번 양말', mirror: 'S1' },
+];
+const KINDS = {
+  top: { rows: [['shoulder', '어깨'], ['sleeve', '팔(소매)'], ['body', '몸판']], cols: COLS_4 },
+  bottom: { rows: [['waist', '허리'], ['leg', '다리']], cols: COLS_4 },
+  hat: { rows: [['front', '앞판'], ['back', '뒤판'], ['brim', '챙']], cols: COLS_LR },
+  shoes: { rows: [['upper', '갑피'], ['toe', '앞코'], ['heel', '뒤꿈치'], ['sole', '밑창']], cols: COLS_FOOT },
+  socks: { rows: [['cuff', '밴드'], ['leg', '목'], ['foot', '발'], ['toe', '발끝']], cols: COLS_FOOT },
+  socks3: { rows: [['cuff', '밴드'], ['foot', '발'], ['toe', '발끝']], cols: COLS_3 },
 };
-// 좌우는 입는 사람 기준이에요(정면에서 보면 화면 오른쪽이 입는 사람의 왼쪽).
-const REGION_COLS = [['LF', '왼쪽', '앞'], ['LB', '왼쪽', '뒤'], ['RF', '오른쪽', '앞'], ['RB', '오른쪽', '뒤']];
+// 분류마다 치수 입력칸 이름이 달라요.
+const SIZE_LABELS = {
+  top: ['기장 배율', '둘레 배율'], bottom: ['기장 배율', '둘레 배율'],
+  hat: ['높이 배율', '둘레 배율'], shoes: ['길이 배율', '볼·높이 배율'], socks: ['길이 배율', '둘레 배율'],
+};
+// 분류를 바꿀 때 카메라가 처음 바라볼 방향(보기 좋은 각도).
+const CATEGORY_VIEW = {
+  top: new THREE.Vector3(0, 0.15, 1), bottom: new THREE.Vector3(0, 0.15, 1),
+  hat: new THREE.Vector3(0.55, 0.3, 1), shoes: new THREE.Vector3(0.75, 0.7, 1), socks: new THREE.Vector3(0.3, 0.15, 1),
+};
 
 function regionKeysFor(kind){
-  return REGION_ROWS[kind].flatMap(([row]) => REGION_COLS.map(([col]) => `${row}_${col}`));
+  const k = KINDS[kind];
+  return k.rows.flatMap(([row]) => k.cols.map(c => `${row}_${c.key}`));
 }
 function regionLabel(kind, key){
   const [row, col] = key.split('_');
-  const rowLabel = REGION_ROWS[kind].find(r => r[0] === row)?.[1] || row;
-  const c = REGION_COLS.find(x => x[0] === col);
-  return c ? `${c[1]} ${rowLabel} ${c[2]}` : rowLabel;
+  const k = KINDS[kind];
+  const rowLabel = k.rows.find(r => r[0] === row)?.[1] || row;
+  const c = k.cols.find(x => x.key === col);
+  return c ? [c.pre, rowLabel, c.post].filter(Boolean).join(' ') : rowLabel;
 }
-function mirrorRegionKey(key){
+function mirrorRegionKey(key, kind){
   const [row, col] = key.split('_');
-  const flipped = col[0] === 'L' ? 'R' + col[1] : 'L' + col[1];
-  return `${row}_${flipped}`;
+  const c = KINDS[kind].cols.find(x => x.key === col);
+  return `${row}_${c ? c.mirror : col}`;
+}
+// 대칭 칠하기 대상 목록 (자기 자신과 짝이 같으면 한 번만)
+function mirrorTargets(key, kind, withMirror){
+  const targets = [key];
+  if(withMirror && state.mirror){
+    const m = mirrorRegionKey(key, kind);
+    if(m !== key) targets.push(m);
+  }
+  return targets;
 }
 
 /* ---------- 원단 정의 (대표적인 몇 가지 — 절차적 캡처본) ---------- */
@@ -134,19 +211,215 @@ function findFirstMesh(root){
   return found;
 }
 
+// 모델 좌표를 복사해서 방향 맞추기(rotate)·한 짝 → 한 켤레(mirrorPair)를 적용해요.
+function transformSource(geometry, def){
+  const src = geometry.attributes.position;
+  const count0 = src.count;
+  let pos = new Float32Array(count0 * 3);
+  for(let i = 0; i < count0; i++){ pos[i*3] = src.getX(i); pos[i*3+1] = src.getY(i); pos[i*3+2] = src.getZ(i); }
+  let index;
+  if(geometry.index){
+    index = new Uint32Array(geometry.index.count);
+    for(let i = 0; i < index.length; i++) index[i] = geometry.index.getX(i);
+  } else {
+    index = new Uint32Array(count0);
+    for(let i = 0; i < count0; i++) index[i] = i;
+  }
+
+  const rot = def.rotate || {};
+  if(rot.y){ // Y축 회전: x' = x·cos + z·sin, z' = -x·sin + z·cos
+    const t = rot.y * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+    for(let i = 0; i < count0; i++){
+      const x = pos[i*3], z = pos[i*3+2];
+      pos[i*3] = x * c + z * s; pos[i*3+2] = -x * s + z * c;
+    }
+  }
+  if(rot.x){ // X축 회전: y' = y·cos - z·sin, z' = y·sin + z·cos
+    const t = rot.x * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+    for(let i = 0; i < count0; i++){
+      const y = pos[i*3+1], z = pos[i*3+2];
+      pos[i*3+1] = y * c - z * s; pos[i*3+2] = y * s + z * c;
+    }
+  }
+
+  if(def.mirrorPair){
+    let minX = Infinity, maxX = -Infinity;
+    for(let i = 0; i < count0; i++){ const x = pos[i*3]; if(x < minX) minX = x; if(x > maxX) maxX = x; }
+    const cx = (minX + maxX) / 2, shift = (maxX - minX) / 2 + def.mirrorPair / 2;
+    const out = new Float32Array(count0 * 6);
+    for(let i = 0; i < count0; i++){
+      const x = pos[i*3] - cx, y = pos[i*3+1], z = pos[i*3+2];
+      out[i*3] = x - shift; out[i*3+1] = y; out[i*3+2] = z;                          // 원본 = 오른발(-X)
+      const j = (count0 + i) * 3;
+      out[j] = -x + shift; out[j+1] = y; out[j+2] = z;                               // 반전 복사 = 왼발(+X)
+    }
+    const idx = new Uint32Array(index.length * 2);
+    idx.set(index);
+    for(let t = 0; t < index.length; t += 3){ // 반전하면 면 방향이 뒤집히니 꼭짓점 순서를 바꿔요.
+      idx[index.length + t] = index[t] + count0;
+      idx[index.length + t + 1] = index[t + 2] + count0;
+      idx[index.length + t + 2] = index[t + 1] + count0;
+    }
+    pos = out; index = idx;
+  }
+  return { pos, index, count: pos.length / 3 };
+}
+
+// 서로 이어지지 않은 덩어리(신발 두 짝, 양말 세 켤레 등)를 찾아 X 순서로 번호를 매겨요.
+// 반환: triPiece(삼각형별 덩어리 번호), pieces[{minX..maxZ, cx}] (큰 덩어리만, 왼쪽(-X)부터)
+function findPieces(pos, index, count){
+  const parent = new Int32Array(count);
+  for(let i = 0; i < count; i++) parent[i] = i;
+  const find = a => { while(parent[a] !== a){ parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
+  const unite = (a, b) => { a = find(a); b = find(b); if(a !== b) parent[a] = b; };
+  for(let t = 0; t < index.length; t += 3){ unite(index[t], index[t+1]); unite(index[t], index[t+2]); }
+
+  const triCount = index.length / 3;
+  const triRoot = new Int32Array(triCount);
+  const stats = new Map(); // root -> { n, sx }
+  for(let t = 0; t < triCount; t++){
+    const a = index[t*3], r = find(a);
+    triRoot[t] = r;
+    const x = (pos[a*3] + pos[index[t*3+1]*3] + pos[index[t*3+2]*3]) / 3;
+    let st = stats.get(r);
+    if(!st){ st = { n: 0, sx: 0 }; stats.set(r, st); }
+    st.n++; st.sx += x;
+  }
+  const big = [...stats.entries()].filter(([, st]) => st.n > triCount * 0.05)
+    .map(([root, st]) => ({ root, cx: st.sx / st.n }))
+    .sort((p, q) => p.cx - q.cx);
+  if(!big.length){
+    const all = [...stats.entries()].sort((p, q) => q[1].n - p[1].n)[0];
+    big.push({ root: all[0], cx: all[1].sx / all[1].n });
+  }
+  const rootToPiece = new Map(big.map((b, i) => [b.root, i]));
+  const pieces = big.map(b => ({ cx: b.cx, minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity, minZ: Infinity, maxZ: -Infinity }));
+  const triPiece = new Int32Array(triCount);
+  for(let t = 0; t < triCount; t++){
+    let p = rootToPiece.get(triRoot[t]);
+    if(p === undefined){ // 작은 조각은 X가 가장 가까운 큰 덩어리에 붙여요.
+      const x = pos[index[t*3]*3];
+      let best = 0, bd = Infinity;
+      pieces.forEach((pc, i) => { const d = Math.abs(pc.cx - x); if(d < bd){ bd = d; best = i; } });
+      p = best;
+    }
+    triPiece[t] = p;
+    const pc = pieces[p];
+    for(let k = 0; k < 3; k++){
+      const v = index[t*3+k];
+      const x = pos[v*3], y = pos[v*3+1], z = pos[v*3+2];
+      if(x < pc.minX) pc.minX = x; if(x > pc.maxX) pc.maxX = x;
+      if(y < pc.minY) pc.minY = y; if(y > pc.maxY) pc.maxY = y;
+      if(z < pc.minZ) pc.minZ = z; if(z > pc.maxZ) pc.maxZ = z;
+    }
+  }
+  return { triPiece, pieces };
+}
+
+// 삼각형 하나하나를 부위(`${행}_${열}`)로 분류해요.
+function classifyTriangles(def, pos, index, box){
+  const kind = def.kind;
+  const triCount = index.length / 3;
+  const out = new Array(triCount);
+  const cx = (box.min.x + box.max.x) / 2;
+  const cz = (box.min.z + box.max.z) / 2;
+  const halfW = (box.max.x - box.min.x) / 2 || 1;
+  const minY = box.min.y, h = (box.max.y - box.min.y) || 1;
+  const minZ = box.min.z, depth = (box.max.z - box.min.z) || 1;
+  const centroid = (t, axis) => (pos[index[t*3]*3+axis] + pos[index[t*3+1]*3+axis] + pos[index[t*3+2]*3+axis]) / 3;
+
+  if(kind === 'top' || kind === 'bottom'){
+    for(let t = 0; t < triCount; t++){
+      const x = centroid(t, 0), y = centroid(t, 1), z = centroid(t, 2);
+      const nx = (x - cx) / halfW, ny = (y - minY) / h;
+      let row;
+      if(kind === 'top') row = Math.abs(nx) > def.sleeveX ? 'sleeve' : (ny > def.shoulderY ? 'shoulder' : 'body');
+      else row = ny > def.waistY ? 'waist' : 'leg';
+      out[t] = `${row}_${(x >= cx ? 'L' : 'R') + (z >= cz ? 'F' : 'B')}`;
+    }
+    return out;
+  }
+
+  if(kind === 'hat'){
+    // 앞판/뒤판 경계 = 모자 윗부분(정수리 쪽) 정점들의 Z 평균 — 챙 때문에 박스 중심이 앞으로 쏠려서요.
+    let sz = 0, sn = 0;
+    for(let i = 0; i < pos.length / 3; i++){
+      if((pos[i*3+1] - minY) / h > 0.6){ sz += pos[i*3+2]; sn++; }
+    }
+    const splitZ = sn ? sz / sn : cz;
+    const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), n = new THREE.Vector3();
+    for(let t = 0; t < triCount; t++){
+      const a = index[t*3], b = index[t*3+1], c = index[t*3+2];
+      e1.set(pos[b*3] - pos[a*3], pos[b*3+1] - pos[a*3+1], pos[b*3+2] - pos[a*3+2]);
+      e2.set(pos[c*3] - pos[a*3], pos[c*3+1] - pos[a*3+1], pos[c*3+2] - pos[a*3+2]);
+      n.crossVectors(e1, e2).normalize();
+      const x = centroid(t, 0), y = centroid(t, 1), z = centroid(t, 2);
+      const ny = (y - minY) / h, nz = (z - minZ) / depth;
+      // 챙: 아주 앞쪽이거나, 앞쪽 아래에 있으면서 위/아래를 향한 면(평평한 판)
+      const brim = nz > def.brimZFar || (nz > def.brimZ && ny < def.brimY && Math.abs(n.y) > def.brimNormal);
+      const row = brim ? 'brim' : (z >= splitZ ? 'front' : 'back');
+      out[t] = `${row}_${x >= cx ? 'L' : 'R'}`;
+    }
+    return out;
+  }
+
+  // 신발·양말: 덩어리(짝)별로 나눈 뒤, 짝 안에서의 상대 위치로 부위를 정해요.
+  const { triPiece, pieces } = findPieces(pos, index, pos.length / 3);
+  const colOf = p => {
+    if(kind === 'socks3') return (COLS_3[Math.min(p, 2)] || COLS_3[0]).key;
+    return pieces[p].cx >= cx ? 'L' : 'R';
+  };
+  const pny = (t, pc) => (centroid(t, 1) - pc.minY) / ((pc.maxY - pc.minY) || 1);
+  const pnz = (t, pc) => (centroid(t, 2) - pc.minZ) / ((pc.maxZ - pc.minZ) || 1);
+
+  if(kind === 'socks'){
+    // 발끝: 발 부분 중에서 다리 축(목 부분의 중심)에서 가장 멀리 나간 곳
+    const axis = pieces.map(() => ({ x: 0, z: 0, n: 0, maxD: 0 }));
+    for(let t = 0; t < triCount; t++){
+      const pc = pieces[triPiece[t]], y = pny(t, pc);
+      if(y > def.legY && y <= def.cuffY){ const a = axis[triPiece[t]]; a.x += centroid(t, 0); a.z += centroid(t, 2); a.n++; }
+    }
+    axis.forEach((a, i) => { if(a.n){ a.x /= a.n; a.z /= a.n; } else { a.x = pieces[i].cx; a.z = cz; } });
+    const dist = new Float32Array(triCount);
+    for(let t = 0; t < triCount; t++){
+      const a = axis[triPiece[t]];
+      const d = Math.hypot(centroid(t, 0) - a.x, centroid(t, 2) - a.z);
+      dist[t] = d;
+      if(pny(t, pieces[triPiece[t]]) <= def.legY && d > a.maxD) a.maxD = d;
+    }
+    for(let t = 0; t < triCount; t++){
+      const p = triPiece[t], y = pny(t, pieces[p]);
+      let row;
+      if(y > def.cuffY) row = 'cuff';
+      else if(y > def.legY) row = 'leg';
+      else row = dist[t] > def.toeFrac * axis[p].maxD ? 'toe' : 'foot';
+      out[t] = `${row}_${colOf(p)}`;
+    }
+    return out;
+  }
+
+  for(let t = 0; t < triCount; t++){
+    const p = triPiece[t], pc = pieces[p];
+    const y = pny(t, pc);
+    let row;
+    if(kind === 'shoes'){
+      const z = pnz(t, pc);
+      row = y < def.soleY ? 'sole' : (z > def.toeZ ? 'toe' : (z < def.heelZ ? 'heel' : 'upper'));
+    } else { // socks3
+      row = y > def.cuffY ? 'cuff' : (y < def.toeY ? 'toe' : 'foot');
+    }
+    out[t] = `${row}_${colOf(p)}`;
+  }
+  return out;
+}
+
 // cache: { geometry(position/normal/uv 포함), regionIndex: {key: Uint32Array}, count, cx, cz, sphere }
 function prepareGarmentCache(typeKey, geometry){
   const def = GARMENT_TYPES[typeKey];
+  const { pos: srcPos, index: srcIndex, count } = transformSource(geometry, def);
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', geometry.attributes.position);
-  const count = geometry.attributes.position.count;
-  if(geometry.index){
-    geo.setIndex(geometry.index);
-  } else {
-    const idx = new Uint32Array(count);
-    for(let i = 0; i < count; i++) idx[i] = i;
-    geo.setIndex(new THREE.BufferAttribute(idx, 1));
-  }
+  geo.setAttribute('position', new THREE.BufferAttribute(srcPos, 3));
+  geo.setIndex(new THREE.BufferAttribute(srcIndex, 1));
   geo.computeVertexNormals();
   geo.computeBoundingBox();
   geo.computeBoundingSphere();
@@ -156,9 +429,6 @@ function prepareGarmentCache(typeKey, geometry){
   const box = geo.boundingBox;
   const cx = (box.min.x + box.max.x) / 2;
   const cz = (box.min.z + box.max.z) / 2;
-  const halfW = (box.max.x - box.min.x) / 2 || 1;
-  const minY = box.min.y;
-  const h = (box.max.y - box.min.y) || 1;
 
   // UV — 원래 모델에 UV가 없어서, 법선 방향 기준 박스 투영으로 만들어줘요(원단 무늬가 보이게).
   const UV_SCALE = 2.5;
@@ -174,26 +444,15 @@ function prepareGarmentCache(typeKey, geometry){
   }
   geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 
-  // 삼각형 중심 위치로 부위를 분류해요.
+  // 삼각형마다 부위를 정해서 부위별 인덱스 목록으로 모아요.
   const keys = regionKeysFor(def.kind);
   const buckets = {};
   keys.forEach(k => { buckets[k] = []; });
   const index = geo.index.array;
-  for(let t = 0; t < index.length; t += 3){
-    const a = index[t], b = index[t+1], c = index[t+2];
-    const x = (pos[a*3] + pos[b*3] + pos[c*3]) / 3;
-    const y = (pos[a*3+1] + pos[b*3+1] + pos[c*3+1]) / 3;
-    const z = (pos[a*3+2] + pos[b*3+2] + pos[c*3+2]) / 3;
-    const nx = (x - cx) / halfW;
-    const ny = (y - minY) / h;
-    let row;
-    if(def.kind === 'top'){
-      row = Math.abs(nx) > def.sleeveX ? 'sleeve' : (ny > def.shoulderY ? 'shoulder' : 'body');
-    } else {
-      row = ny > def.waistY ? 'waist' : 'leg';
-    }
-    const col = (x >= cx ? 'L' : 'R') + (z >= cz ? 'F' : 'B');
-    buckets[`${row}_${col}`].push(a, b, c);
+  const triRegion = classifyTriangles(def, pos, index, box);
+  for(let t = 0; t < triRegion.length; t++){
+    const bucket = buckets[triRegion[t]];
+    if(bucket) bucket.push(index[t*3], index[t*3+1], index[t*3+2]);
   }
   const regionIndex = {};
   keys.forEach(k => { regionIndex[k] = new Uint32Array(buckets[k]); });
@@ -203,24 +462,40 @@ function prepareGarmentCache(typeKey, geometry){
 
 const GLB_CACHE = {};   // typeKey -> prepareGarmentCache() 결과
 const GLB_FAILED = {};  // typeKey -> true (불러오기 실패)
-let pendingGlbType = null;
+const GLB_LOADING = {}; // typeKey -> Promise (불러오는 중)
 const glbLoader = new GLTFLoader();
 
-function preloadGarmentGLBs(){
-  const jobs = Object.entries(GARMENT_TYPES).map(([key, def]) => new Promise(resolve => {
+// 한 종류의 모델을 불러와요. 이미 불러왔거나 불러오는 중이면 그걸 그대로 써요.
+function loadGarmentGLB(key){
+  if(GLB_CACHE[key] || GLB_FAILED[key]) return Promise.resolve();
+  if(GLB_LOADING[key]) return GLB_LOADING[key];
+  const def = GARMENT_TYPES[key];
+  GLB_LOADING[key] = new Promise(resolve => {
     glbLoader.load(def.glb, gltf => {
-      const mesh = findFirstMesh(gltf.scene);
-      if(mesh && mesh.geometry) GLB_CACHE[key] = prepareGarmentCache(key, mesh.geometry);
-      else GLB_FAILED[key] = true;
-      if(pendingGlbType === key && state.typeKey === key){ pendingGlbType = null; rebuildGarment(); }
+      try {
+        const mesh = findFirstMesh(gltf.scene);
+        if(mesh && mesh.geometry) GLB_CACHE[key] = prepareGarmentCache(key, mesh.geometry);
+        else GLB_FAILED[key] = true;
+      } catch(err){
+        console.error('모델 준비 실패:', key, err);
+        GLB_FAILED[key] = true;
+      }
+      delete GLB_LOADING[key];
+      if(state.typeKey === key) rebuildGarment();
       resolve();
     }, undefined, () => {
       GLB_FAILED[key] = true;
-      if(pendingGlbType === key && state.typeKey === key){ pendingGlbType = null; rebuildGarment(); }
+      delete GLB_LOADING[key];
+      if(state.typeKey === key) rebuildGarment();
       resolve(); // 실패해도 다른 항목 로딩은 계속 진행해요.
     });
-  }));
-  return Promise.all(jobs);
+  });
+  return GLB_LOADING[key];
+}
+
+// 상의·하의는 미리 불러와 두고, 모자·신발·양말(lazy)은 골랐을 때 불러와요.
+function preloadGarmentGLBs(){
+  return Promise.all(Object.entries(GARMENT_TYPES).filter(([, def]) => !def.lazy).map(([key]) => loadGarmentGLB(key)));
 }
 
 /* ---------- 페이지 상태 ---------- */
@@ -265,6 +540,8 @@ const el = {
   resetBtn: document.getElementById('reset-btn'),
   loading: document.getElementById('create-loading'),
   hint: document.getElementById('viewer-hint'),
+  lengthLabel: document.getElementById('length-label'),
+  girthLabel: document.getElementById('girth-label'),
   viewBtns: document.getElementById('view-btns'),
   regionHint: document.getElementById('region-hint'),
 };
@@ -364,9 +641,14 @@ const VIEW_DIRS = {
   right: new THREE.Vector3(-1, 0.15, 0),
 };
 function setView(name){
-  if(!camera || !VIEW_DIRS[name]) return;
+  if(!VIEW_DIRS[name]) return;
+  setViewDir(VIEW_DIRS[name], name);
+}
+// dir 방향에서 바라보도록 카메라를 부드럽게 옮겨요. name이 없으면 시점 버튼 강조를 꺼요.
+function setViewDir(dir, name){
+  if(!camera || !controls || !dir) return;
   const dist = camera.position.distanceTo(controls.target);
-  const to = controls.target.clone().add(VIEW_DIRS[name].clone().normalize().multiplyScalar(dist));
+  const to = controls.target.clone().add(dir.clone().normalize().multiplyScalar(dist));
   cameraTween = { from: camera.position.clone(), to, start: performance.now(), duration: 380 };
   el.viewBtns.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.view === name));
 }
@@ -392,10 +674,10 @@ function rebuildGarment(){
   const cache = GLB_CACHE[state.typeKey];
   if(!cache){
     if(GLB_FAILED[state.typeKey]){
-      if(el.loading){ el.loading.hidden = false; el.loading.textContent = '옷 모델을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'; }
+      if(el.loading){ el.loading.hidden = false; el.loading.textContent = '모델을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'; }
     } else {
-      pendingGlbType = state.typeKey;
-      if(el.loading){ el.loading.hidden = false; el.loading.textContent = '옷 모델을 불러오는 중...'; }
+      loadGarmentGLB(state.typeKey); // 다 불러오면 알아서 rebuildGarment()가 다시 불려요.
+      if(el.loading){ el.loading.hidden = false; el.loading.textContent = `${def.label} 모델을 불러오는 중...`; }
     }
     renderAllUI();
     return;
@@ -412,14 +694,19 @@ function rebuildGarment(){
 
   const box = cache.geometry.boundingBox;
   const rawH = (box.max.y - box.min.y) || 1;
-  const baseScale = (state.mannequinHeight * def.glbHeightFrac) / rawH;
-  const scaleY = baseScale * state.lengthMul;
-  const scaleXZ = baseScale * state.girthMul;
+  // 옷은 마네킹 키 기준 크기로, 모자·신발·양말은 뷰어에서 보기 좋은 크기(가장 긴 변 = displaySize)로 맞춰요.
+  const rawMax = Math.max(box.max.x - box.min.x, rawH, box.max.z - box.min.z) || 1;
+  const baseScale = def.displaySize ? def.displaySize / rawMax : (state.mannequinHeight * def.glbHeightFrac) / rawH;
+  // "길이 배율"은 lengthAxis(기본 y) 한 축, "둘레 배율"은 나머지 두 축에 걸려요.
+  const lengthAxis = def.lengthAxis || 'y';
+  const sx = baseScale * (lengthAxis === 'x' ? state.lengthMul : state.girthMul) * (def.glbWidthMul || 1);
+  const sy = baseScale * (lengthAxis === 'y' ? state.lengthMul : state.girthMul);
+  const sz = baseScale * (lengthAxis === 'z' ? state.lengthMul : state.girthMul);
 
   const group = new THREE.Group();
   const holder = new THREE.Group();
-  holder.scale.set(scaleXZ * (def.glbWidthMul || 1), scaleY, scaleXZ);
-  holder.position.y = -box.max.y * scaleY;
+  holder.scale.set(sx, sy, sz);
+  holder.position.y = -box.max.y * sy;
   group.add(holder);
 
   const parts = {};
@@ -478,8 +765,8 @@ function applyRegionLook(key, look){
 function fillRegion(key, withMirror = true){
   const design = getDesign(state.typeKey);
   const fabric = state.activeFabric === 'none' ? null : state.activeFabric;
-  const targets = [key];
-  if(withMirror && state.mirror) targets.push(mirrorRegionKey(key));
+  const kind = GARMENT_TYPES[state.typeKey].kind;
+  const targets = mirrorTargets(key, kind, withMirror);
   targets.forEach(k => {
     restoreFillMask(k); // 지우개로 지웠던 자리도 다시 채워요.
     if(!fabric && !state.activeColor){
@@ -492,7 +779,6 @@ function fillRegion(key, withMirror = true){
     }
   });
   state.lastTappedRegion = key;
-  const kind = GARMENT_TYPES[state.typeKey].kind;
   const fabricName = fabric ? FABRICS.find(f => f.id === fabric).name : '단색';
   setStatus(`${targets.map(k => regionLabel(kind, k)).join(', ')} → ${fabricName}${state.activeColor ? ' · ' + state.activeColor : ''}`);
   renderRegionGrid();
@@ -502,8 +788,8 @@ function fillRegion(key, withMirror = true){
 function clearRegion(key, withMirror = true){
   const cache = GLB_CACHE[state.typeKey];
   const design = getDesign(state.typeKey);
-  const targets = [key];
-  if(withMirror && state.mirror) targets.push(mirrorRegionKey(key));
+  const kind = GARMENT_TYPES[state.typeKey].kind;
+  const targets = mirrorTargets(key, kind, withMirror);
   targets.forEach(k => {
     delete design.regions[k];
     applyRegionLook(k, null);
@@ -521,7 +807,6 @@ function clearRegion(key, withMirror = true){
   });
   flushPaint();
   state.lastTappedRegion = key;
-  const kind = GARMENT_TYPES[state.typeKey].kind;
   setStatus(`${targets.map(k => regionLabel(kind, k)).join(', ')} → 지웠습니다`);
   renderRegionGrid();
 }
@@ -546,7 +831,7 @@ function fillAllRegions(){
   const kind = GARMENT_TYPES[state.typeKey].kind;
   regionKeysFor(kind).forEach(k => fillRegion(k, false));
   state.lastTappedRegion = null;
-  setStatus('옷 전체를 채웠습니다.');
+  setStatus(`${GARMENT_TYPES[state.typeKey].label} 전체를 채웠습니다.`);
   renderRegionGrid();
 }
 
@@ -749,18 +1034,52 @@ function renderAllUI(){
   renderRegionGrid();
 }
 
+function categoryOf(typeKey){ return GARMENT_TYPES[typeKey].category; }
+// 분류마다 마지막으로 골랐던 모양을 기억해요(분류를 오가도 그대로).
+const lastTypeByCategory = {};
+
+function selectType(typeKey){
+  const prevCategory = categoryOf(state.typeKey);
+  state.typeKey = typeKey;
+  lastTypeByCategory[categoryOf(typeKey)] = typeKey;
+  state.lastTappedRegion = null;
+  setStatus('');
+  updateSizeLabels();
+  rebuildGarment();
+  if(prevCategory !== categoryOf(typeKey)) setViewDir(CATEGORY_VIEW[categoryOf(typeKey)], null);
+}
+
 function renderTypeRow(){
-  el.typeRow.innerHTML = Object.entries(GARMENT_TYPES).map(([key, d]) => `
-    <button class="type-chip${key === state.typeKey ? ' active' : ''}" data-type="${key}" type="button">${d.label}</button>
-  `).join('');
-  el.typeRow.querySelectorAll('.type-chip').forEach(btn => {
+  const cat = categoryOf(state.typeKey);
+  const variants = Object.entries(GARMENT_TYPES).filter(([, d]) => d.category === cat);
+  el.typeRow.innerHTML = `
+    <div class="category-row">
+      ${CATEGORIES.map(([key, label]) => `<button class="type-chip${key === cat ? ' active' : ''}" data-category="${key}" type="button">${label}</button>`).join('')}
+    </div>
+    <div class="variant-row">
+      <span class="variant-label">모양</span>
+      ${variants.map(([key, d]) => `<button class="variant-chip${key === state.typeKey ? ' active' : ''}" data-type="${key}" type="button">${d.label}</button>`).join('')}
+    </div>
+  `;
+  el.typeRow.querySelectorAll('[data-category]').forEach(btn => {
     btn.addEventListener('click', () => {
-      state.typeKey = btn.dataset.type;
-      state.lastTappedRegion = null;
-      setStatus('');
-      rebuildGarment();
+      const c = btn.dataset.category;
+      if(c === categoryOf(state.typeKey)) return;
+      const first = lastTypeByCategory[c] || Object.keys(GARMENT_TYPES).find(k => GARMENT_TYPES[k].category === c);
+      selectType(first);
     });
   });
+  el.typeRow.querySelectorAll('[data-type]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(btn.dataset.type !== state.typeKey) selectType(btn.dataset.type);
+    });
+  });
+}
+
+function updateSizeLabels(){
+  const [lengthLabel, girthLabel] = SIZE_LABELS[categoryOf(state.typeKey)] || SIZE_LABELS.top;
+  if(el.lengthLabel) el.lengthLabel.textContent = lengthLabel;
+  if(el.girthLabel) el.girthLabel.textContent = girthLabel;
 }
 
 const TOOL_HINTS = {
@@ -774,6 +1093,9 @@ function renderToolRow(){
   if(el.regionHint) el.regionHint.textContent = state.tool === 'eraser'
     ? '(칸을 누르면 그 부위를 지웁니다 · 좌우는 입는 사람 기준)'
     : '(칸을 누르면 지금 고른 원단·색으로 채웁니다 · 좌우는 입는 사람 기준)';
+  // 3켤레 세트는 입는 사람 기준이 아니라 정면에서 본 순서예요.
+  if(el.regionHint && GARMENT_TYPES[state.typeKey].kind === 'socks3')
+    el.regionHint.textContent = el.regionHint.textContent.replace('좌우는 입는 사람 기준', '번호는 정면에서 볼 때 왼쪽부터');
   if(el.hint) el.hint.textContent = TOOL_HINTS[state.tool];
 }
 el.toolRow.querySelectorAll('.tool-chip').forEach(btn => {
@@ -846,17 +1168,21 @@ function lookName(look){
 
 function renderRegionGrid(){
   const def = GARMENT_TYPES[state.typeKey];
+  const kindDef = KINDS[def.kind];
   const design = getDesign(state.typeKey);
-  const head = `<div></div>` + REGION_COLS.map(([, side, face]) => `<div class="rg-head">${side}<br>${face}</div>`).join('');
-  const rows = REGION_ROWS[def.kind].map(([row, rowLabel]) => {
-    const cells = REGION_COLS.map(([col]) => {
-      const key = `${row}_${col}`;
+  const cache = GLB_CACHE[state.typeKey];
+  el.regionGrid.style.gridTemplateColumns = `58px repeat(${kindDef.cols.length}, 1fr)`;
+  const head = `<div></div>` + kindDef.cols.map(c => `<div class="rg-head">${c.head}</div>`).join('');
+  const rows = kindDef.rows.map(([row, rowLabel]) => {
+    const cells = kindDef.cols.map(c => {
+      const key = `${row}_${c.key}`;
       const look = design.regions[key];
-      const tapped = key === state.lastTappedRegion || (state.mirror && state.lastTappedRegion && mirrorRegionKey(state.lastTappedRegion) === key);
+      const tapped = key === state.lastTappedRegion || (state.mirror && state.lastTappedRegion && mirrorRegionKey(state.lastTappedRegion, def.kind) === key);
+      const empty = cache && !(cache.regionIndex[key] && cache.regionIndex[key].length);
       return `
-        <button class="rg-cell${tapped ? ' just-tapped' : ''}" data-region="${key}" type="button" aria-label="${regionLabel(def.kind, key)}">
+        <button class="rg-cell${tapped ? ' just-tapped' : ''}" data-region="${key}" type="button" aria-label="${regionLabel(def.kind, key)}"${empty ? ' disabled' : ''}>
           <span class="dot" style="background:${lookSwatchColor(look)}"></span>
-          <span class="rg-name">${lookName(look)}</span>
+          <span class="rg-name">${empty ? '없음' : lookName(look)}</span>
         </button>`;
     }).join('');
     return `<div class="rg-row-label">${rowLabel}</div>${cells}`;
@@ -988,7 +1314,7 @@ function computeQuote(){
 function quoteHtml(q){
   const def = GARMENT_TYPES[state.typeKey];
   const rows = [
-    [`기본 제작비 · ${def.label}`, won(ORDER_BASE)],
+    [`기본 제작비 · ${(CATEGORIES.find(c => c[0] === def.category) || [, ''])[1]} ${def.label}`, won(ORDER_BASE)],
     [`원단 ${TIER_LABEL[q.fabricAmount]}${q.usedFabrics.length ? ' (' + q.usedFabrics.join(', ') + ')' : ''}`, '+' + won(q.fabricAmount)],
   ];
   if(q.hasPaint) rows.push(['브러시 그림(나염)', '+' + won(q.paintAmount)]);
@@ -997,7 +1323,12 @@ function quoteHtml(q){
   return rows.map(([a, b]) => `<div class="q-row"><span>${a}</span><span>${b}</span></div>`).join('')
     + `<div class="q-row q-total"><span>예상 견적</span><span>${won(q.total)}</span></div>`
     + (subscriber && !q.finishAmount ? `<div class="q-sub">구독 중이라 Premium을 고르면 재봉사 매칭·배송비가 빠집니다.</div>` : '')
-    + `<div class="q-sub">기장 ×${state.lengthMul.toFixed(2)} · 둘레 ×${state.girthMul.toFixed(2)} · 부위 ${Object.keys(getDesign(state.typeKey).regions).length}곳 채움</div>`;
+    + `<div class="q-sub">${sizeLabelShort(0)} ×${state.lengthMul.toFixed(2)} · ${sizeLabelShort(1)} ×${state.girthMul.toFixed(2)} · 부위 ${Object.keys(getDesign(state.typeKey).regions).length}곳 채움</div>`;
+}
+
+function sizeLabelShort(i){
+  const labels = SIZE_LABELS[GARMENT_TYPES[state.typeKey].category] || SIZE_LABELS.top;
+  return labels[i].replace(' 배율', '');
 }
 
 function updateQuote(){
@@ -1059,7 +1390,7 @@ orderEl.openBtn.addEventListener('click', async () => {
     return;
   }
   if(!GLB_CACHE[state.typeKey]){
-    setStatus('옷 모델을 불러온 뒤에 주문할 수 있습니다.');
+    setStatus('모델을 불러온 뒤에 주문할 수 있습니다.');
     return;
   }
   await refreshSubscription();
@@ -1138,4 +1469,5 @@ orderEl.payBtn.addEventListener('click', async () => {
 
 /* ---------- 시작 ---------- */
 preloadGarmentGLBs();
+updateSizeLabels();
 renderAllUI();
