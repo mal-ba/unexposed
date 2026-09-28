@@ -866,8 +866,29 @@ const ORDER_DETAIL_AMOUNTS = new Set([0, 10000, 15000, 25000]); // 디테일은 
 const ORDER_FINISH_AMOUNTS = new Set([0, 30000]);
 const ORDER_BASE_PRICE = 30000;
 
-/* 제작 스튜디오(create.html) 주문용 — 클라이언트가 보낸 디자인을 보고 서버가 직접 견적을 계산해요. */
-const STUDIO_TYPES = { shortSleeve: '반팔 티셔츠', longSleeve: '긴팔 티셔츠', shortPants: '반바지', longPants: '긴바지' };
+/* 제작 스튜디오(create.html) 주문용 — 클라이언트가 보낸 디자인을 보고 서버가 직접 견적을 계산해요.
+   옷 종류·부위 이름은 create.js의 GARMENT_TYPES / KINDS 와 똑같이 맞춰야 해요. */
+const STUDIO_TYPES = {
+  shortSleeve: { label: '반팔 티셔츠', kind: 'top' },
+  longSleeve: { label: '긴팔 티셔츠', kind: 'top' },
+  shortPants: { label: '반바지', kind: 'bottom' },
+  longPants: { label: '긴바지', kind: 'bottom' },
+  capBall: { label: '볼캡', kind: 'hat' },
+  shoeClassic: { label: '클래식 스니커즈', kind: 'shoes' },
+  shoeCanvas: { label: '캔버스 스니커즈', kind: 'shoes' },
+  shoeRunning: { label: '러닝 스니커즈', kind: 'shoes' },
+  sockCrew: { label: '골지 크루삭스', kind: 'socks' },
+  sockAnkle3: { label: '발목양말 3켤레', kind: 'socks3' },
+};
+const STUDIO_COLS_4 = { LF: ['왼쪽', '앞'], LB: ['왼쪽', '뒤'], RF: ['오른쪽', '앞'], RB: ['오른쪽', '뒤'] };
+const STUDIO_KINDS = {
+  top: { rows: { shoulder: '어깨', sleeve: '팔(소매)', body: '몸판' }, cols: STUDIO_COLS_4, size: ['기장', '둘레'] },
+  bottom: { rows: { waist: '허리', leg: '다리' }, cols: STUDIO_COLS_4, size: ['기장', '둘레'] },
+  hat: { rows: { front: '앞판', back: '뒤판', brim: '챙' }, cols: { L: ['왼쪽', ''], R: ['오른쪽', ''] }, size: ['높이', '둘레'] },
+  shoes: { rows: { upper: '갑피', toe: '앞코', heel: '뒤꿈치', sole: '밑창' }, cols: { L: ['왼발', ''], R: ['오른발', ''] }, size: ['길이', '볼·높이'] },
+  socks: { rows: { cuff: '밴드', leg: '목', foot: '발', toe: '발끝' }, cols: { L: ['왼발', ''], R: ['오른발', ''] }, size: ['길이', '둘레'] },
+  socks3: { rows: { cuff: '밴드', foot: '발', toe: '발끝' }, cols: { S1: ['1번 양말', ''], S2: ['2번 양말', ''], S3: ['3번 양말', ''] }, size: ['길이', '둘레'] },
+};
 const STUDIO_FABRICS = {
   cotton: { name: '면', amount: 0 }, linen: { name: '린넨', amount: 0 },
   silk: { name: '실크', amount: 20000 }, denim: { name: '데님', amount: 20000 }, knit: { name: '니트', amount: 20000 },
@@ -875,14 +896,22 @@ const STUDIO_FABRICS = {
 };
 const STUDIO_TIER_LABELS = { 0: '베이직', 20000: '프리미엄', 40000: '스페셜' };
 const STUDIO_PAINT_AMOUNT = 10000; // 브러시로 직접 그린 그림 → 나염 비용
-const STUDIO_ROWS = { shoulder: '어깨', sleeve: '팔(소매)', body: '몸판', waist: '허리', leg: '다리' };
-const STUDIO_COLS = { LF: ['왼쪽', '앞'], LB: ['왼쪽', '뒤'], RF: ['오른쪽', '앞'], RB: ['오른쪽', '뒤'] };
+const STUDIO_MAX_QTY = 10;         // 한 디자인당 최대 수량
+const STUDIO_MAX_CART_ITEMS = 20;  // 장바구니 최대 디자인 수
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const wonText = n => `${Number(n).toLocaleString('ko-KR')}원`;
+
+function clampQty(v){
+  const n = Math.floor(Number(v));
+  if(!isFinite(n) || n < 1) return 1;
+  return Math.min(STUDIO_MAX_QTY, n);
+}
 
 function buildStudioOrder(studio){
   if(!studio || typeof studio !== 'object') return { error: '스튜디오 디자인 정보가 없습니다.' };
-  const typeLabel = STUDIO_TYPES[studio.typeKey];
-  if(!typeLabel) return { error: '알 수 없는 옷 종류입니다.' };
+  const type = STUDIO_TYPES[studio.typeKey];
+  if(!type) return { error: '알 수 없는 옷 종류입니다.' };
+  const kind = STUDIO_KINDS[type.kind];
   const lengthMul = Math.min(1.6, Math.max(0.6, Number(studio.lengthMul) || 1));
   const girthMul = Math.min(1.5, Math.max(0.7, Number(studio.girthMul) || 1));
   const regions = (studio.regions && typeof studio.regions === 'object') ? studio.regions : {};
@@ -892,14 +921,14 @@ function buildStudioOrder(studio){
   const regionLines = [];
   for(const [key, look] of Object.entries(regions).slice(0, 40)){
     const [row, col] = String(key).split('_');
-    if(!STUDIO_ROWS[row] || !STUDIO_COLS[col] || !look || typeof look !== 'object') continue;
+    if(!kind.rows[row] || !kind.cols[col] || !look || typeof look !== 'object') continue;
     const fabric = look.fabric ? STUDIO_FABRICS[look.fabric] : null;
     if(look.fabric && !fabric) continue;
     const color = HEX_COLOR.test(look.color || '') ? look.color.toUpperCase() : null;
     if(!fabric && !color) continue;
     if(fabric){ usedFabrics.add(fabric.name); fabricAmount = Math.max(fabricAmount, fabric.amount); }
-    const [side, face] = STUDIO_COLS[col];
-    regionLines.push(`${side} ${STUDIO_ROWS[row]} ${face}: ${fabric ? fabric.name : '단색'}${color ? ' ' + color : ''}`);
+    const [side, face] = kind.cols[col];
+    regionLines.push(`${side} ${kind.rows[row]}${face ? ' ' + face : ''}: ${fabric ? fabric.name : '단색'}${color ? ' ' + color : ''}`);
   }
   const hasPaint = !!studio.hasPaint;
   const detailAmount = hasPaint ? STUDIO_PAINT_AMOUNT : 0;
@@ -907,11 +936,40 @@ function buildStudioOrder(studio){
   const fabricLabel = `원단 ${STUDIO_TIER_LABELS[fabricAmount]}${usedFabrics.size ? ' (' + [...usedFabrics].join(', ') + ')' : ''} · +${fabricAmount.toLocaleString('ko-KR')}원`;
   const detailLabels = hasPaint ? [`브러시 그림(나염) · +${STUDIO_PAINT_AMOUNT.toLocaleString('ko-KR')}원`] : [];
   const fabricNote = [
-    `[제작 스튜디오] ${typeLabel} · 기장 ×${lengthMul.toFixed(2)} · 둘레 ×${girthMul.toFixed(2)}`,
+    `[제작 스튜디오] ${type.label} · ${kind.size[0]} ×${lengthMul.toFixed(2)} · ${kind.size[1]} ×${girthMul.toFixed(2)}`,
     regionLines.length ? regionLines.join(' / ') : '부위 채우기 없음(기본 옷감색)',
   ].join('\n');
   const detailNote = hasPaint ? '브러시로 직접 그린 그림이 있습니다 (나염 필요).' : null;
-  return { fabricAmount, detailAmount, fabricLabel, detailLabels, fabricNote, detailNote };
+  return { typeLabel: type.label, fabricAmount, detailAmount, fabricLabel, detailLabels, fabricNote, detailNote };
+}
+
+// orders 테이블 저장 — design_mode 컬럼에 '3d'/'2d'만 허용하는 제약이 걸려 있으면,
+// 스튜디오 표시는 빼고 다시 저장해요. (주문 내용은 fabric_note 첫 줄의 [제작 스튜디오]로 구분돼요)
+async function insertOrderRow(row){
+  let { error } = await supabase.from('orders').insert(row);
+  if (error && row.design_mode === 'studio' && /design_mode|check/i.test(`${error.message} ${error.details || ''} ${error.code || ''}`)) {
+    ({ error } = await supabase.from('orders').insert({ ...row, design_mode: null }));
+  }
+  return error;
+}
+
+function validateShipping(needsShipping, consent, s){
+  if (!needsShipping) return null;
+  if (!consent) return '배송을 위한 개인정보(배송지) 수집·이용에 동의해주세요.';
+  if (!s.name || !s.phone || !s.zipcode || !s.address1) return '배송지 정보(이름·연락처·우편번호·주소)를 모두 입력해주세요.';
+  return null;
+}
+
+function shippingColumns(needsShipping, consent, s){
+  return {
+    shipping_name: needsShipping ? s.name : null,
+    shipping_phone: needsShipping ? s.phone : null,
+    shipping_zipcode: needsShipping ? s.zipcode : null,
+    shipping_address1: needsShipping ? s.address1 : null,
+    shipping_address2: needsShipping ? (s.address2 || null) : null,
+    shipping_note: needsShipping ? (s.note || null) : null,
+    shipping_consent: !!consent,
+  };
 }
 
 app.post('/api/orders/create-order', requireLogin, async (req, res) => {
@@ -923,12 +981,14 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   }
 
   let fa, da, fabricLabel, detailLabels, fabricNote, detailNote, safeDesignMode;
+  let quantity = 1;
   if(designMode === 'studio'){
     // 제작 스튜디오: 금액은 클라이언트 값을 쓰지 않고, 보낸 디자인으로 서버가 다시 계산해요.
     const built = buildStudioOrder(body.studio);
     if(built.error) return res.status(400).json({ ok: false, error: built.error });
     ({ fabricAmount: fa, detailAmount: da, fabricLabel, detailLabels, fabricNote, detailNote } = built);
     safeDesignMode = 'studio';
+    quantity = clampQty(body.quantity); // 스튜디오는 같은 디자인을 여러 벌 주문할 수 있어요.
   } else {
     fa = Number(body.fabricAmount); da = Number(body.detailAmount);
     if (!ORDER_FABRIC_AMOUNTS.has(fa) || !ORDER_DETAIL_AMOUNTS.has(da)) {
@@ -945,23 +1005,19 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   // "완제품 도어투도어 배송"을 선택했을 때만 배송지·동의가 필요해요 (패턴 PDF만이면 배송이 없어요).
   const needsShipping = fi === 30000;
   const s = shipping || {};
-  if (needsShipping) {
-    if (!consent) {
-      return res.status(400).json({ ok: false, error: '배송을 위한 개인정보(배송지) 수집·이용에 동의해주세요.' });
-    }
-    if (!s.name || !s.phone || !s.zipcode || !s.address1) {
-      return res.status(400).json({ ok: false, error: '배송지 정보(이름·연락처·우편번호·주소)를 모두 입력해주세요.' });
-    }
-  }
+  const shipErr = validateShipping(needsShipping, consent, s);
+  if (shipErr) return res.status(400).json({ ok: false, error: shipErr });
 
   // 월간·연간 구독에는 "AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 핏 검수(QC)"가 포함돼 있어요.
   // 그래서 구독 중인 사람은 Premium(재봉사 매칭 + 배송) 비용을 빼고, 옷 자체 가격만 받아요.
   const sub = await getSubscription(req.user.email);
   const subscriberWaived = sub && sub.active ? fi : 0;
-  const amount = ORDER_BASE_PRICE + fa + da + fi - subscriberWaived;
-  const finishLabelFinal = subscriberWaived
+  const unitAmount = ORDER_BASE_PRICE + fa + da + fi - subscriberWaived;
+  const amount = unitAmount * quantity;
+  let finishLabelFinal = subscriberWaived
     ? `${finishLabel || 'Premium · 재봉사 매칭 + 완제품 배송'} → 구독 포함(-${subscriberWaived.toLocaleString('ko-KR')}원)`
     : finishLabel;
+  if (quantity > 1) finishLabelFinal = `${finishLabelFinal || ''} · 수량 ${quantity}벌 (1벌 ${wonText(unitAmount)})`.trim();
   const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   const row = {
@@ -972,31 +1028,93 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     fabric_label: fabricLabel || null,
     detail_labels: detailLabels && detailLabels.length ? detailLabels : null,
     finish_label: finishLabelFinal,
-    fabric_note: fabricNote || null,
+    fabric_note: quantity > 1 && fabricNote ? `${fabricNote}\n수량: ${quantity}벌` : (fabricNote || null),
     detail_note: detailNote || null,
-    shipping_name: needsShipping ? s.name : null,
-    shipping_phone: needsShipping ? s.phone : null,
-    shipping_zipcode: needsShipping ? s.zipcode : null,
-    shipping_address1: needsShipping ? s.address1 : null,
-    shipping_address2: needsShipping ? (s.address2 || null) : null,
-    shipping_note: needsShipping ? (s.note || null) : null,
-    shipping_consent: !!consent,
+    ...shippingColumns(needsShipping, consent, s),
     status: 'pending',
   };
-  let { error } = await supabase.from('orders').insert(row);
-  // design_mode 컬럼에 '3d'/'2d'만 허용하는 제약이 걸려 있으면, 스튜디오 표시는 빼고 다시 저장해요.
-  // (주문 내용은 fabric_note 첫 줄의 [제작 스튜디오]로 구분돼요)
-  if (error && safeDesignMode === 'studio' && /design_mode|check/i.test(`${error.message} ${error.details || ''} ${error.code || ''}`)) {
-    ({ error } = await supabase.from('orders').insert({ ...row, design_mode: null }));
-  }
+  const error = await insertOrderRow(row);
   if (error) {
     console.error('주문 생성 오류:', error);
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했습니다.' });
   }
 
   res.json({
-    ok: true, orderId, amount, subscriberDiscount: subscriberWaived,
-    orderName: safeDesignMode === 'studio' ? `UNEXPOSED 제작 스튜디오 주문` : 'UNEXPOSED 맞춤 제작 주문',
+    ok: true, orderId, amount, quantity, subscriberDiscount: subscriberWaived * quantity,
+    orderName: safeDesignMode === 'studio'
+      ? `UNEXPOSED 제작 스튜디오 주문${quantity > 1 ? ` (${quantity}벌)` : ''}`
+      : 'UNEXPOSED 맞춤 제작 주문',
+  });
+});
+
+/* ---------------- 제작 스튜디오 장바구니 주문 ----------------
+   장바구니에 담은 여러 디자인(각각 수량·Lite/Premium 선택)을 한 번에 결제해요.
+   금액은 항상 서버가 디자인마다 다시 계산하고, (1벌 가격 × 수량)을 모두 더해요. */
+app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
+  const body = req.body || {};
+  const { shipping, consent } = body;
+  const items = Array.isArray(body.items) ? body.items : [];
+  if (!items.length) return res.status(400).json({ ok: false, error: '장바구니가 비어 있습니다.' });
+  if (items.length > STUDIO_MAX_CART_ITEMS) {
+    return res.status(400).json({ ok: false, error: `장바구니에는 최대 ${STUDIO_MAX_CART_ITEMS}개 디자인까지 담을 수 있습니다.` });
+  }
+
+  const sub = await getSubscription(req.user.email);
+  const isSubscriber = !!(sub && sub.active);
+
+  let amount = 0, totalQty = 0, needsShipping = false, waivedTotal = 0;
+  const lines = [], notes = [], paintNotes = [];
+  let firstLabel = '';
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i] || {};
+    const fi = Number(it.finishAmount);
+    if (!ORDER_FINISH_AMOUNTS.has(fi)) {
+      return res.status(400).json({ ok: false, error: `${i + 1}번 상품의 옵션 금액이 올바르지 않습니다.` });
+    }
+    const built = buildStudioOrder(it.studio);
+    if (built.error) return res.status(400).json({ ok: false, error: `${i + 1}번 상품: ${built.error}` });
+    if (!firstLabel) firstLabel = built.typeLabel;
+    const qty = clampQty(it.quantity);
+    const waived = isSubscriber ? fi : 0;
+    const unit = ORDER_BASE_PRICE + built.fabricAmount + built.detailAmount + fi - waived;
+    amount += unit * qty;
+    totalQty += qty;
+    waivedTotal += waived * qty;
+    if (fi === 30000) needsShipping = true;
+    const finishText = fi ? `Premium${waived ? '(구독 포함)' : ''}` : 'Lite';
+    lines.push(`#${i + 1} ${built.typeLabel} ×${qty} · 1벌 ${wonText(unit)} = ${wonText(unit * qty)} · ${finishText}`);
+    notes.push(`#${i + 1} (${qty}벌 · ${fi ? 'Premium 재봉사 매칭 + 완제품 배송' : 'Lite 패턴 PDF'})\n${built.fabricNote}`);
+    if (built.detailNote) paintNotes.push(`#${i + 1} ${built.typeLabel}: ${built.detailNote}`);
+  }
+
+  const s = shipping || {};
+  const shipErr = validateShipping(needsShipping, consent, s);
+  if (shipErr) return res.status(400).json({ ok: false, error: shipErr });
+
+  const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const row = {
+    order_id: orderId,
+    email: req.user.email,
+    amount,
+    design_mode: 'studio',
+    fabric_label: `[장바구니] ${items.length}종 · 총 ${totalQty}벌`,
+    detail_labels: lines,
+    finish_label: (needsShipping ? 'Premium 포함 (재봉사 매칭 + 완제품 배송)' : 'Lite · 패턴 PDF만')
+      + (waivedTotal ? ` → 구독 포함(-${waivedTotal.toLocaleString('ko-KR')}원)` : ''),
+    fabric_note: notes.join('\n\n'),
+    detail_note: paintNotes.length ? paintNotes.join('\n') : null,
+    ...shippingColumns(needsShipping, consent, s),
+    status: 'pending',
+  };
+  const error = await insertOrderRow(row);
+  if (error) {
+    console.error('장바구니 주문 생성 오류:', error);
+    return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했습니다.' });
+  }
+
+  res.json({
+    ok: true, orderId, amount, totalQty, subscriberDiscount: waivedTotal,
+    orderName: `UNEXPOSED 제작 스튜디오 · ${firstLabel}${items.length > 1 ? ` 외 ${items.length - 1}건` : ''} (${totalQty}벌)`,
   });
 });
 
