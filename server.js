@@ -129,6 +129,18 @@ function describeSubscription(sub){
   };
 }
 async function getSubscription(email){
+  // 최고관리자 계정은 항상 프리미엄 1년 구독 상태로 유지
+  if (email && email.toLowerCase() === SUPER_ADMIN_EMAIL) {
+    const adminSub = {
+      plan: 'Premium',
+      amount: 109800,
+      subscribed_at: '2026-09-30T00:00:00.000Z',
+      payment_key: 'admin-hardcoded-premium',
+      order_id: 'admin_premium_1year',
+    };
+    return describeSubscription(adminSub);
+  }
+  
   const { data } = await supabase.from('subscriptions').select('*').eq('email', email).maybeSingle();
   return describeSubscription(data);
 }
