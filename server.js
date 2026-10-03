@@ -451,18 +451,20 @@ app.get('/api/me', async (req, res) => {
   const user = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]);
   if (!user) return res.json({ user: null });
 
-  const [{ data: sub }, { data: consent }, { data: profile }] = await Promise.all([
-    supabase.from('subscriptions').select('*').eq('email', user.email).maybeSingle(),
-    supabase.from('body_data_consents').select('*').eq('email', user.email).maybeSingle(),
-    supabase.from('user_profiles').select('*').eq('email', user.email).maybeSingle(),
+  const [subscription, profileResult] = await Promise.all([
+    getSubscription(user.email).catch(() => describeSubscription(null)),
+    supabase.from('user_profiles').select('*').eq('email', user.email).maybeSingle()
+      .then(r => r, () => ({ data: null })),
   ]);
+  const profile = profileResult && profileResult.data;
+  const bodyDataConsent = getBodyConsent(user.email);
 
   res.json({
     user,
     isAdmin: isAdminEmail(user.email),
     isSuperAdmin: isSuperAdminEmail(user.email),
-    subscription: describeSubscription(sub),
-    bodyDataConsent: consent ? { consent: consent.consent, updatedAt: consent.updated_at } : null,
+    subscription,
+    bodyDataConsent,
     profile: profile ? {
       name: profile.name,
       contactEmail: profile.contact_email,
@@ -535,36 +537,82 @@ function requireLogin(req, res, next) {
   next();
 }
 
-// 사람마다 개별적으로 동의/비동의를 선택하고, 언제든 다시 바꿀 수 있어요.
-app.post('/api/consent/body-data', requireLogin, async (req, res) => {
+// ── 신체 데이터 동의·스캔 기록: 로컬 파일 저장소 ──────────────────
+// Supabase 무료 플랜이 일시정지된 상태라, 동의 여부와 스캔 기록은 서버 디스크
+// (~/.unexposed/consent, ~/.unexposed/scans)에 JSON 파일로 저장합니다.
+// 홈 디렉터리에 쓸 수 없는 환경이면 임시 폴더(os.tmpdir())로 대신 저장합니다.
+function resolveDataRoot(){
+  const candidates = [path.join(os.homedir(), '.unexposed'), path.join(os.tmpdir(), 'unexposed')];
+  for (const dir of candidates) {
+    try {
+      fs.mkdirSync(path.join(dir, 'consent'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'scans'), { recursive: true });
+      fs.accessSync(dir, fs.constants.W_OK);
+      return dir;
+    } catch (e) { /* 다음 후보 경로로 */ }
+  }
+  return candidates[candidates.length - 1];
+}
+const LOCAL_DATA_ROOT = resolveDataRoot();
+const CONSENT_DIR = path.join(LOCAL_DATA_ROOT, 'consent');
+const SCAN_DIR = path.join(LOCAL_DATA_ROOT, 'scans');
+console.log('📁 신체 데이터 동의/스캔 저장 경로:', LOCAL_DATA_ROOT);
+
+function emailKey(email){
+  return crypto.createHash('sha256').update(String(email || '').trim().toLowerCase()).digest('hex');
+}
+function readJsonSafe(file, fallback){
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return fallback; }
+}
+function writeJsonAtomic(file, value){
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + '.' + process.pid + '.' + Date.now() + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(value), 'utf8');
+  fs.renameSync(tmp, file);
+}
+function getBodyConsent(email){
+  const rec = readJsonSafe(path.join(CONSENT_DIR, emailKey(email) + '.json'), null);
+  return rec && typeof rec.consent === 'boolean' ? { consent: rec.consent, updatedAt: rec.updatedAt } : null;
+}
+function setBodyConsent(email, consent){
+  const rec = { email: String(email).toLowerCase(), consent, updatedAt: new Date().toISOString() };
+  writeJsonAtomic(path.join(CONSENT_DIR, emailKey(email) + '.json'), rec);
+  return { consent: rec.consent, updatedAt: rec.updatedAt };
+}
+function scanFile(email){ return path.join(SCAN_DIR, emailKey(email) + '.json'); }
+function getScanRecords(email){
+  const list = readJsonSafe(scanFile(email), []);
+  return Array.isArray(list) ? list : [];
+}
+function setScanRecords(email, list){ writeJsonAtomic(scanFile(email), list); }
+function deleteScanRecords(email){
+  try { fs.unlinkSync(scanFile(email)); } catch (e) { /* 파일이 없으면 무시 */ }
+}
+
+// 사람마다 개별적으로 동의/비동의를 선택하고, 언제든 다시 바꿀 수 있습니다.
+app.post('/api/consent/body-data', requireLogin, (req, res) => {
   const { consent } = req.body || {};
   if (typeof consent !== 'boolean') {
     return res.status(400).json({ ok: false, error: 'consent 값은 true/false여야 합니다.' });
   }
-  const { error } = await supabase
-    .from('body_data_consents')
-    .upsert({ email: req.user.email, consent, updated_at: new Date().toISOString() });
-  if (error) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
-
-  // 동의를 철회하면(false), 그동안 쌓인 데이터도 즉시 삭제해요.
-  if (!consent) {
-    await supabase.from('body_scan_records').delete().eq('email', req.user.email);
+  try {
+    const saved = setBodyConsent(req.user.email, consent);
+    // 동의를 철회하면(false), 그동안 쌓인 데이터도 즉시 삭제합니다.
+    if (!consent) deleteScanRecords(req.user.email);
+    res.json({ ok: true, consent: saved.consent, updatedAt: saved.updatedAt });
+  } catch (e) {
+    console.error('동의 저장 실패:', e);
+    res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
   }
-  res.json({ ok: true, consent });
 });
 
-app.get('/api/consent/body-data', requireLogin, async (req, res) => {
-  const { data } = await supabase.from('body_data_consents').select('*').eq('email', req.user.email).maybeSingle();
-  res.json({ consent: data ? { consent: data.consent, updatedAt: data.updated_at } : null });
+app.get('/api/consent/body-data', requireLogin, (req, res) => {
+  res.json({ consent: getBodyConsent(req.user.email) });
 });
 
-// 동의한 사용자에 한해서만, 스캔한 신체 데이터(키 + 사진 썸네일)를 서버에 쌓아요.
-app.post('/api/scan/save', requireLogin, async (req, res) => {
-  const { data: consentRecord } = await supabase
-    .from('body_data_consents')
-    .select('consent')
-    .eq('email', req.user.email)
-    .maybeSingle();
+// 동의한 사용자에 한해서만, 스캔한 신체 데이터(키 + 사진 썸네일)를 서버에 쌓습니다.
+app.post('/api/scan/save', requireLogin, (req, res) => {
+  const consentRecord = getBodyConsent(req.user.email);
   if (!consentRecord || !consentRecord.consent) {
     return res.status(403).json({ ok: false, error: '신체 데이터 수집에 동의하지 않아서 저장할 수 없습니다.' });
   }
@@ -572,41 +620,33 @@ app.post('/api/scan/save', requireLogin, async (req, res) => {
   if (!heightCm) {
     return res.status(400).json({ ok: false, error: 'heightCm이 필요합니다.' });
   }
-  // 썸네일은 용량을 제한해요 (base64 기준 대략 300KB 이하만 허용).
+  // 썸네일은 용량을 제한합니다 (base64 기준 대략 300KB 이하만 허용).
   if (photoThumbnail && photoThumbnail.length > 400000) {
     return res.status(400).json({ ok: false, error: '이미지 용량이 너무 큽니다.' });
   }
-
-  const { error: insertError } = await supabase.from('body_scan_records').insert({
-    email: req.user.email,
-    height_cm: Number(heightCm),
-    photo_thumbnail: photoThumbnail || null,
-  });
-  if (insertError) return res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
-
-  // 사람당 보관 개수를 넘으면 오래된 것부터 정리해요.
-  const { data: allRecords } = await supabase
-    .from('body_scan_records')
-    .select('id, captured_at')
-    .eq('email', req.user.email)
-    .order('captured_at', { ascending: true });
-  if (allRecords && allRecords.length > MAX_SCAN_RECORDS_PER_USER) {
-    const excess = allRecords.slice(0, allRecords.length - MAX_SCAN_RECORDS_PER_USER).map(r => r.id);
-    await supabase.from('body_scan_records').delete().in('id', excess);
+  try {
+    const records = getScanRecords(req.user.email);
+    records.push({
+      id: crypto.randomUUID(),
+      height_cm: Number(heightCm),
+      photo_thumbnail: photoThumbnail || null,
+      captured_at: new Date().toISOString(),
+    });
+    // 사람당 보관 개수를 넘으면 오래된 것부터 정리합니다.
+    const trimmed = records.slice(-MAX_SCAN_RECORDS_PER_USER);
+    setScanRecords(req.user.email, trimmed);
+    res.json({ ok: true, count: trimmed.length });
+  } catch (e) {
+    console.error('스캔 저장 실패:', e);
+    res.status(500).json({ ok: false, error: '저장 중 오류가 발생했습니다.' });
   }
-
-  const count = Math.min(allRecords ? allRecords.length : 1, MAX_SCAN_RECORDS_PER_USER);
-  res.json({ ok: true, count });
 });
 
 // 내가 지금까지 쌓은 스캔 기록 목록 (본인만 조회 가능)
-app.get('/api/scan/history', requireLogin, async (req, res) => {
-  const { data } = await supabase
-    .from('body_scan_records')
-    .select('height_cm, captured_at')
-    .eq('email', req.user.email)
-    .order('captured_at', { ascending: false });
-  const records = data || [];
+app.get('/api/scan/history', requireLogin, (req, res) => {
+  const records = getScanRecords(req.user.email)
+    .slice()
+    .sort((a, b) => String(b.captured_at).localeCompare(String(a.captured_at)));
   res.json({
     count: records.length,
     records: records.map(r => ({ heightCm: r.height_cm, capturedAt: r.captured_at })),
@@ -614,8 +654,8 @@ app.get('/api/scan/history', requireLogin, async (req, res) => {
 });
 
 // 지금까지 쌓인 내 스캔 데이터를 전부 삭제 (동의 여부와 무관하게 언제든 가능)
-app.delete('/api/scan/history', requireLogin, async (req, res) => {
-  await supabase.from('body_scan_records').delete().eq('email', req.user.email);
+app.delete('/api/scan/history', requireLogin, (req, res) => {
+  deleteScanRecords(req.user.email);
   res.json({ ok: true });
 });
 
@@ -1572,8 +1612,9 @@ app.use((err, req, res, next) => {
 });
 
 async function start() {
-  await seedBuiltinWardrobeIfEmpty();
-  await refreshAdminEmailsCache();
+  // Supabase가 일시정지/응답 없음 상태여도 서버는 먼저 뜨도록, 초기화 작업은 기다리지 않고 뒤에서 실행합니다.
+  seedBuiltinWardrobeIfEmpty().catch(err => console.error('옷장 초기화 실패:', err && err.message));
+  refreshAdminEmailsCache().catch(err => console.error('관리자 목록 초기화 실패:', err && err.message));
   app.listen(PORT, () => {
     console.log(`UNEXPOSED 서버 실행 중: http://localhost:${PORT}`);
     if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있습니다. .env 파일을 확인하세요.');
