@@ -421,6 +421,22 @@
   .design-cta-box p{ font-size:14px; color:var(--ink-soft); margin-bottom:22px; }
 
   .design-mode-btns{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+
+  /* 꾸미기 3종: 설명은 설명끼리, 시작 박스는 박스끼리 묶어서 보여줘요 */
+  .design-desc-grid{ display:grid; grid-template-columns:1fr; gap:28px; margin-bottom:48px; }
+  @media(min-width:860px){ .design-desc-grid{ grid-template-columns:repeat(3,1fr); gap:36px; } }
+  .design-desc{ border-top:1px dashed var(--line); padding-top:20px; }
+  .design-desc-num, .design-cta-num{ font-family:'Fraunces',serif; font-size:13px; color:var(--star-dark); letter-spacing:0.08em; margin-bottom:10px; }
+  .design-desc .eyebrow{ color:var(--star-dark); }
+  .design-desc h3{ font-size:clamp(20px,2.4vw,24px); font-weight:500; margin-top:4px; }
+  .design-desc p{ color:var(--ink-soft); margin-top:12px; font-size:14.5px; }
+
+  .design-cta-grid{ display:grid; grid-template-columns:1fr; gap:20px; }
+  @media(min-width:860px){ .design-cta-grid{ grid-auto-flow:column; grid-auto-columns:1fr; } }
+  .design-cta-grid .design-cta-box{ max-width:none; margin:0; padding:36px 26px; display:flex; flex-direction:column; }
+  .design-cta-grid .design-cta-box[hidden]{ display:none; }
+  .design-cta-grid .design-cta-box .design-mode-btns{ margin-top:auto; }
+  #scan .makeup-section-box{ margin-top:40px; }
   /* ---------- PRODUCT DETAIL ---------- */
   .detail-grid{ display:grid; gap:0; background:none; border:none; border-radius:0; grid-template-columns:1fr; }
   @media(min-width:760px){ .detail-grid{ grid-template-columns:1fr 1fr; column-gap:52px; } }
@@ -806,74 +822,82 @@
 </section>
 
 <section id="scan">
-  <div class="sec-head">
-    <div class="eyebrow">DESIGN YOUR OWN</div>
-    <h2 class="serif">스캔부터 원단 선택까지, 한 번에</h2>
-    <p>버튼 하나로 시작해 ① 몸 스캔·키 입력 → ② 원단·디테일 선택 순서로 진행된다. 마지막엔 예상 제작 견적까지 바로 확인할 수 있다.</p>
-  </div>
-  <div class="design-cta-box">
-    <div class="design-cta-icon">
-      <svg viewBox="0 0 80 80">
-        <ellipse cx="40" cy="18" rx="11" ry="13" fill="#0F2E2C"/>
-        <path d="M22 40 C22 32 30 28 40 28 C50 28 58 32 58 40 L55 66 C55 70 51 72 40 72 C29 72 25 70 25 66 Z" fill="#0F2E2C"/>
-        <circle cx="63" cy="60" r="13" fill="none" stroke="#D8663F" stroke-width="3"/>
-        <path d="M58 60 L61.5 63.5 L68 56.5" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+  <!-- 꾸미기 3종(3D/2D 디자인 · 제작 스튜디오 · 메이크업) 설명을 한곳에 모아요 -->
+  <div class="design-desc-grid">
+    <div class="design-desc" id="landing-design">
+      <div class="design-desc-num">01</div>
+      <div class="eyebrow">DESIGN YOUR OWN</div>
+      <h3 class="serif">스캔부터 원단 선택까지, 한 번에</h3>
+      <p>버튼 하나로 시작해 ① 몸 스캔·키 입력 → ② 원단·디테일 선택 순서로 진행된다. 마지막엔 예상 제작 견적까지 바로 확인할 수 있다.</p>
     </div>
-    <h3 class="serif">내 체형으로 디자인 시작하기</h3>
-    <p>스캔 → 키 입력 → 원단/디테일 선택까지 한 화면에서 이어진다. 3D 아바타로 입혀보거나, 3D 없이 원단·디테일만 빠르게 고르는 2D 방식 중에서 고른다.</p>
-    <div class="design-mode-btns">
-      <button class="btn btn-primary" id="open-design-flow-3d-btn" type="button">3D로 꾸미기 시작</button>
-      <button class="btn btn-ghost-dark" id="open-design-flow-2d-btn" type="button">2D로 꾸미기 시작</button>
+    <div class="design-desc" id="landing-create">
+      <div class="design-desc-num">02</div>
+      <div class="eyebrow">MAKE YOUR OWN</div>
+      <h3 class="serif">치수·원단부터 직접 골라 만들어보세요</h3>
+      <p>옷 종류와 기장·둘레를 정하고, 앞면·뒷면·소매·옆면마다 원하는 원단을 골라 채색하는 제작 스튜디오예요. 여러 디자인을 장바구니에 담아 한 번에 주문할 수도 있어요.</p>
+    </div>
+    <div class="design-desc" id="landing-makeup">
+      <div class="design-desc-num">03</div>
+      <div class="eyebrow">FACE &amp; MAKEUP</div>
+      <h3 class="serif">메이크업은 여기서 따로 입혀보세요</h3>
+      <p>체형 마네킹과는 완전히 별개의 3D 얼굴 모델이에요. 메이크업 아이템을 바로 입혀보고, 위치·크기·색상을 슬라이더로 맞춰볼 수 있어요.</p>
     </div>
   </div>
-</section>
 
-<section id="landing-create">
-  <div class="sec-head">
-    <div class="eyebrow">MAKE YOUR OWN</div>
-    <h2 class="serif">치수·원단부터 직접 골라 만들어보세요</h2>
-    <p>옷 종류와 기장·둘레를 정하고, 앞면·뒷면·소매·옆면마다 원하는 원단을 골라 채색하는 제작 스튜디오예요. 여러 디자인을 장바구니에 담아 한 번에 주문할 수도 있어요.</p>
-  </div>
-  <div class="design-cta-box" id="create-cta-box">
-    <div class="design-cta-icon">
-      <svg viewBox="0 0 80 80">
-        <rect x="18" y="24" width="44" height="40" rx="6" fill="#0F2E2C"/>
-        <path d="M28 24 L28 14 L52 14 L52 24" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="40" cy="44" r="8" fill="none" stroke="#FBFAF6" stroke-width="3"/>
-      </svg>
+  <!-- 꾸미기 시작 박스 3개는 따로 한 줄로 모아요 (번호는 위 설명과 짝이에요) -->
+  <div class="design-cta-grid">
+    <div class="design-cta-box">
+      <div class="design-cta-num">01</div>
+      <div class="design-cta-icon">
+        <svg viewBox="0 0 80 80">
+          <ellipse cx="40" cy="18" rx="11" ry="13" fill="#0F2E2C"/>
+          <path d="M22 40 C22 32 30 28 40 28 C50 28 58 32 58 40 L55 66 C55 70 51 72 40 72 C29 72 25 70 25 66 Z" fill="#0F2E2C"/>
+          <circle cx="63" cy="60" r="13" fill="none" stroke="#D8663F" stroke-width="3"/>
+          <path d="M58 60 L61.5 63.5 L68 56.5" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3 class="serif">내 체형으로 디자인 시작하기</h3>
+      <p>스캔 → 키 입력 → 원단/디테일 선택까지 한 화면에서 이어진다. 3D 아바타로 입혀보거나, 3D 없이 원단·디테일만 빠르게 고르는 2D 방식 중에서 고른다.</p>
+      <div class="design-mode-btns">
+        <button class="btn btn-primary" id="open-design-flow-3d-btn" type="button">3D로 꾸미기 시작</button>
+        <button class="btn btn-ghost-dark" id="open-design-flow-2d-btn" type="button">2D로 꾸미기 시작</button>
+      </div>
     </div>
-    <h3 class="serif">제작 스튜디오로 옷 만들기</h3>
-    <p>버튼을 누르면 옷 종류·치수를 정하고, 부위별로 원단을 골라 채색해볼 수 있어요.</p>
-    <div class="design-mode-btns">
-      <button class="btn btn-primary" id="open-create-flow-btn" type="button">제작 스튜디오 열기</button>
+    <div class="design-cta-box" id="create-cta-box">
+      <div class="design-cta-num">02</div>
+      <div class="design-cta-icon">
+        <svg viewBox="0 0 80 80">
+          <rect x="18" y="24" width="44" height="40" rx="6" fill="#0F2E2C"/>
+          <path d="M28 24 L28 14 L52 14 L52 24" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="40" cy="44" r="8" fill="none" stroke="#FBFAF6" stroke-width="3"/>
+        </svg>
+      </div>
+      <h3 class="serif">제작 스튜디오로 옷 만들기</h3>
+      <p>버튼을 누르면 옷 종류·치수를 정하고, 부위별로 원단을 골라 채색해볼 수 있어요.</p>
+      <div class="design-mode-btns">
+        <button class="btn btn-primary" id="open-create-flow-btn" type="button">제작 스튜디오 열기</button>
+      </div>
+    </div>
+    <div class="design-cta-box" id="makeup-cta-box">
+      <div class="design-cta-num">03</div>
+      <div class="design-cta-icon">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="34" r="20" fill="#0F2E2C"/>
+          <path d="M20 34 C20 55 60 55 60 34" fill="none" stroke="#0F2E2C" stroke-width="0"/>
+          <path d="M22 66 C22 56 30 50 40 50 C50 50 58 56 58 66" fill="none" stroke="#0F2E2C" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="32" cy="32" r="2.6" fill="#FBFAF6"/>
+          <circle cx="48" cy="32" r="2.6" fill="#FBFAF6"/>
+          <path d="M30 44 C33 47 47 47 50 44" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h3 class="serif">메이크업 3D로 입혀보기</h3>
+      <p>버튼을 누르면 3D 얼굴 모델을 불러오고, 등록된 메이크업 아이템을 바로 입혀보며 위치·크기·색상을 맞춰볼 수 있어요.</p>
+      <div class="design-mode-btns">
+        <button class="btn btn-primary" id="open-makeup-flow-btn" type="button">메이크업 시작하기</button>
+      </div>
     </div>
   </div>
-</section>
 
-<section id="landing-makeup">
-  <div class="sec-head">
-    <div class="eyebrow">FACE &amp; MAKEUP</div>
-    <h2 class="serif">메이크업은 여기서 따로 입혀보세요</h2>
-    <p>체형 마네킹과는 완전히 별개의 3D 얼굴 모델이에요. 메이크업 아이템을 바로 입혀보고, 위치·크기·색상을 슬라이더로 맞춰볼 수 있어요.</p>
-  </div>
-  <div class="design-cta-box" id="makeup-cta-box">
-    <div class="design-cta-icon">
-      <svg viewBox="0 0 80 80">
-        <circle cx="40" cy="34" r="20" fill="#0F2E2C"/>
-        <path d="M20 34 C20 55 60 55 60 34" fill="none" stroke="#0F2E2C" stroke-width="0"/>
-        <path d="M22 66 C22 56 30 50 40 50 C50 50 58 56 58 66" fill="none" stroke="#0F2E2C" stroke-width="4" stroke-linecap="round"/>
-        <circle cx="32" cy="32" r="2.6" fill="#FBFAF6"/>
-        <circle cx="48" cy="32" r="2.6" fill="#FBFAF6"/>
-        <path d="M30 44 C33 47 47 47 50 44" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round"/>
-      </svg>
-    </div>
-    <h3 class="serif">메이크업 3D로 입혀보기</h3>
-    <p>버튼을 누르면 3D 얼굴 모델을 불러오고, 등록된 메이크업 아이템을 바로 입혀보며 위치·크기·색상을 맞춰볼 수 있어요.</p>
-    <div class="design-mode-btns">
-      <button class="btn btn-primary" id="open-makeup-flow-btn" type="button">메이크업 시작하기</button>
-    </div>
-  </div>
   <div class="makeup-section-box" id="makeup-section-box" hidden>
 
     <!-- STEP 1 : 얼굴 스캔 (정면 → 왼쪽 → 오른쪽 → 뒷모습, 4단계) -->
