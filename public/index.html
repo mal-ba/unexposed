@@ -809,9 +809,9 @@
       </ul>
       <a data-i18n="subscribeBtn" class="plan-select-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" href="https://kr.penworldwide.org/buybuttons/kr01suwon05/btn/4d8c1209-9a30-4706-81a9-e03c1c9e7566/" target="_blank" rel="noopener noreferrer">구독하기</a>
     </div>
-    <div class="price-card" data-plan="Premium" data-price="200000" data-cycle="yearly">
+    <div class="price-card" data-plan="Premium" data-price="300000" data-cycle="yearly">
       <h3>Premium <span class="plan-subtitle" data-i18n="planYearly">년 결제</span></h3>
-      <div class="amount serif">200,000원<span data-i18n="perYear"> / 년</span></div>
+      <div class="amount serif">300,000원<span data-i18n="perYear"> / 년</span></div>
       <ul>
         <li data-i18n="planPremiumFeat1">AI 패턴 생성 + 검증된 지역 재봉사 1:1 매칭</li>
         <li data-i18n="planPremiumFeat2">완제품 도어투도어 배송</li>
@@ -1525,7 +1525,9 @@
         // 프로필 모달을 다시 띄우지 않아요. "로그인 직후 한 번"은 실제로 로그인 버튼을
         // 눌렀을 때(handleGoogleCredential)만 해당돼요.
         if(data.subscription){
-          const subCycle = Number(data.subscription.amount) === 200000 ? 'yearly' : 'monthly';
+          // 연간 결제는 예전 가격(200,000원)으로 가입한 사람도 있어서 둘 다 연간으로 봐요.
+          const isYearlySub = [200000, 300000].includes(Number(data.subscription.amount));
+          const subCycle = isYearlySub ? 'yearly' : 'monthly';
           const card = document.querySelector(
             data.subscription.plan === 'Premium'
               ? `.price-card[data-plan="Premium"][data-cycle="${subCycle}"]`
@@ -1534,7 +1536,7 @@
           if(card){
             card.classList.add('selected');
             card.querySelector('.plan-select-btn').textContent = '✓ 구독 중';
-            const cycleLabel = Number(data.subscription.amount) === 200000 ? '매년' : '매월';
+            const cycleLabel = isYearlySub ? '매년' : '매월';
             planNote.textContent = `${data.subscription.plan} 플랜 구독 중 · ${data.user.email} 계정으로 ${cycleLabel} ${fmt(data.subscription.amount)}이 결제돼요.`;
           }
         }
