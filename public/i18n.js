@@ -373,6 +373,7 @@
   function setLang(code){
     localStorage.setItem(STORAGE_KEY, code);
     apply();
+    translateAll();
     renderWidgetLabel();
     if(typeof window.renderMenuAuthUI === 'function') window.renderMenuAuthUI();
   }
@@ -543,8 +544,160 @@
   }
   window.i18nRelocate = relocate;
 
+  // ====== 동적 문구 자동 번역 ======
+  // 스크립트가 나중에 넣는 문구(상태 메시지, 버튼 글자, 팝업 HTML, alert 등)는 data-i18n 키가 없어요.
+  // 그래서 화면에 들어온 한국어 글자를 "한국어 원문 그대로" 사전에서 찾아 바꿔줘요.
+  //  - 사전: i18n-text.js 의 window.I18N_TEXT ({ '한국어 원문': { en:'...', ... } }) + 위 DICT의 ko 문구
+  //  - '{0}' 같은 자리는 숫자·이름처럼 바뀌는 부분이에요. 그 부분도 사전에 있으면 같이 번역해요.
+  //  - 원문은 기억해 뒀다가 언어를 바꿀 때 다시 번역하고, 한국어로 돌아오면 원문 그대로 돌려놔요.
+  //  - data-i18n-skip 이 붙은 영역(과 그 안)은 건드리지 않아요.
+  const HANGUL = /[가-힣]/;
+  const TEXT_ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  let textExact = null;
+  let textPatterns = null;
+
+  function normText(t){ return t.replace(/\s+/g, ' ').trim(); }
+
+  function buildTextDict(){
+    textExact = new Map();
+    textPatterns = [];
+    Object.values(DICT).forEach(entry => {
+      if(entry.ko && !entry.ko.includes('<')) textExact.set(normText(entry.ko), entry);
+    });
+    const extra = window.I18N_TEXT || {};
+    Object.keys(extra).forEach(ko => {
+      const entry = Object.assign({ ko }, extra[ko]);
+      const key = normText(ko);
+      if(!/\{\d+\}/.test(key)){ textExact.set(key, entry); return; }
+      const order = [];
+      const src = key.split(/(\{\d+\})/).map(part => {
+        const m = part.match(/^\{(\d+)\}$/);
+        if(m){ order.push(m[1]); return '(.*?)'; }
+        return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }).join('');
+      textPatterns.push({ re: new RegExp('^' + src + '$'), order, entry, fixed: key.replace(/\{\d+\}/g, '').length });
+    });
+    // 고정 글자가 많은(더 구체적인) 패턴부터 맞춰봐요.
+    textPatterns.sort((a, b) => b.fixed - a.fixed);
+  }
+
+  function translateString(src, lang){
+    if(lang === 'ko' || !src || !HANGUL.test(src)) return src;
+    if(!textExact) buildTextDict();
+    const m = src.match(/^(\s*)([\s\S]*?)(\s*)$/);
+    const core = normText(m[2]);
+    const hit = textExact.get(core);
+    if(hit) return hit[lang] ? m[1] + hit[lang] + m[3] : src;
+    for(const p of textPatterns){
+      const r = core.match(p.re);
+      if(!r) continue;
+      const tpl = p.entry[lang];
+      if(!tpl) return src;
+      const vals = {};
+      p.order.forEach((name, i) => { vals[name] = translateString(r[i + 1], lang); });
+      return m[1] + tpl.replace(/\{(\d+)\}/g, (_, n) => vals[n] ?? '') + m[3];
+    }
+    return src;
+  }
+  window.i18nTranslateString = (src) => translateString(src, getLang());
+
+  const textOrig = new WeakMap(); // Text 노드 → { src: 한국어 원문, out: 마지막으로 넣은 글자 }
+  const attrOrig = new WeakMap(); // 요소 → { 속성이름: { src, out } }
+
+  function skipped(el){
+    return !el || el.closest('script, style, textarea, [data-i18n-skip], #lang-switch-panel, [contenteditable="true"]');
+  }
+
+  function translateTextNode(node, lang){
+    const cur = node.nodeValue;
+    let rec = textOrig.get(node);
+    if(!rec || cur !== rec.out){
+      if(!HANGUL.test(cur)){ if(rec) textOrig.delete(node); return; }
+      rec = { src: cur };
+    }
+    const parent = node.parentElement;
+    if(skipped(parent)) return;
+    // value 없는 <option>은 글자가 곧 값이라, 번역 전에 원래 글자를 value로 고정해요.
+    if(parent.tagName === 'OPTION' && !parent.hasAttribute('value')) parent.setAttribute('value', rec.src.trim());
+    rec.out = translateString(rec.src, lang);
+    textOrig.set(node, rec);
+    if(rec.out !== cur) node.nodeValue = rec.out;
+  }
+
+  function translateAttrs(el, lang){
+    // textarea는 안의 글자(입력값)만 건드리지 않고, placeholder 같은 속성은 번역해요.
+    if(!el || el.closest('[data-i18n-skip], #lang-switch-panel')) return;
+    let recs = attrOrig.get(el);
+    TEXT_ATTRS.forEach(name => {
+      if(!el.hasAttribute(name)) return;
+      const cur = el.getAttribute(name);
+      let rec = recs && recs[name];
+      if(!rec || cur !== rec.out){
+        if(!HANGUL.test(cur)) return;
+        rec = { src: cur };
+      }
+      rec.out = translateString(rec.src, lang);
+      if(!recs){ recs = {}; attrOrig.set(el, recs); }
+      recs[name] = rec;
+      if(rec.out !== cur) el.setAttribute(name, rec.out);
+    });
+  }
+
+  function translateTree(root, lang){
+    if(root.nodeType === Node.TEXT_NODE){ translateTextNode(root, lang); return; }
+    if(root.nodeType !== Node.ELEMENT_NODE) return;
+    translateAttrs(root, lang);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    let n;
+    while((n = walker.nextNode())){
+      if(n.nodeType === Node.TEXT_NODE) translateTextNode(n, lang);
+      else translateAttrs(n, lang);
+    }
+  }
+
+  function translateAll(){
+    if(getLang() !== 'ko') loadTextDict();
+    if(document.body) translateTree(document.body, getLang());
+  }
+
+  // 사전 파일(i18n-text.js)은 크기가 커서, 페이지가 <meta name="i18n-text-src">로 알려줬고
+  // 한국어가 아닌 언어를 쓸 때만 불러와요. 다 불러오면 화면을 한 번 더 번역해요.
+  let textDictLoading = false;
+  function loadTextDict(){
+    if(window.I18N_TEXT || textDictLoading) return;
+    const meta = document.querySelector('meta[name="i18n-text-src"]');
+    if(!meta) return;
+    textDictLoading = true;
+    const s = document.createElement('script');
+    s.src = meta.content;
+    s.onload = () => { textExact = null; translateAll(); };
+    document.head.appendChild(s);
+  }
+
+  function startAutoTranslate(){
+    translateAll();
+    new MutationObserver(muts => {
+      const lang = getLang();
+      muts.forEach(m => {
+        if(m.type === 'characterData') translateTextNode(m.target, lang);
+        else if(m.type === 'attributes') translateAttrs(m.target, lang);
+        else m.addedNodes.forEach(n => translateTree(n, lang));
+      });
+    }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TEXT_ATTRS });
+
+    // alert / confirm / prompt 안내문도 같은 사전으로 번역해요.
+    ['alert', 'confirm', 'prompt'].forEach(fn => {
+      const orig = window[fn];
+      if(typeof orig !== 'function') return;
+      window[fn] = function(msg, ...rest){
+        return orig.call(window, typeof msg === 'string' ? translateString(msg, getLang()) : msg, ...rest);
+      };
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     buildWidget();
     apply();
+    startAutoTranslate();
   });
 })();
