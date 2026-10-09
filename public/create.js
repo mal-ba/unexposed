@@ -1662,6 +1662,19 @@ function requireLogin(){
   return true;
 }
 
+/* 결제는 PenWorldwide 구매 버튼으로 해요.
+   1) 주문을 기록하고 구매 페이지를 새 창으로 열어요.
+   2) 완제품 배송(Premium) 주문만, 결제를 마친 뒤 배송지를 입력해요. */
+let pendingOrder = null; // { orderId, stage: 'shipping' | 'done' }
+
+function finishOrderModal(msg){
+  pendingOrder = { ...(pendingOrder || {}), stage: 'done' };
+  orderEl.shippingSection.hidden = true;
+  orderEl.modalNote.textContent = msg;
+  orderEl.payBtn.textContent = '닫기';
+  orderEl.payBtn.disabled = false;
+}
+
 function showOrderModal({ summaryHtml, needsShipping, snapshot, thumbsHtml }){
   orderEl.summary.innerHTML = summaryHtml;
   orderEl.preview.hidden = !snapshot;
@@ -1672,7 +1685,8 @@ function showOrderModal({ summaryHtml, needsShipping, snapshot, thumbsHtml }){
   if(needsShipping) prefillShipping();
   updateShippingLock();
   orderEl.modalNote.textContent = '';
-  orderEl.payBtn.textContent = '결제하기';
+  pendingOrder = null;
+  orderEl.payBtn.textContent = '구매 페이지 열기';
   updatePayBtn();
   orderEl.modal.hidden = false;
 }
@@ -1768,41 +1782,81 @@ function buildOrderRequest(){
 }
 
 orderEl.payBtn.addEventListener('click', async () => {
-  const auth = window.authState || {};
+  if(pendingOrder && pendingOrder.stage === 'done'){
+    orderEl.modal.hidden = true;
+    return;
+  }
   orderEl.payBtn.disabled = true;
+
+  // 2단계: 결제 후 배송지 저장 (완제품 배송 주문만)
+  if(pendingOrder && pendingOrder.stage === 'shipping'){
+    orderEl.payBtn.textContent = '배송지 저장 중...';
+    try {
+      const res = await fetch(`/api/orders/${encodeURIComponent(pendingOrder.orderId)}/shipping`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consent: orderEl.consent.checked, shipping: shippingPayload(true) }),
+      });
+      const data = await res.json();
+      if(!data.ok){
+        orderEl.modalNote.textContent = data.error || '배송지 저장에 실패했습니다.';
+        orderEl.payBtn.textContent = '배송지 저장';
+        updatePayBtn();
+        return;
+      }
+      finishOrderModal('배송지가 저장되었습니다. 결제가 확인되면 제작을 시작할게요.');
+    } catch(err){
+      orderEl.modalNote.textContent = '배송지 저장 중 오류가 발생했습니다.';
+      orderEl.payBtn.textContent = '배송지 저장';
+      updatePayBtn();
+    }
+    return;
+  }
+
+  // 1단계: 주문 기록 → 구매 페이지 열기 (팝업 차단을 피하려고 먼저 빈 창을 열어둬요)
+  const buyWin = window.open('about:blank', '_blank');
   orderEl.payBtn.textContent = '주문 생성 중...';
-  const fail = msg => {
-    orderEl.modalNote.textContent = msg;
-    orderEl.payBtn.textContent = '결제하기';
-    updatePayBtn();
-  };
   try {
     const { url, body } = buildOrderRequest();
+    body.consent = false;   // 배송지는 결제 후에 받아요
+    body.shipping = null;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     const order = await res.json();
-    if(!order.ok) return fail(order.error || '주문 생성에 실패했습니다.');
-    const clientKey = window.TOSS_CLIENT_KEY || (typeof TOSS_CLIENT_KEY !== 'undefined' ? TOSS_CLIENT_KEY : null);
-    if(typeof window.TossPayments !== 'function' || !clientKey) return fail('결제 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.');
-    // 장바구니 결제면, 결제가 끝난 뒤 장바구니를 비울 수 있게 주문번호를 기억해둬요.
-    try {
-      if(orderMode === 'cart') localStorage.setItem(CART_PENDING_KEY, order.orderId);
-      else localStorage.removeItem(CART_PENDING_KEY);
-    } catch(err){}
-    window.TossPayments(clientKey).requestPayment('카드', {
-      amount: order.amount,
-      orderId: order.orderId,
-      orderName: order.orderName,
-      customerName: auth.name,
-      customerEmail: auth.email,
-      successUrl: `${window.location.origin}/payment-success.html`,
-      failUrl: `${window.location.origin}/payment-fail.html`,
-    });
+    if(!order.ok){
+      if(buyWin) buyWin.close();
+      orderEl.modalNote.textContent = order.error || '주문 생성에 실패했습니다.';
+      orderEl.payBtn.textContent = '구매 페이지 열기';
+      updatePayBtn();
+      return;
+    }
+    if(buyWin) buyWin.location.href = order.buyUrl;
+    const linkNote = buyWin ? '' : ` 새 창이 막혔다면 구매 페이지(${order.buyUrl})를 직접 열어주세요.`;
+    // 장바구니 주문은 기록이 끝났으니 장바구니를 비워요.
+    if(orderMode === 'cart'){
+      cart = [];
+      saveCart();
+      renderCart();
+    }
+    pendingOrder = { orderId: order.orderId, stage: order.needsShipping ? 'shipping' : 'done' };
+    if(order.needsShipping){
+      orderEl.shippingSection.hidden = false;
+      prefillShipping();
+      updateShippingLock();
+      orderEl.payBtn.textContent = '배송지 저장';
+      orderEl.modalNote.textContent = `주문번호 ${order.orderId} · 구매 페이지에서 결제를 마친 뒤 배송지를 입력해주세요.${linkNote}`;
+      updatePayBtn();
+    } else {
+      finishOrderModal(`주문이 접수되었어요 (${won(order.amount)}). 구매 페이지에서 결제를 마치면 제작을 시작합니다.${linkNote}`);
+    }
   } catch(err){
-    fail('결제창을 여는 중 오류가 발생했습니다.');
+    if(buyWin) buyWin.close();
+    orderEl.modalNote.textContent = '주문 생성 중 오류가 발생했습니다.';
+    orderEl.payBtn.textContent = '구매 페이지 열기';
+    updatePayBtn();
   }
 });
 

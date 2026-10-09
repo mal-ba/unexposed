@@ -1054,22 +1054,14 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   }
   const finishLabel = body.finishLabel || null;
 
-  // "완제품 도어투도어 배송"을 선택했을 때만 배송지·동의가 필요해요 (패턴 PDF만이면 배송이 없어요).
-  const needsShipping = fi === 30000;
-  const s = shipping || {};
-  const shipErr = validateShipping(needsShipping, consent, s);
-  if (shipErr) return res.status(400).json({ ok: false, error: shipErr });
-
-  // 월간·연간 구독에는 "AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 핏 검수(QC)"가 포함돼 있어요.
-  // 그래서 구독 중인 사람은 Premium(재봉사 매칭 + 배송) 비용을 빼고, 옷 자체 가격만 받아요.
-  const sub = await getSubscription(req.user.email);
-  const subscriberWaived = sub && sub.active ? fi : 0;
-  const unitAmount = ORDER_BASE_PRICE + fa + da + fi - subscriberWaived;
-  const amount = unitAmount * quantity;
-  let finishLabelFinal = subscriberWaived
-    ? `${finishLabel || 'Premium · 재봉사 매칭 + 완제품 배송'} → 구독 포함(-${subscriberWaived.toLocaleString('ko-KR')}원)`
-    : finishLabel;
-  if (quantity > 1) finishLabelFinal = `${finishLabelFinal || ''} · 수량 ${quantity}벌 (1벌 ${wonText(unitAmount)})`.trim();
+  // 결제는 PenWorldwide 고정가 구매 버튼으로 해요. 여기서는 주문을 "결제 대기(pending)"로 기록하고,
+  // 완제품 배송(Premium)을 고른 주문만 결제가 끝난 뒤 /api/orders/:orderId/shipping 으로 배송지를 받아요.
+  if (!orderPriceReady(res)) return;
+  const premium = fi === 30000;
+  const amount = ORDER_PRICE * quantity;
+  const finishLabelFinal = premium
+    ? 'Premium · 재봉사 매칭 + 완제품 배송 (배송지는 결제 후 입력)'
+    : 'Lite · 패턴 PDF만';
   const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   const row = {
@@ -1082,7 +1074,6 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     finish_label: finishLabelFinal,
     fabric_note: quantity > 1 && fabricNote ? `${fabricNote}\n수량: ${quantity}벌` : (fabricNote || null),
     detail_note: detailNote || null,
-    ...shippingColumns(needsShipping, consent, s),
     status: 'pending',
   };
   const error = await insertOrderRow(row);
@@ -1092,7 +1083,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   }
 
   res.json({
-    ok: true, orderId, amount, quantity, subscriberDiscount: subscriberWaived * quantity,
+    ok: true, orderId, amount, quantity, needsShipping: premium, buyUrl: ORDER_BUY_URL,
     orderName: safeDesignMode === 'studio'
       ? `UNEXPOSED 제작 스튜디오 주문${quantity > 1 ? ` (${quantity}벌)` : ''}`
       : 'UNEXPOSED 맞춤 제작 주문',
@@ -1102,19 +1093,29 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
 /* ---------------- 제작 스튜디오 장바구니 주문 ----------------
    장바구니에 담은 여러 디자인(각각 수량·Lite/Premium 선택)을 한 번에 결제해요.
    금액은 항상 서버가 디자인마다 다시 계산하고, (1벌 가격 × 수량)을 모두 더해요. */
+/* PenWorldwide 고정가 구매 버튼 설정.
+   ORDER_PRICE: 디자인 1벌당 가격(원). Render 환경변수 ORDER_PRICE 로 설정해요. (0이면 주문을 받지 않아요)
+   ORDER_BUY_URL: 고객이 결제하는 공개 구매 버튼 링크. */
+const ORDER_BUY_URL = 'https://kr.penworldwide.org/buybuttons/kr01suwon05/btn/e287def2-0e45-4960-8b98-b076b5975765/';
+const ORDER_PRICE = Number(process.env.ORDER_PRICE) || 0;
+
+function orderPriceReady(res){
+  if (ORDER_PRICE > 0) return true;
+  res.status(500).json({ ok: false, error: '주문 가격이 아직 설정되지 않았습니다. 관리자에게 문의해주세요.' });
+  return false;
+}
+
+// 장바구니에 담은 여러 디자인을 한 번에 주문해요. 금액은 서버가 (1벌 가격 × 총 수량)으로 계산해요.
 app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
   const body = req.body || {};
-  const { shipping, consent } = body;
   const items = Array.isArray(body.items) ? body.items : [];
   if (!items.length) return res.status(400).json({ ok: false, error: '장바구니가 비어 있습니다.' });
   if (items.length > STUDIO_MAX_CART_ITEMS) {
     return res.status(400).json({ ok: false, error: `장바구니에는 최대 ${STUDIO_MAX_CART_ITEMS}개 디자인까지 담을 수 있습니다.` });
   }
+  if (!orderPriceReady(res)) return;
 
-  const sub = await getSubscription(req.user.email);
-  const isSubscriber = !!(sub && sub.active);
-
-  let amount = 0, totalQty = 0, needsShipping = false, waivedTotal = 0;
+  let totalQty = 0, needsShipping = false;
   const lines = [], notes = [], paintNotes = [];
   let firstLabel = '';
   for (let i = 0; i < items.length; i++) {
@@ -1127,22 +1128,14 @@ app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
     if (built.error) return res.status(400).json({ ok: false, error: `${i + 1}번 상품: ${built.error}` });
     if (!firstLabel) firstLabel = built.typeLabel;
     const qty = clampQty(it.quantity);
-    const waived = isSubscriber ? fi : 0;
-    const unit = ORDER_BASE_PRICE + built.fabricAmount + built.detailAmount + fi - waived;
-    amount += unit * qty;
     totalQty += qty;
-    waivedTotal += waived * qty;
     if (fi === 30000) needsShipping = true;
-    const finishText = fi ? `Premium${waived ? '(구독 포함)' : ''}` : 'Lite';
-    lines.push(`#${i + 1} ${built.typeLabel} ×${qty} · 1벌 ${wonText(unit)} = ${wonText(unit * qty)} · ${finishText}`);
+    lines.push(`#${i + 1} ${built.typeLabel} ×${qty} · ${fi ? 'Premium' : 'Lite'}`);
     notes.push(`#${i + 1} (${qty}벌 · ${fi ? 'Premium 재봉사 매칭 + 완제품 배송' : 'Lite 패턴 PDF'})\n${built.fabricNote}`);
     if (built.detailNote) paintNotes.push(`#${i + 1} ${built.typeLabel}: ${built.detailNote}`);
   }
 
-  const s = shipping || {};
-  const shipErr = validateShipping(needsShipping, consent, s);
-  if (shipErr) return res.status(400).json({ ok: false, error: shipErr });
-
+  const amount = ORDER_PRICE * totalQty;
   const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const row = {
     order_id: orderId,
@@ -1151,11 +1144,11 @@ app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
     design_mode: 'studio',
     fabric_label: `[장바구니] ${items.length}종 · 총 ${totalQty}벌`,
     detail_labels: lines,
-    finish_label: (needsShipping ? 'Premium 포함 (재봉사 매칭 + 완제품 배송)' : 'Lite · 패턴 PDF만')
-      + (waivedTotal ? ` → 구독 포함(-${waivedTotal.toLocaleString('ko-KR')}원)` : ''),
+    finish_label: needsShipping
+      ? 'Premium 포함 (재봉사 매칭 + 완제품 배송 · 배송지는 결제 후 입력)'
+      : 'Lite · 패턴 PDF만',
     fabric_note: notes.join('\n\n'),
     detail_note: paintNotes.length ? paintNotes.join('\n') : null,
-    ...shippingColumns(needsShipping, consent, s),
     status: 'pending',
   };
   const error = await insertOrderRow(row);
@@ -1165,9 +1158,49 @@ app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
   }
 
   res.json({
-    ok: true, orderId, amount, totalQty, subscriberDiscount: waivedTotal,
+    ok: true, orderId, amount, totalQty, needsShipping, buyUrl: ORDER_BUY_URL,
     orderName: `UNEXPOSED 제작 스튜디오 · ${firstLabel}${items.length > 1 ? ` 외 ${items.length - 1}건` : ''} (${totalQty}벌)`,
   });
+});
+
+// 결제(PenWorldwide)를 마친 뒤, 완제품 배송 주문의 배송지를 입력해요.
+// 주문한 본인만 저장할 수 있고, Premium(완제품 배송) 주문에만 필요해요.
+app.post('/api/orders/:orderId/shipping', requireLogin, async (req, res) => {
+  const { shipping, consent } = req.body || {};
+  const s = shipping || {};
+  const { data: order } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('order_id', req.params.orderId)
+    .eq('email', req.user.email)
+    .maybeSingle();
+  if (!order) return res.status(404).json({ ok: false, error: '주문을 찾을 수 없습니다.' });
+  if (!/Premium/.test(order.finish_label || '')) {
+    return res.status(400).json({ ok: false, error: '이 주문은 배송지를 입력하지 않아도 돼요.' });
+  }
+  const shipErr = validateShipping(true, consent, s);
+  if (shipErr) return res.status(400).json({ ok: false, error: shipErr });
+
+  const { error } = await supabase
+    .from('orders')
+    .update(shippingColumns(true, consent, s))
+    .eq('order_id', req.params.orderId)
+    .eq('email', req.user.email);
+  if (error) {
+    console.error('배송지 저장 오류:', error);
+    return res.status(500).json({ ok: false, error: '배송지 저장 중 오류가 발생했습니다.' });
+  }
+  res.json({ ok: true });
+});
+
+// 관리자 전용: PenWorldwide에서 결제가 확인된 주문을 "결제 완료"로 표시해요.
+app.post('/api/admin/orders/:orderId/paid', requireLogin, requireAdmin, async (req, res) => {
+  const { error } = await supabase
+    .from('orders')
+    .update({ status: 'paid', paid_at: new Date().toISOString() })
+    .eq('order_id', req.params.orderId);
+  if (error) return res.status(500).json({ ok: false, error: '결제 완료 처리 중 오류가 발생했습니다.' });
+  res.json({ ok: true });
 });
 
 // Toss 결제창에서 successUrl로 돌아온 뒤, 프론트가 이 API로 실제 결제를 승인(confirm)해요.

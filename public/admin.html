@@ -356,7 +356,7 @@
       const address = [o.shipping_address1, o.shipping_address2].filter(Boolean).join(' ');
       const statusBadge = o.status === 'paid'
         ? '<span class="badge badge-paid">결제완료</span>'
-        : '<span class="badge badge-pending">대기중</span>';
+        : `<span class="badge badge-pending">대기중</span> <button class="paid-btn" data-paid-order-id="${o.order_id}" type="button" style="font-size:12px;padding:3px 8px;cursor:pointer;">결제완료</button>`;
       return `
         <tr data-order-id="${o.order_id}">
           <td>${fmtDate(o.created_at)}</td>
@@ -373,6 +373,23 @@
         </tr>`;
     }).join('');
   }
+
+  // 주문 결제 확인: PenWorldwide에서 결제가 확인된 주문을 "결제완료"로 표시해요.
+  ordersTbody.addEventListener('click', async e => {
+    const btn = e.target.closest('.paid-btn[data-paid-order-id]');
+    if(!btn) return;
+    if(!confirm('이 주문의 결제가 PenWorldwide에서 확인되었나요?')) return;
+    btn.disabled = true;
+    try{
+      const res = await fetch(`/api/admin/orders/${encodeURIComponent(btn.dataset.paidOrderId)}/paid`, { method: 'POST' });
+      const data = await res.json();
+      if(data.ok){ loadOrders(); }
+      else { btn.disabled = false; alert(data.error || '처리에 실패했습니다.'); }
+    } catch(err){
+      btn.disabled = false;
+      alert('처리 중 오류가 발생했습니다.');
+    }
+  });
 
   function renderSubs(subs){
     if(!subs || subs.length === 0){
