@@ -547,7 +547,7 @@
   // ====== 동적 문구 자동 번역 ======
   // 스크립트가 나중에 넣는 문구(상태 메시지, 버튼 글자, 팝업 HTML, alert 등)는 data-i18n 키가 없어요.
   // 그래서 화면에 들어온 한국어 글자를 "한국어 원문 그대로" 사전에서 찾아 바꿔줘요.
-  //  - 사전: i18n-text.js 의 window.I18N_TEXT ({ '한국어 원문': { en:'...', ... } }) + 위 DICT의 ko 문구
+  //  - 사전: i18n-text/언어코드.js (예: i18n-text/en.js) 의 { '한국어 원문': '번역' } + 위 DICT의 ko 문구
   //  - '{0}' 같은 자리는 숫자·이름처럼 바뀌는 부분이에요. 그 부분도 사전에 있으면 같이 번역해요.
   //  - 원문은 기억해 뒀다가 언어를 바꿀 때 다시 번역하고, 한국어로 돌아오면 원문 그대로 돌려놔요.
   //  - data-i18n-skip 이 붙은 영역(과 그 안)은 건드리지 않아요.
@@ -555,6 +555,13 @@
   const TEXT_ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
   let textExact = null;
   let textPatterns = null;
+  const textStore = {}; // '한국어 원문' → { en:'...', ja:'...' } (언어별 사전 파일이 채워요)
+
+  // 언어별 사전 파일(i18n-text/xx.js)이 이 함수를 불러서 번역을 등록해요.
+  window.i18nAddText = function(lang, map){
+    Object.keys(map).forEach(ko => { (textStore[ko] = textStore[ko] || {})[lang] = map[ko]; });
+    textExact = null;
+  };
 
   function normText(t){ return t.replace(/\s+/g, ' ').trim(); }
 
@@ -564,9 +571,8 @@
     Object.values(DICT).forEach(entry => {
       if(entry.ko && !entry.ko.includes('<')) textExact.set(normText(entry.ko), entry);
     });
-    const extra = window.I18N_TEXT || {};
-    Object.keys(extra).forEach(ko => {
-      const entry = Object.assign({ ko }, extra[ko]);
+    Object.keys(textStore).forEach(ko => {
+      const entry = Object.assign({ ko }, textStore[ko]);
       const key = normText(ko);
       if(!/\{\d+\}/.test(key)){ textExact.set(key, entry); return; }
       const order = [];
@@ -658,19 +664,24 @@
   function translateAll(){
     if(getLang() !== 'ko') loadTextDict();
     if(document.body) translateTree(document.body, getLang());
+    // 브라우저 탭 제목(<title>)도 같은 사전으로 번역해요.
+    const titleEl = document.querySelector('head > title');
+    if(titleEl) translateTree(titleEl, getLang());
   }
 
-  // 사전 파일(i18n-text.js)은 크기가 커서, 페이지가 <meta name="i18n-text-src">로 알려줬고
-  // 한국어가 아닌 언어를 쓸 때만 불러와요. 다 불러오면 화면을 한 번 더 번역해요.
-  let textDictLoading = false;
+  // 사전은 언어마다 파일이 따로 있어요(i18n-text/en.js, i18n-text/ja.js ...).
+  // 페이지가 <meta name="i18n-text-src" content="/i18n-text/">로 위치를 알려주면,
+  // 지금 고른 언어 파일 하나만 불러와요(한국어면 안 불러와요). 다 불러오면 화면을 한 번 더 번역해요.
+  const textDictLoaded = {};
   function loadTextDict(){
-    if(window.I18N_TEXT || textDictLoading) return;
+    const lang = getLang();
+    if(textDictLoaded[lang]) return;
     const meta = document.querySelector('meta[name="i18n-text-src"]');
     if(!meta) return;
-    textDictLoading = true;
+    textDictLoaded[lang] = true;
     const s = document.createElement('script');
-    s.src = meta.content;
-    s.onload = () => { textExact = null; translateAll(); };
+    s.src = meta.content + lang + '.js';
+    s.onload = () => { if(getLang() === lang) translateAll(); };
     document.head.appendChild(s);
   }
 
