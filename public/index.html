@@ -204,6 +204,11 @@
   .hero-stats div{background:rgba(255,255,255,0.05); padding:18px 20px;}
   .hero-stats .num{font-family:'Fraunces',serif; font-size:26px; color:var(--star);}
   .hero-stats .label{font-size:12px; color:#B9CBC7; margin-top:4px;}
+  /* 히어로 가격 칸: 숫자(25,000원)는 중간에서 끊기지 않게 하고, 단위(/ 월)는 숫자 아래 줄에 작게 */
+  .hero-stats .hero-price-stat .num{ font-size:16px; display:flex; flex-direction:column; gap:6px; }
+  .hero-stats .hero-price-stat .num b{ font-weight:inherit; white-space:nowrap; }
+  .hero-stats .hero-price-stat .num small{ display:block; font-size:12px; white-space:nowrap; color:#B9CBC7; }
+  @media(max-width:600px){ .hero-stats .hero-price-stat .num{ font-size:13px; padding:14px 8px; } }
 
   /* ---------- SECTION SHELL ---------- */
   section{padding:80px 6vw;}
@@ -590,11 +595,12 @@
     </div>
     <div class="hero-stats">
       <div><div data-i18n="heroStat1Num" class="num serif">3탭</div><div data-i18n="heroStat1Label" class="label">아웃핏 완성까지</div></div>
-      <div>
-        <div class="num serif" style="font-size:16px; display:flex; gap:10px; flex-wrap:wrap;">
-          <span>15,000원</span><span>45,000원</span><span>89,000원</span>
+      <div class="hero-price-stat">
+        <div class="num serif">
+          <span><b>25,000원</b> <small data-i18n="perMonth">/ 월</small></span>
+          <span><b>300,000원</b> <small data-i18n="perYear">/ 년</small></span>
         </div>
-        <div data-i18n="statTiers" class="label">유료 구독 3단계 (Free 제외)</div>
+        <div data-i18n="statTiers" class="label">Premium 월간 · 연간 구독</div>
       </div>
       <div><div data-i18n="heroStat3Num" class="num serif">0장</div><div data-i18n="heroStat3Label" class="label">사진 저장 (제로 리텐션)</div></div>
     </div>
