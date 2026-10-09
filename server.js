@@ -107,17 +107,18 @@ function isAdminEmail(email) {
 const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람당 보관 개수 제한
 
 // 피봇 후 가격 체계: Lite(자가 제작용 패턴만) / Premium(AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 아바타 기반 핏 보장 QC)
-// Lite·Premium 월간 결제(25,000원), Premium 연간 결제(200,000원) — 메인 요금제 카드와 맞춰요.
+// Lite·Premium 월간 결제(25,000원), Premium 연간 결제(300,000원) — 메인 요금제 카드와 맞춰요.
 const PLAN_PRICES = {
   lite: { name: 'Lite', amount: 9900 },
   premium: { name: 'Premium', amount: 25000 },
-  'premium-yearly': { name: 'Premium', amount: 200000 },
+  'premium-yearly': { name: 'Premium', amount: 300000 },
 };
-const PREMIUM_YEARLY_AMOUNT = PLAN_PRICES['premium-yearly'].amount;
+// 연간 결제로 보는 금액들: 지금 가격(300,000원) + 예전 가격(200,000원)으로 이미 가입한 구독자.
+const PREMIUM_YEARLY_AMOUNTS = [PLAN_PRICES['premium-yearly'].amount, 200000];
 // 구독이 유효한 기간(일). 결제일(subscribed_at)부터 이 기간 안이면 "구독 중"으로 봐요.
-// 연간 결제(200,000원)는 366일, 그 밖은 월간 31일이에요.
+// 연간 결제(300,000원, 예전 200,000원)는 366일, 그 밖은 월간 31일이에요.
 function validDaysFor(sub){
-  return Number(sub.amount) === PREMIUM_YEARLY_AMOUNT ? 366 : 31;
+  return PREMIUM_YEARLY_AMOUNTS.includes(Number(sub.amount)) ? 366 : 31;
 }
 
 // 구독 행 하나를 받아서 지금 유효한지 계산해요.
@@ -1310,7 +1311,7 @@ app.post('/api/admin/subscriptions', requireLogin, requireAdmin, async (req, res
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     return res.status(400).json({ ok: false, error: '이메일 형식을 확인해주세요.' });
   }
-  const { cycle } = req.body || {}; // 'yearly'면 Premium 연간(200,000원), 아니면 월간
+  const { cycle } = req.body || {}; // 'yearly'면 Premium 연간(300,000원), 아니면 월간
   const planInfo = plan === 'Premium'
     ? (cycle === 'yearly' ? PLAN_PRICES['premium-yearly'] : PLAN_PRICES.premium)
     : plan === 'Lite' ? PLAN_PRICES.lite : null;
