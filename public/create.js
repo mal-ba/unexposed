@@ -1,12 +1,13 @@
 /* create.js — 제작 스튜디오 (create.html 팝업을 index.html이 불러온 뒤 실행돼요)
-   - 옷 종류·기장/둘레·부위별 원단/색·브러시 그림을 정해요.
-   - 장바구니에 여러 디자인을 담고 한 번에 주문하거나, 바로 한 벌씩 주문해요.
+   - 옷 종류 → 3D 모델(/models/*.glb)을 보여주고, 모델을 누르면 그 부위를 채워요.
+   - 3D 모델이 없거나 불러오지 못하면 부위 칸(2D) 방식으로 보여줘요.
+   - 장바구니에 여러 디자인을 담아 한 번에 주문하거나, 한 벌씩 바로 주문해요.
    - 서버(server.js)의 STUDIO_TYPES / STUDIO_KINDS / STUDIO_FABRICS 와 같은 구조로 보내요.
    - 금액 표시는 참고용이에요. 실제 결제 금액은 서버가 1벌 가격 × 수량으로 다시 계산해요. */
 (function () {
   'use strict';
 
-  // ── 서버와 맞추는 옷·원단 정의 (server.js 의 값과 같아야 해요) ──
+  /* ---------- 서버와 맞추는 옷·원단 정의 (server.js 의 값과 같아야 해요) ---------- */
   const TYPES = {
     shortSleeve: { label: '반팔 티셔츠', kind: 'top' },
     longSleeve: { label: '긴팔 티셔츠', kind: 'top' },
@@ -40,8 +41,24 @@
   const MAX_CART = 20;
   const CART_KEY = 'unexposed_studio_cart';
   const PALETTE = ['#0F2E2C', '#3E7F86', '#6FB8C2', '#D8663F', '#F5F2EA', '#14201E', '#A98863', '#FBFAF6'];
+  const DEFAULT_FABRIC_COLOR = '#D9D4C7'; // 아직 안 채운 부위의 기본 옷감색
 
-  // 화면 상태
+  /* ---------- 옷 종류 → 3D 모델 파일 (public/models/ 에 원래 이름 그대로 두세요) ---------- */
+  const MODEL_BASE = '/models/';
+  const MODEL_FILES = {
+    shortSleeve: 'Meshy_AI_Classic_White_T_Shirt_0913135306_generate.glb',
+    longSleeve: 'Meshy_AI_Gray_Henley_Long_Slee_0925142723_generate.glb',
+    shortPants: 'Meshy_AI_White_Shorts_0913135257_generate.glb',
+    longPants: 'Meshy_AI_White_Long_Pants_0913135302_generate.glb',
+    capBall: 'Meshy_AI_Blue_Denim_Baseball_C_0928035117_generate.glb',
+    shoeClassic: 'Meshy_AI_Adidas_White_Sneaker_0928035205_generate.glb',
+    shoeCanvas: 'Meshy_AI_Black_Vans_Sneakers_0928035238_generate.glb',
+    shoeRunning: 'Meshy_AI_Cream_Skechers_Sneake_0928035311_generate.glb',
+    sockCrew: 'Meshy_AI_White_Ribbed_Socks_0928035340_generate.glb',
+    sockAnkle3: 'Meshy_AI_Three_Ankle_Socks_on__0928035404_generate.glb',
+  };
+
+  /* ---------- 화면 상태 ---------- */
   const st = {
     typeKey: 'shortSleeve', lengthMul: 1, girthMul: 1, regions: {},
     fabric: 'cotton', color: PALETTE[0], tool: 'fill', mirror: false,
@@ -71,8 +88,12 @@
   .type-chip,.tool-chip,.fabric-chip,.calc-chip{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--paper);font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--ink)}
   .type-chip.active,.tool-chip.active,.fabric-chip.active,.calc-chip.active{background:var(--deep);color:var(--paper);border-color:var(--deep)}
   .viewer-box{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--mist);margin:10px 0}
-  #create-3d{min-height:260px;position:relative;display:flex;align-items:center;justify-content:center}
-  #create-3d canvas{width:100%;height:auto;background:#fff;border-radius:8px;touch-action:none;cursor:crosshair}
+  #create-3d{position:relative;height:340px;background:#fbfaf6;border-radius:8px;overflow:hidden}
+  #create-3d .stage-gl,#create-3d .stage-paint{position:absolute;left:0;top:0;width:100%;height:100%}
+  #create-3d .stage-gl{display:block}
+  #create-3d .stage-gl[hidden]{display:none}
+  #create-3d .stage-paint{touch-action:none;pointer-events:none}
+  #create-3d .stage-paint.on{pointer-events:auto;cursor:crosshair}
   .view-btns{display:none}
   .viewer-hint{font-size:12px;color:var(--ink-soft);margin-top:8px;text-align:center}
   .tool-row{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
@@ -164,7 +185,7 @@
     };
   }
 
-  /* ---------- 부위 채우기 ---------- */
+  /* ---------- 부위 이름·채우기 ---------- */
   function regionLabel(kind, key) {
     const [r, c] = key.split('_');
     const [side, face] = kind.cols[c];
@@ -185,9 +206,10 @@
   }
   function onRegionTap(key) {
     const kind = kindOf(st.typeKey);
+    if (!kind.cols[key.split('_')[1]] || !kind.rows[key.split('_')[0]]) return;
     if (st.tool === 'brush') { status('브러시는 옷 그림 칸에 직접 그려요.'); return; }
     const m = st.mirror ? mirrorKey(key) : null;
-    const useMirror = m && kind.cols[m.split('_')[1]];
+    const useMirror = !!(m && kind.cols[m.split('_')[1]]);
     if (st.tool === 'eraser') {
       setRegion(key, null);
       if (useMirror) setRegion(m, null);
@@ -212,48 +234,300 @@
     toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
   }
 
-  /* ---------- 그림(브러시) 캔버스 ---------- */
-  let canvas = null, ctx = null, drawing = false, lastPt = null;
-  function ensureCanvas() {
-    if (canvas) return;
-    const box = $('create-3d');
-    canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 680;
-    box.innerHTML = '';
-    box.appendChild(canvas);
-    ctx = canvas.getContext('2d');
+  /* ---------- 부위 자동 나누기 (모델 모양으로 추정 — 어긋나면 알려주세요) ----------
+     nx: 가로 중심 기준 -1(왼쪽 끝)~1(오른쪽 끝), ny: 바닥 0 ~ 위 1, nz: 앞(+) ~ 뒤(-) */
+  function classify(typeKey, nx, ny, nz, ctx) {
+    const kindName = TYPES[typeKey].kind;
+    const side = nx < 0 ? 'L' : 'R';
+    const face = nz >= 0 ? 'F' : 'B';
+    if (kindName === 'top') {
+      const isLong = typeKey === 'longSleeve';
+      const sleeve = Math.abs(nx) > 0.55 && (ny > 0.45 || isLong);
+      const row = sleeve ? 'sleeve' : (ny > 0.82 ? 'shoulder' : 'body');
+      return `${row}_${side}${face}`;
+    }
+    if (kindName === 'bottom') {
+      return `${ny > 0.82 ? 'waist' : 'leg'}_${side}${face}`;
+    }
+    if (kindName === 'hat') {
+      const row = nz > 0.6 ? 'brim' : (nz >= 0 ? 'front' : 'back');
+      return `${row}_${nx < 0 ? 'L' : 'R'}`;
+    }
+    if (kindName === 'shoes') {
+      const along = ctx.longAxisX ? nx : nz;
+      const across = ctx.longAxisX ? nz : nx;
+      const row = ny < 0.15 ? 'sole' : along > 0.4 ? 'toe' : along < -0.4 ? 'heel' : 'upper';
+      return `${row}_${across < 0 ? 'L' : 'R'}`;
+    }
+    if (kindName === 'socks') {
+      const row = ny > 0.85 ? 'cuff' : ny > 0.5 ? 'leg' : ny > 0.25 ? 'foot' : 'toe';
+      return `${row}_${nx < 0 ? 'L' : 'R'}`;
+    }
+    // socks3: 양말 3켤레가 가로로 나란히
+    const row = nz > 0.45 ? 'cuff' : nz < -0.45 ? 'toe' : 'foot';
+    const col = nx < -0.33 ? 'S1' : nx > 0.33 ? 'S3' : 'S2';
+    return `${row}_${col}`;
+  }
+
+  /* ---------- 3D (three.js: index.html 의 importmap 으로 불러와요) ---------- */
+  const view = {
+    THREE: null, GLTFLoader: null, OrbitControls: null,
+    renderer: null, scene: null, camera: null, controls: null, raycaster: null,
+    root: null, rootData: null, currentType: null, ready: false, failed: false,
+  };
+  const modelCache = {};
+
+  async function ensure3D() {
+    if (view.ready) return true;
+    if (view.failed) return false;
+    try {
+      const THREE = await import('three');
+      const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+      view.THREE = THREE; view.GLTFLoader = GLTFLoader; view.OrbitControls = OrbitControls;
+
+      const stage = $('create-3d');
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      renderer.setClearColor(0xfbfaf6, 1);
+      renderer.domElement.className = 'stage-gl';
+      stage.insertBefore(renderer.domElement, stage.firstChild);
+
+      const scene = new THREE.Scene();
+      scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+      const key = new THREE.DirectionalLight(0xffffff, 1.0);
+      key.position.set(2, 4, 3);
+      scene.add(key);
+      const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 100);
+      camera.position.set(0, 0.6, 5.2);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.enablePan = false;
+      controls.minDistance = 2.2;
+      controls.maxDistance = 9;
+
+      Object.assign(view, { renderer, scene, camera, controls, raycaster: new THREE.Raycaster(), ready: true });
+      resizeView();
+      window.addEventListener('resize', resizeView);
+      renderer.domElement.addEventListener('pointerdown', onGLPointerDown);
+      renderer.domElement.addEventListener('pointerup', onGLPointerUp);
+      (function loop() {
+        requestAnimationFrame(loop);
+        controls.update();
+        renderer.render(scene, camera);
+      })();
+      applyToolToStage();
+      return true;
+    } catch (e) {
+      view.failed = true;
+      console.warn('3D 뷰어를 시작하지 못했어요:', e);
+      return false;
+    }
+  }
+
+  function resizeView() {
+    if (!view.renderer) return;
+    const stage = $('create-3d');
+    const w = stage.clientWidth || 600;
+    const h = stage.clientHeight || 340;
+    view.renderer.setSize(w, h, false);
+    view.camera.aspect = w / h;
+    view.camera.updateProjectionMatrix();
+  }
+
+  // 모델 파일을 읽고, 모든 삼각형에 부위 이름을 붙여요.
+  function prepareModel(THREE, gltfScene, typeKey) {
+    gltfScene.updateMatrixWorld(true);
+    const meshes = [];
+    gltfScene.traverse(o => { if (o.isMesh) meshes.push(o); });
+    const root = new THREE.Group();
+    const box = new THREE.Box3();
+    for (const m of meshes) {
+      const g = m.geometry.clone();
+      g.applyMatrix4(m.matrixWorld);
+      const flat = g.index ? g.toNonIndexed() : g;
+      m.geometry = flat;
+      m.position.set(0, 0, 0);
+      m.quaternion.identity();
+      m.scale.set(1, 1, 1);
+      m.updateMatrix();
+      m.updateMatrixWorld(true);
+      flat.computeBoundingBox();
+      box.union(flat.boundingBox);
+      root.add(m);
+    }
+    const size = new THREE.Vector3(); box.getSize(size);
+    const center = new THREE.Vector3(); box.getCenter(center);
+    const halfW = Math.max(size.x / 2, 1e-6), halfD = Math.max(size.z / 2, 1e-6), H = Math.max(size.y, 1e-6);
+    const ctx = { longAxisX: size.x >= size.z };
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+    for (const m of meshes) {
+      const pos = m.geometry.attributes.position;
+      const triCount = pos.count / 3;
+      const keys = new Array(triCount);
+      const colors = new Float32Array(pos.count * 3);
+      for (let t = 0; t < triCount; t++) {
+        const a = t * 3;
+        const cx = (pos.getX(a) + pos.getX(a + 1) + pos.getX(a + 2)) / 3;
+        const cy = (pos.getY(a) + pos.getY(a + 1) + pos.getY(a + 2)) / 3;
+        const cz = (pos.getZ(a) + pos.getZ(a + 1) + pos.getZ(a + 2)) / 3;
+        keys[t] = classify(typeKey, (cx - center.x) / halfW, (cy - box.min.y) / H, (cz - center.z) / halfD, ctx);
+      }
+      m.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      m.material = mat;
+      m.userData.triKeys = keys;
+      m.userData.colors = colors;
+    }
+    const maxDim = Math.max(size.x, size.y, size.z, 1e-6);
+    return { root, meshes, scale: 2.0 / maxDim, center };
+  }
+
+  function loadGLB(file, typeKey) {
+    const { GLTFLoader, THREE } = view;
+    return new Promise((resolve, reject) => {
+      new GLTFLoader().load(MODEL_BASE + file, gltf => {
+        try { resolve(prepareModel(THREE, gltf.scene, typeKey)); } catch (e) { reject(e); }
+      }, undefined, reject);
+    });
+  }
+
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  }
+
+  // 지금 채워진 색으로 모델의 부위 색을 다시 칠해요.
+  function paintModel() {
+    if (!view.rootData) return;
+    const defaultRgb = hexToRgb(DEFAULT_FABRIC_COLOR);
+    for (const m of view.rootData.meshes) {
+      const keys = m.userData.triKeys;
+      const colors = m.userData.colors;
+      for (let t = 0; t < keys.length; t++) {
+        const fill = st.regions[keys[t]];
+        const rgb = fill ? hexToRgb(fill.color) : defaultRgb;
+        for (let k = 0; k < 3; k++) {
+          const i = (t * 3 + k) * 3;
+          colors[i] = rgb[0]; colors[i + 1] = rgb[1]; colors[i + 2] = rgb[2];
+        }
+      }
+      m.geometry.attributes.color.needsUpdate = true;
+    }
+  }
+
+  function attachModel(prepared) {
+    if (view.root) view.scene.remove(view.root);
+    view.root = prepared.root;
+    view.rootData = prepared;
+    const s = prepared.scale;
+    view.root.scale.setScalar(s);
+    view.root.position.set(-prepared.center.x * s, -prepared.center.y * s, -prepared.center.z * s);
+    view.scene.add(view.root);
+    paintModel();
+  }
+  function detachModel() {
+    if (view.root) view.scene.remove(view.root);
+    view.root = null;
+    view.rootData = null;
+  }
+
+  // 모델 위에서 눌린 삼각형의 부위 이름을 찾아요.
+  function pickRegion(clientX, clientY) {
+    if (!view.root) return null;
+    const r = view.renderer.domElement.getBoundingClientRect();
+    const ndc = new view.THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    view.raycaster.setFromCamera(ndc, view.camera);
+    const hits = view.raycaster.intersectObjects(view.root.children, false);
+    if (!hits.length) return null;
+    const h = hits[0];
+    return h.object.userData.triKeys ? h.object.userData.triKeys[h.faceIndex] : null;
+  }
+
+  let downAt = null;
+  function onGLPointerDown(e) { downAt = { x: e.clientX, y: e.clientY }; }
+  function onGLPointerUp(e) {
+    if (!downAt || st.tool !== 'fill') { downAt = null; return; }
+    const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+    downAt = null;
+    if (moved > 6) return; // 돌리기(드래그)였으면 채우지 않아요
+    const key = pickRegion(e.clientX, e.clientY);
+    if (key) onRegionTap(key);
+    else status('옷 부분을 눌러야 채워져요.');
+  }
+
+  // 3D 모델이 없을 때는 빈 칸 배경만 보여줘요.
+  function showModelFor(typeKey) {
+    view.currentType = typeKey;
+    const file = MODEL_FILES[typeKey];
+    const loading = $('create-loading');
+    if (!file) {
+      detachModel(); setGLVisible(false); loading.hidden = true;
+      return;
+    }
+    ensure3D().then(async ok => {
+      if (!ok) { detachModel(); setGLVisible(false); loading.hidden = false; loading.textContent = '3D를 쓸 수 없어 칸으로 채워요.'; return; }
+      setGLVisible(true);
+      if (modelCache[typeKey]) { if (view.currentType === typeKey) attachModel(modelCache[typeKey]); return; }
+      loading.hidden = false; loading.textContent = '3D 옷을 불러오는 중...';
+      try {
+        const prepared = await loadGLB(file, typeKey);
+        modelCache[typeKey] = prepared;
+        if (view.currentType === typeKey) attachModel(prepared);
+        loading.hidden = true;
+      } catch (e) {
+        console.warn('모델을 불러오지 못했어요:', file, e);
+        detachModel(); setGLVisible(false);
+        loading.hidden = false; loading.textContent = '이 옷의 3D 파일을 불러오지 못해 칸으로 채워요.';
+      }
+    });
+  }
+  function setGLVisible(on) {
+    if (view.renderer) view.renderer.domElement.hidden = !on;
+    if (!on) detachModel();
+  }
+  function applyToolToStage() {
+    const painting = st.tool === 'brush' || st.tool === 'eraser';
+    if (paintCanvas) paintCanvas.classList.toggle('on', painting);
+    if (view.controls) view.controls.enabled = !painting;
+  }
+
+  /* ---------- 그림(브러시) 캔버스: 3D 위에 겹쳐서 그려요 ---------- */
+  let paintCanvas = null, ctx = null, drawing = false, lastPt = null;
+  function ensurePaintCanvas() {
+    if (paintCanvas) return;
+    const stage = $('create-3d');
+    paintCanvas = document.createElement('canvas');
+    paintCanvas.className = 'stage-paint';
+    paintCanvas.width = 600;
+    paintCanvas.height = 680;
+    stage.appendChild(paintCanvas);
+    ctx = paintCanvas.getContext('2d');
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     const pos = e => {
-      const r = canvas.getBoundingClientRect();
-      return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height };
+      const r = paintCanvas.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * paintCanvas.width / r.width, y: (e.clientY - r.top) * paintCanvas.height / r.height };
     };
-    canvas.addEventListener('pointerdown', e => {
+    paintCanvas.addEventListener('pointerdown', e => {
       if (st.tool !== 'brush' && st.tool !== 'eraser') return;
-      drawing = true; lastPt = pos(e); canvas.setPointerCapture(e.pointerId);
+      drawing = true; lastPt = pos(e); paintCanvas.setPointerCapture(e.pointerId);
     });
-    canvas.addEventListener('pointermove', e => {
+    paintCanvas.addEventListener('pointermove', e => {
       if (!drawing) return;
       const p = pos(e);
       ctx.globalCompositeOperation = st.tool === 'eraser' ? 'destination-out' : 'source-over';
       ctx.strokeStyle = st.color;
-      ctx.lineWidth = st.brush * canvas.width;
+      ctx.lineWidth = st.brush * paintCanvas.width;
       ctx.beginPath(); ctx.moveTo(lastPt.x, lastPt.y); ctx.lineTo(p.x, p.y); ctx.stroke();
       lastPt = p;
       if (st.tool === 'brush' && !st.hasPaint) { st.hasPaint = true; renderQuote(); }
     });
     const end = () => { drawing = false; lastPt = null; };
-    canvas.addEventListener('pointerup', end);
-    canvas.addEventListener('pointercancel', end);
-    setCanvasMode();
+    paintCanvas.addEventListener('pointerup', end);
+    paintCanvas.addEventListener('pointercancel', end);
   }
-  function setCanvasMode() {
-    if (!canvas) return;
-    canvas.style.pointerEvents = (st.tool === 'brush' || st.tool === 'eraser') ? 'auto' : 'none';
-  }
-  function clearCanvas() {
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  function clearPaint() {
+    if (ctx) ctx.clearRect(0, 0, paintCanvas.width, paintCanvas.height);
     st.hasPaint = false;
   }
 
@@ -280,10 +554,11 @@
     document.querySelectorAll('#tool-row .tool-chip').forEach(b => b.classList.toggle('active', b.dataset.tool === st.tool));
     $('brush-size-row').hidden = st.tool !== 'brush';
     $('mirror-toggle').checked = st.mirror;
-    $('viewer-hint').textContent = st.tool === 'brush' || st.tool === 'eraser'
-      ? '옷 그림 칸에 드래그해서 그려요 (그림은 미리보기용이에요)'
-      : '아래 부위 칸을 눌러 지금 고른 원단·색으로 채워요';
-    setCanvasMode();
+    const painting = st.tool === 'brush' || st.tool === 'eraser';
+    $('viewer-hint').textContent = painting
+      ? '옷 위에 드래그해서 그려요 (그림은 미리보기용이에요)'
+      : (view.renderer ? '드래그로 돌려보고, 옷을 누르면 그 부위를 채워요' : '아래 부위 칸을 눌러 지금 고른 원단·색으로 채워요');
+    applyToolToStage();
   }
   function renderRegions() {
     const kind = kindOf(st.typeKey);
@@ -303,7 +578,7 @@
       }
       $('region-grid').appendChild(b);
     }
-    $('region-hint').textContent = `(칸을 누르면 지금 고른 원단·색으로 채웁니다 · 좌우는 입는 사람 기준)`;
+    paintModel();
   }
   function isDark(hex) {
     const n = parseInt(hex.slice(1), 16);
@@ -340,13 +615,14 @@
     st.regions = {};
     st.lengthMul = 1;
     st.girthMul = 1;
-    clearCanvas();
+    clearPaint();
   }
   function chooseType(key) {
     if (st.typeKey !== key) resetDesign();
     st.typeKey = key;
     st.tool = 'fill';
-    status(`${TYPES[key].label} 선택 · 부위 칸을 눌러 채워요`);
+    status(`${TYPES[key].label} 선택 · 옷을 누르거나 부위 칸을 눌러 채워요`);
+    showModelFor(key);
     renderAll();
   }
   function clampNum(v, lo, hi) {
@@ -413,7 +689,7 @@
       status('전체를 채웠어요.');
       renderRegions(); renderQuote();
     });
-    $('clear-paint-btn').addEventListener('click', () => { clearCanvas(); status('브러시 자국을 지웠어요.'); renderQuote(); });
+    $('clear-paint-btn').addEventListener('click', () => { clearPaint(); status('브러시 자국을 지웠어요.'); renderQuote(); });
     $('reset-btn').addEventListener('click', () => { resetDesign(); status('이 옷을 처음 상태로 되돌렸어요.'); renderAll(); });
 
     document.querySelectorAll('#create-finish-choices .calc-chip').forEach(b => b.addEventListener('click', () => {
@@ -511,7 +787,7 @@
   function openOrder(mode, items) {
     if (!loggedIn()) {
       toast('유료 주문은 Google 계정으로 로그인한 뒤 할 수 있어요. 왼쪽 상단 메뉴에서 로그인해주세요.');
-      const menu = $('menu-toggle-btn') || document.getElementById('menu-toggle-btn');
+      const menu = document.getElementById('menu-toggle-btn');
       if (menu) menu.click();
       return;
     }
@@ -594,7 +870,7 @@
   /* ---------- 시작 ---------- */
   injectStyle();
   buildStatic();
-  ensureCanvas();
+  ensurePaintCanvas();
   bindEvents();
   renderAll();
   renderCart();
@@ -604,5 +880,9 @@
   window.openCreateStudio = function () {
     $('create-modal').hidden = false;
     status('옷을 고르고 부위를 채워보세요.');
+    showModelFor(st.typeKey);
   };
+
+  // 테스트·점검용: 부위 나누기와 모델 준비 함수를 밖에서 볼 수 있게 해 둬요.
+  window.createStudioDebug = { classify, prepareModel, MODEL_FILES, KINDS, TYPES };
 })();
