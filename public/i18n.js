@@ -453,6 +453,9 @@
     `;
     document.head.appendChild(style);
 
+    // 페이지에 #lang-switch-slot(예: 메인 footer의 Meshy AI 링크 옆)이 있으면 거기에 넣고,
+    // 없으면 footer 액션 박스, 그것도 없으면 우측 하단에 띄워요.
+    const linkSlot = document.getElementById('lang-switch-slot');
     const footerSlot = document.getElementById('footer-action-boxes');
 
     const btn = document.createElement('button');
@@ -460,7 +463,10 @@
     btn.type = 'button';
     btn.innerHTML = `🌐 <span class="lang-switch-code">KO</span>`;
 
-    if(footerSlot){
+    if(linkSlot){
+      btn.className = 'footer-social-link';
+      linkSlot.appendChild(btn);
+    } else if(footerSlot){
       btn.className = 'footer-action-box';
       footerSlot.appendChild(btn);
     } else {
@@ -503,6 +509,7 @@
   // 나중에(비동기로) footer가 페이지에 삽입된 뒤 버튼을 그 자리로 옮길 때 사용
   function relocate(){
     if(!widgetBtn) return;
+    if(document.getElementById('lang-switch-slot')) return;
     const footerSlot = document.getElementById('footer-action-boxes');
     if(footerSlot && !footerSlot.contains(widgetBtn)){
       widgetBtn.className = 'footer-action-box';

@@ -34,6 +34,8 @@
 </script>
 <!-- 메인 페이지의 독립된 "메이크업" 구역에서도 옷장 카드/뷰어 박스 스타일(customize.css)을 그대로 써요. -->
 <link rel="stylesheet" href="/customize.css">
+<!-- 번역기: footer의 Meshy AI 옆 #lang-switch-slot 에 🌐 언어 버튼을 붙여요 -->
+<script src="/i18n.js" defer></script>
 <style>
   :root{
     --deep: #0F2E2C;
@@ -469,6 +471,12 @@
   }
   .footer-social a:hover{ color:var(--paper); }
   .footer-social .dot{ color:#4A6D68; }
+  /* 번역기(i18n.js) 버튼: Meshy AI 링크 옆에 같은 링크 모양으로 붙어요 */
+  #lang-switch-btn.footer-social-link{
+    background:none; border:none; padding:0; color:#AFC4C0; font-size:13px; font-weight:600;
+    transition:color .15s ease;
+  }
+  #lang-switch-btn.footer-social-link:hover{ color:var(--paper); }
   .footer-action-boxes{ display:flex; gap:10px; flex-wrap:wrap; grid-column:3; justify-self:end; }
   .footer-action-box{
     display:inline-flex; align-items:center; gap:8px; padding:11px 18px; border-radius:10px;
@@ -988,6 +996,8 @@
     <a href="https://www.instagram.com/jaehoon703/?hl=ko" target="_blank" rel="noopener noreferrer">Instagram</a>
     <span class="dot">·</span>
     <a href="https://www.meshy.ai/ko/@s17789845805bd65" target="_blank" rel="noopener noreferrer">Meshy AI</a>
+    <span class="dot">·</span>
+    <span id="lang-switch-slot"></span>
   </div>
 </footer>
 
