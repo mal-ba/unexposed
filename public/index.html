@@ -829,6 +829,28 @@
   </div>
 </section>
 
+<section id="landing-create">
+  <div class="sec-head">
+    <div class="eyebrow">MAKE YOUR OWN</div>
+    <h2 class="serif">치수·원단부터 직접 골라 만들어보세요</h2>
+    <p>옷 종류와 기장·둘레를 정하고, 앞면·뒷면·소매·옆면마다 원하는 원단을 골라 채색하는 제작 스튜디오예요. 여러 디자인을 장바구니에 담아 한 번에 주문할 수도 있어요.</p>
+  </div>
+  <div class="design-cta-box" id="create-cta-box">
+    <div class="design-cta-icon">
+      <svg viewBox="0 0 80 80">
+        <rect x="18" y="24" width="44" height="40" rx="6" fill="#0F2E2C"/>
+        <path d="M28 24 L28 14 L52 14 L52 24" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="40" cy="44" r="8" fill="none" stroke="#FBFAF6" stroke-width="3"/>
+      </svg>
+    </div>
+    <h3 class="serif">제작 스튜디오로 옷 만들기</h3>
+    <p>버튼을 누르면 옷 종류·치수를 정하고, 부위별로 원단을 골라 채색해볼 수 있어요.</p>
+    <div class="design-mode-btns">
+      <button class="btn btn-primary" id="open-create-flow-btn" type="button">제작 스튜디오 열기</button>
+    </div>
+  </div>
+</section>
+
 <section id="landing-makeup">
   <div class="sec-head">
     <div class="eyebrow">FACE &amp; MAKEUP</div>
@@ -946,6 +968,7 @@
 </footer>
 
 <div id="customize-bundle-mount"></div>
+<div id="create-bundle-mount"></div>
 
 <div class="modal-overlay" id="bugreport-modal" hidden>
   <div class="modal-box consent-box">
@@ -1787,6 +1810,43 @@
     });
   }
 
+</script>
+
+<!-- 제작 스튜디오: 처음 열 때만 create.html(팝업 조각)과 create.js 를 불러와요. -->
+<script>
+(function () {
+  let loading = null;
+  function loadCreateStudio() {
+    if (window.openCreateStudio) return Promise.resolve();
+    if (loading) return loading;
+    loading = (async () => {
+      const res = await fetch('/create.html');
+      if (!res.ok) throw new Error('제작 스튜디오를 불러오지 못했어요.');
+      document.getElementById('create-bundle-mount').innerHTML = await res.text();
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = '/create.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
+      });
+    })().catch(err => { loading = null; throw err; });
+    return loading;
+  }
+  const openBtn = document.getElementById('open-create-flow-btn');
+  if (!openBtn) return;
+  openBtn.addEventListener('click', async () => {
+    openBtn.disabled = true;
+    try {
+      await loadCreateStudio();
+      window.openCreateStudio();
+    } catch (err) {
+      alert(err.message || '제작 스튜디오를 열지 못했어요.');
+    } finally {
+      openBtn.disabled = false;
+    }
+  });
+})();
 </script>
 
 </body>
