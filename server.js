@@ -107,13 +107,13 @@ function isAdminEmail(email) {
 const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람당 보관 개수 제한
 
 // 피봇 후 가격 체계: Lite(자가 제작용 패턴만) / Premium(AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 아바타 기반 핏 보장 QC)
-// Lite = 월간 결제, Premium = 연간 결제 (메인 요금제 카드의 data-plan 값과 맞춰요)
+// Lite·Premium 모두 월간 결제예요 (메인 요금제 카드의 data-price / 표기와 맞춰요)
 const PLAN_PRICES = {
   lite: { name: 'Lite', amount: 9900 },
-  premium: { name: 'Premium', amount: 109800 },
+  premium: { name: 'Premium', amount: 25000 },
 };
 // 구독이 유효한 기간(일). 결제일(subscribed_at)부터 이 기간 안이면 "구독 중"으로 봐요.
-const PLAN_VALID_DAYS = { Lite: 31, Premium: 366 };
+const PLAN_VALID_DAYS = { Lite: 31, Premium: 31 };
 
 // 구독 행 하나를 받아서 지금 유효한지 계산해요.
 function describeSubscription(sub){
@@ -129,14 +129,14 @@ function describeSubscription(sub){
   };
 }
 async function getSubscription(email){
-  // 최고관리자 계정은 항상 프리미엄 1년 구독 상태로 유지
+  // 최고관리자 계정은 항상 프리미엄 구독 상태로 유지 (월간 기간이라, 조회 시점 기준으로 한 달씩 유효하게 계산해요)
   if (email && email.toLowerCase() === SUPER_ADMIN_EMAIL) {
     const adminSub = {
       plan: 'Premium',
-      amount: 109800,
-      subscribed_at: '2026-09-30T00:00:00.000Z',
+      amount: PLAN_PRICES.premium.amount,
+      subscribed_at: new Date().toISOString(),
       payment_key: 'admin-hardcoded-premium',
-      order_id: 'admin_premium_1year',
+      order_id: 'admin_premium_monthly',
     };
     return describeSubscription(adminSub);
   }
