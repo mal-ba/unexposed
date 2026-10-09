@@ -207,9 +207,9 @@
   <p class="sub-help">구독하기 버튼은 외부 결제(penworldwide)로 연결돼서 자동으로 기록되지 않습니다. 결제를 확인한 뒤 여기서 등록하면, 그 사람은 주문할 때 구독에 포함된 재봉사 매칭·배송비(30,000원)가 빠집니다.</p>
   <form class="admin-add-form" id="sub-add-form">
     <input type="email" name="email" placeholder="구독자 Google 이메일" required>
-    <select name="plan" class="sub-plan-select">
-      <option value="Lite">월간 (9,900원 · 31일)</option>
-      <option value="Premium">연간 (109,800원 · 366일)</option>
+    <select name="cycle" class="sub-plan-select">
+      <option value="monthly">월간 (25,000원 · 31일)</option>
+      <option value="yearly">연간 (300,000원 · 366일)</option>
     </select>
     <input type="date" name="subscribedAt" title="결제일 (비우면 오늘)">
     <button class="admin-add-btn" type="submit">구독자 등록</button>
@@ -403,7 +403,7 @@
       <tr>
         <td>${fmtDate(s.subscribed_at)}</td>
         <td>${s.email || ''}</td>
-        <td>${s.plan === 'Premium' ? '연간' : s.plan === 'Lite' ? '월간' : (s.plan || '')}</td>
+        <td>${[200000, 300000].includes(Number(s.amount)) ? '연간' : '월간'}</td>
         <td>${fmtWon(s.amount)}</td>
         <td>${s.active
           ? `<span class="badge badge-paid">이용 중</span><br><span class="sub-exp">~${fmtDate(s.expires_at)}</span>`
@@ -745,7 +745,8 @@
       const res = await fetch('/api/admin/subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: fd.get('email'), plan: fd.get('plan'), subscribedAt: fd.get('subscribedAt') || null }),
+        // 메인 페이지 요금 카드와 같은 Premium 월간(25,000원)·연간(300,000원)으로 등록해요.
+        body: JSON.stringify({ email: fd.get('email'), plan: 'Premium', cycle: fd.get('cycle'), subscribedAt: fd.get('subscribedAt') || null }),
       });
       const data = await res.json();
       if(data.ok){ subAddForm.reset(); loadSubscriptions(); }
