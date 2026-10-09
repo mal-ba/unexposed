@@ -672,4 +672,8 @@ window.i18nAddText('nl', {
   '{0}번 상품: {1}': 'Artikel {0}: {1}',
   '{0}번 상품의 옵션 금액이 올바르지 않습니다.': 'De optieprijs van artikel {0} is ongeldig.',
   '장바구니에는 최대 {0}개 디자인까지 담을 수 있습니다.': 'De winkelwagen kan maximaal {0} ontwerpen bevatten.',
+  '설문조사에 참여해 주세요': 'Doe mee aan onze enquête',
+  'UNEXPOSED를 더 좋게 만들기 위해 설문조사를 하고 있어요. 잠깐 시간 내서 참여해 주시면 큰 힘이 돼요!': 'We houden een enquête om UNEXPOSED beter te maken. Het zou ons enorm helpen als je even meedoet!',
+  '설문 참여하기': 'Naar de enquête',
+  '다시 보지 않기': 'Niet meer tonen',
 });

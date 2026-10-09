@@ -672,4 +672,8 @@ window.i18nAddText('it', {
   '{0}번 상품: {1}': 'Articolo {0}: {1}',
   '{0}번 상품의 옵션 금액이 올바르지 않습니다.': 'Il prezzo dell’opzione dell’articolo {0} non è valido.',
   '장바구니에는 최대 {0}개 디자인까지 담을 수 있습니다.': 'Il carrello può contenere fino a {0} design.',
+  '설문조사에 참여해 주세요': 'Partecipa al nostro sondaggio',
+  'UNEXPOSED를 더 좋게 만들기 위해 설문조사를 하고 있어요. 잠깐 시간 내서 참여해 주시면 큰 힘이 돼요!': 'Stiamo facendo un sondaggio per migliorare UNEXPOSED. Se ci dedichi un momento ci aiuti tantissimo!',
+  '설문 참여하기': 'Partecipa al sondaggio',
+  '다시 보지 않기': 'Non mostrare più',
 });
