@@ -338,6 +338,12 @@
     font-size:13px; font-weight:600; cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease;
   }
   .plan-select-btn:hover{ border-color:var(--star-dark); }
+  .plan-yearly-btn{
+    width:100%; margin-top:10px; padding:11px; border-radius:10px;
+    background:var(--deep); border:1px solid var(--deep); color:var(--paper);
+    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .plan-yearly-btn:hover{ background:var(--deep-2); }
   .price-card.selected{ border:2px solid var(--deep); background:var(--mist); }
   .price-card.selected .plan-select-btn{ background:var(--deep); color:var(--paper); border-color:var(--deep); }
   .plan-selected-note{ font-size:13px; color:var(--star-dark); font-weight:600; margin-top:16px; min-height:18px; }
@@ -782,16 +788,17 @@
       </ul>
       <button class="plan-select-btn" type="button">구독하기</button>
     </div>
-    <div class="price-card featured" data-plan="Premium" data-price="57000">
+    <div class="price-card featured" data-plan="Premium" data-price="25000">
       <div class="badge">완제품까지 한 번에</div>
       <h3>Premium <span class="plan-subtitle">재봉사 매칭 + 완제품 배송</span></h3>
-      <div class="amount serif">57,000원<span> / 년</span></div>
+      <div class="amount serif">25,000원<span> / 월</span></div>
       <ul>
         <li>AI 패턴 생성 + 검증된 지역 재봉사 1:1 매칭</li>
         <li>완제품 도어투도어 배송</li>
         <li>아바타 기반 핏 보장(QC) — 오차 검수 후 불량 시 보상</li>
       </ul>
-      <a class="plan-select-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" href="https://kr.penworldwide.org/buybuttons/kr01suwon05/btn/707018db-ff41-4fd2-afc1-2b3ae27f3c6a/" target="_blank" rel="noopener noreferrer">구독하기</a>
+      <a class="plan-select-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" href="https://kr.penworldwide.org/buybuttons/kr01suwon05/btn/707018db-ff41-4fd2-afc1-2b3ae27f3c6a/" target="_blank" rel="noopener noreferrer">구독하기 · 월 25,000원</a>
+      <button class="plan-yearly-btn" data-yearly-price="200000" type="button">연간 결제 · 200,000원 / 년</button>
     </div>
   </div>
   <p class="plan-selected-note" id="plan-selected-note"></p>
@@ -1462,7 +1469,7 @@
           if(card){
             card.classList.add('selected');
             card.querySelector('.plan-select-btn').textContent = '✓ 구독 중';
-            const cycleLabel = data.subscription.plan === 'Premium' ? '매년' : '매월';
+            const cycleLabel = Number(data.subscription.amount) === 200000 ? '매년' : '매월';
             planNote.textContent = `${data.subscription.plan} 플랜 구독 중 · ${data.user.email} 계정으로 ${cycleLabel} ${fmt(data.subscription.amount)}이 결제돼요.`;
           }
         }
@@ -1591,6 +1598,8 @@
 
   document.querySelectorAll('.price-card').forEach(card => {
     const btn = card.querySelector('.plan-select-btn');
+    // 외부 결제 링크(<a>)로 연결된 카드는 기본 이동을 막지 않고 인앱 결제 모달을 띄우지 않아요.
+    if(btn.tagName === 'A') return;
     btn.addEventListener('click', () => {
       const price = parseInt(card.dataset.price, 10);
       const alreadySelected = card.classList.contains('selected');
@@ -1613,9 +1622,24 @@
 
       pendingPlanKey = PLAN_KEY_MAP[card.dataset.plan];
       pendingCardEl = card;
-      const cycleLabel = card.dataset.plan === 'Premium' ? '/ 년' : '/ 월';
       modalPlanName.textContent = `${card.dataset.plan} 플랜`;
-      modalPlanPrice.innerHTML = `${fmt(price)} <span style="font-size:13px; font-family:'Noto Sans KR'; color:var(--ink-soft);">${cycleLabel}</span>`;
+      modalPlanPrice.innerHTML = `${fmt(price)} <span style="font-size:13px; font-family:'Noto Sans KR'; color:var(--ink-soft);">/ 월</span>`;
+      paymentModal.hidden = false;
+    });
+  });
+
+  // Premium 연간 결제 버튼: 인앱 결제 모달을 200,000원 / 년으로 열어요.
+  document.querySelectorAll('.plan-yearly-btn').forEach(yBtn => {
+    yBtn.addEventListener('click', () => {
+      if(!authState.loggedIn){
+        planNote.textContent = '유료 플랜은 Google 계정으로 로그인한 뒤 구독할 수 있어요. 왼쪽 상단 메뉴에서 로그인해주세요.';
+        menuToggleBtn.click();
+        return;
+      }
+      pendingPlanKey = 'premium-yearly';
+      pendingCardEl = yBtn.closest('.price-card');
+      modalPlanName.textContent = 'Premium 플랜 (연간)';
+      modalPlanPrice.innerHTML = `${fmt(parseInt(yBtn.dataset.yearlyPrice, 10))} <span style="font-size:13px; font-family:'Noto Sans KR'; color:var(--ink-soft);">/ 년</span>`;
       paymentModal.hidden = false;
     });
   });
