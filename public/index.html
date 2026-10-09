@@ -771,7 +771,7 @@
     <p>AI가 만든 나만의 패턴을 <b>Lite</b>로 저렴하게 다운로드해 직접 만들거나, <b>Premium</b>으로 검증된 지역 재봉사와 매칭해 완제품 그대로 집 앞까지 받는다. 유료 플랜은 Google 계정으로 로그인 후 결제할 수 있다. 로그인은 왼쪽 상단 메뉴에서.</p>
   </div>
 
-  <div class="price-grid price-grid-2">
+  <div class="price-grid">
     <div class="price-card" data-plan="Lite" data-price="5000">
       <h3>Lite <span class="plan-subtitle">자가 제작(DIY)</span></h3>
       <div class="amount serif">5,000원<span> / 월</span></div>
@@ -782,9 +782,9 @@
       </ul>
       <button class="plan-select-btn" type="button">구독하기</button>
     </div>
-    <div class="price-card featured" data-plan="Premium" data-price="25000">
+    <div class="price-card featured" data-plan="Premium" data-price="25000" data-cycle="monthly">
       <div class="badge">완제품까지 한 번에</div>
-      <h3>Premium <span class="plan-subtitle">재봉사 매칭 + 완제품 배송</span></h3>
+      <h3>Premium <span class="plan-subtitle">월 결제</span></h3>
       <div class="amount serif">25,000원<span> / 월</span></div>
       <ul>
         <li>AI 패턴 생성 + 검증된 지역 재봉사 1:1 매칭</li>
@@ -792,6 +792,16 @@
         <li>아바타 기반 핏 보장(QC) — 오차 검수 후 불량 시 보상</li>
       </ul>
       <a class="plan-select-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;" href="https://kr.penworldwide.org/buybuttons/kr01suwon05/btn/707018db-ff41-4fd2-afc1-2b3ae27f3c6a/" target="_blank" rel="noopener noreferrer">구독하기</a>
+    </div>
+    <div class="price-card" data-plan="Premium" data-price="200000" data-cycle="yearly">
+      <h3>Premium <span class="plan-subtitle">년 결제</span></h3>
+      <div class="amount serif">200,000원<span> / 년</span></div>
+      <ul>
+        <li>AI 패턴 생성 + 검증된 지역 재봉사 1:1 매칭</li>
+        <li>완제품 도어투도어 배송</li>
+        <li>아바타 기반 핏 보장(QC) — 오차 검수 후 불량 시 보상</li>
+      </ul>
+      <button class="plan-select-btn" type="button">구독하기</button>
     </div>
   </div>
   <p class="plan-selected-note" id="plan-selected-note"></p>
@@ -1458,11 +1468,17 @@
         // 프로필 모달을 다시 띄우지 않아요. "로그인 직후 한 번"은 실제로 로그인 버튼을
         // 눌렀을 때(handleGoogleCredential)만 해당돼요.
         if(data.subscription){
-          const card = document.querySelector(`.price-card[data-plan="${data.subscription.plan}"]`);
+          const subCycle = Number(data.subscription.amount) === 200000 ? 'yearly' : 'monthly';
+          const card = document.querySelector(
+            data.subscription.plan === 'Premium'
+              ? `.price-card[data-plan="Premium"][data-cycle="${subCycle}"]`
+              : `.price-card[data-plan="${data.subscription.plan}"]`
+          );
           if(card){
             card.classList.add('selected');
             card.querySelector('.plan-select-btn').textContent = '✓ 구독 중';
-            planNote.textContent = `${data.subscription.plan} 플랜 구독 중 · ${data.user.email} 계정으로 매월 ${fmt(data.subscription.amount)}이 결제돼요.`;
+            const cycleLabel = Number(data.subscription.amount) === 200000 ? '매년' : '매월';
+            planNote.textContent = `${data.subscription.plan} 플랜 구독 중 · ${data.user.email} 계정으로 ${cycleLabel} ${fmt(data.subscription.amount)}이 결제돼요.`;
           }
         }
       }
@@ -1612,10 +1628,11 @@
         return;
       }
 
-      pendingPlanKey = PLAN_KEY_MAP[card.dataset.plan];
+      const isYearly = card.dataset.cycle === 'yearly';
+      pendingPlanKey = isYearly ? 'premium-yearly' : PLAN_KEY_MAP[card.dataset.plan];
       pendingCardEl = card;
-      modalPlanName.textContent = `${card.dataset.plan} 플랜`;
-      modalPlanPrice.innerHTML = `${fmt(price)} <span style="font-size:13px; font-family:'Noto Sans KR'; color:var(--ink-soft);">/ 월</span>`;
+      modalPlanName.textContent = `${card.dataset.plan} 플랜 (${isYearly ? '년 결제' : '월 결제'})`;
+      modalPlanPrice.innerHTML = `${fmt(price)} <span style="font-size:13px; font-family:'Noto Sans KR'; color:var(--ink-soft);">${isYearly ? '/ 년' : '/ 월'}</span>`;
       paymentModal.hidden = false;
     });
   });
