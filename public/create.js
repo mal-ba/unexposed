@@ -1,4 +1,6 @@
 /* create.js — 제작 스튜디오 (create.html 팝업을 index.html이 불러온 뒤 실행돼요)
+   - 먼저 바디 스캔(사진 + 키 필수·몸무게 선택)을 받고, 그 체형을 기준으로 옷을 만들어요.
+     키·몸무게는 주문에 함께 실려 재봉사에게 전달돼요.
    - 옷 종류 → 3D 모델(/models/*.glb)을 보여주고, 모델을 누르면 그 부위를 채워요.
    - 3D 모델이 없거나 불러오지 못하면 부위 칸(2D) 방식으로 보여줘요.
    - 장바구니에 여러 디자인을 담아 한 번에 주문하거나, 한 벌씩 바로 주문해요.
@@ -42,6 +44,8 @@
   const CART_KEY = 'unexposed_studio_cart';
   const PALETTE = ['#0F2E2C', '#3E7F86', '#6FB8C2', '#D8663F', '#F5F2EA', '#14201E', '#A98863', '#FBFAF6'];
   const DEFAULT_FABRIC_COLOR = '#D9D4C7'; // 아직 안 채운 부위의 기본 옷감색
+  // 바디 스캔 입력 범위 (키는 3D 꾸미기와 같은 범위, server.js 의 STUDIO_BODY 와 같아야 해요)
+  const BODY = { heightMin: 120, heightMax: 210, weightMin: 30, weightMax: 200 };
 
   /* ---------- 옷 종류 → 3D 모델 파일 (public/models/ 에 원래 이름 그대로 두세요) ---------- */
   const MODEL_BASE = '/models/';
@@ -63,7 +67,9 @@
     typeKey: 'shortSleeve', lengthMul: 1, girthMul: 1, regions: {},
     fabric: 'cotton', color: PALETTE[0], tool: 'fill', mirror: false,
     hasPaint: false, finishAmount: 0, quantity: 1, brush: 0.035,
+    body: null, // { heightCm, weightKg|null } — 바디 스캔을 마쳐야 채워져요
   };
+  let scanStream = null;
   let memCart = [];
   let cart = loadCart();
   let pending = null; // 주문 확인 모달에 올라간 주문 { mode: 'single'|'cart', items }
@@ -141,6 +147,32 @@
   .order-shipping-fields{display:flex;flex-direction:column;gap:8px;margin-top:8px}
   .order-shipping-fields label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-soft)}
   .order-shipping-fields input{padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-family:inherit;background:var(--paper);color:var(--ink)}
+  .wizard-steps{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .wizard-step{opacity:.45}
+  .wizard-step.active{opacity:1}
+  .wizard-step-arrow{color:var(--ink-soft);font-size:12px}
+  .wizard-panel[hidden]{display:none}
+  .create-scan-wrap{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:640px){.create-scan-wrap{grid-template-columns:1fr 1fr}}
+  .create-scan-camera video{width:100%;aspect-ratio:3/4;object-fit:cover;background:var(--mist);border:1px solid var(--line);border-radius:8px;display:block}
+  .create-scan-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .create-scan-actions .btn{padding:10px 16px;font-size:13px}
+  .create-scan-upload{display:inline-flex;align-items:center;padding:10px 16px;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--paper)}
+  .create-scan-hint{font-size:12px;color:var(--ink-soft);margin-top:8px}
+  .create-scan-photo{aspect-ratio:3/4;max-height:260px;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12.5px;color:var(--ink-soft);padding:10px;overflow:hidden;background:var(--paper)}
+  .create-scan-photo img{width:100%;height:100%;object-fit:contain}
+  .create-body-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .create-body-fields label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-soft)}
+  .create-body-fields input{padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-family:inherit;background:var(--paper);color:var(--ink);font-size:14px}
+  .create-body-fields input[aria-invalid=true]{border-color:var(--coral)}
+  .create-body-fields .req{color:var(--coral);font-size:11px;font-weight:700;margin-left:4px}
+  .create-body-fields .opt{font-size:11px;margin-left:4px}
+  .create-body-note{font-size:12px;color:var(--ink-soft);margin-top:8px}
+  .create-body-error{font-size:12.5px;color:var(--coral);min-height:18px;margin-top:4px}
+  .create-scan-next{width:100%;justify-content:center;margin-top:4px}
+  .create-scan-next:disabled{opacity:.4;cursor:not-allowed}
+  .create-body-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+  .create-body-bar button{border:none;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--star-dark);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   `;
 
   function injectStyle() {
@@ -182,7 +214,138 @@
       girthMul: st.girthMul,
       regions: JSON.parse(JSON.stringify(st.regions)),
       hasPaint: st.hasPaint,
+      body: st.body ? { ...st.body } : null,
     };
+  }
+
+  /* ---------- 바디 스캔 (STEP 1) ---------- */
+  function readBody() {
+    const hRaw = $('create-height-input').value.trim();
+    const wRaw = $('create-weight-input').value.trim();
+    const h = Number(hRaw);
+    const w = Number(wRaw);
+    const heightOk = hRaw !== '' && isFinite(h) && h >= BODY.heightMin && h <= BODY.heightMax;
+    const weightOk = wRaw === '' || (isFinite(w) && w >= BODY.weightMin && w <= BODY.weightMax);
+    let error = '';
+    if (hRaw !== '' && !heightOk) error = `키는 ${BODY.heightMin}~${BODY.heightMax}cm 사이로 입력해주세요.`;
+    else if (!weightOk) error = `몸무게는 ${BODY.weightMin}~${BODY.weightMax}kg 사이로 입력하거나 비워두세요.`;
+    return {
+      ok: heightOk && weightOk,
+      heightOk, weightOk, error,
+      body: { heightCm: Math.round(h * 10) / 10, weightKg: wRaw === '' ? null : Math.round(w * 10) / 10 },
+    };
+  }
+  function refreshScanNext() {
+    const r = readBody();
+    $('create-scan-next-btn').disabled = !r.ok;
+    $('create-height-input').setAttribute('aria-invalid', String($('create-height-input').value.trim() !== '' && !r.heightOk));
+    $('create-weight-input').setAttribute('aria-invalid', String(!r.weightOk));
+    $('create-body-error').textContent = r.error;
+  }
+  function bodyText(body) {
+    return body.weightKg != null
+      ? `기준 체형 · 키 ${body.heightCm}cm · 몸무게 ${body.weightKg}kg`
+      : `기준 체형 · 키 ${body.heightCm}cm`;
+  }
+  function stopScanCamera() {
+    if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+    const v = $('create-scan-video');
+    if (v) v.srcObject = null;
+    $('create-scan-capture-btn').hidden = true;
+    $('create-scan-start-btn').hidden = false;
+  }
+  function showScanPhoto(dataUrl) {
+    const slot = $('create-scan-photo');
+    slot.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = '';
+    slot.appendChild(img);
+  }
+  function scanPhotoDataUrl() {
+    const img = $('create-scan-photo').querySelector('img');
+    return img && img.src && img.src.startsWith('data:') ? img.src : null;
+  }
+  // 3D 꾸미기와 같은 규칙: 로그인 + 신체 데이터 수집에 동의한 경우에만 사진·키를 서버에 저장해요.
+  // 몸무게는 동의 문구(사진·키 정보)에 없어서 스캔 기록에는 저장하지 않고, 주문할 때만 함께 보내요.
+  async function saveScanIfConsented(body) {
+    if (!loggedIn() || window.bodyDataConsentGranted !== true) return;
+    const photo = scanPhotoDataUrl();
+    try {
+      await fetch('/api/scan/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          heightCm: body.heightCm,
+          photoThumbnail: photo && photo.length < 380000 ? photo : null,
+        }),
+      });
+    } catch (e) { /* 저장에 실패해도 스튜디오는 그대로 써요 */ }
+  }
+  function showCreateStep(step) {
+    $('create-scan-panel').hidden = step !== 1;
+    $('create-studio-panel').hidden = step !== 2;
+    $('create-step-indicator-1').classList.toggle('active', step === 1);
+    $('create-step-indicator-2').classList.toggle('active', step === 2);
+    if (step === 2) {
+      stopScanCamera();
+      $('create-body-summary').textContent = bodyText(st.body);
+      status('옷을 고르고 부위를 채워보세요.');
+      showModelFor(st.typeKey);
+    } else {
+      refreshScanNext();
+    }
+    const box = $('create-modal').querySelector('.wizard-box');
+    if (box) box.scrollTop = 0;
+  }
+  function bindScan() {
+    $('create-scan-start-btn').addEventListener('click', async () => {
+      try {
+        scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        $('create-scan-video').srcObject = scanStream;
+        $('create-scan-start-btn').hidden = true;
+        $('create-scan-capture-btn').hidden = false;
+        $('create-scan-hint').textContent = '정면을 바라보고 몸 전체가 화면에 들어오게 선 다음 "사진 촬영"을 눌러주세요.';
+      } catch (e) {
+        $('create-scan-hint').textContent = '카메라를 사용할 수 없습니다. 아래 업로드 버튼으로 진행해주세요.';
+      }
+    });
+    $('create-scan-capture-btn').addEventListener('click', () => {
+      const v = $('create-scan-video');
+      if (!scanStream) return;
+      const c = $('create-scan-canvas');
+      c.width = v.videoWidth || 480;
+      c.height = v.videoHeight || 640;
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      showScanPhoto(c.toDataURL('image/jpeg', 0.85));
+      stopScanCamera();
+      $('create-scan-start-btn').textContent = '다시 촬영';
+      $('create-scan-hint').textContent = '촬영이 완료되었습니다. 키를 입력하고 다음으로 넘어가세요.';
+    });
+    $('create-scan-file-input').addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        showScanPhoto(reader.result);
+        $('create-scan-hint').textContent = '사진 업로드가 완료되었습니다. 키를 입력하고 다음으로 넘어가세요.';
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    });
+    $('create-height-input').addEventListener('input', refreshScanNext);
+    $('create-weight-input').addEventListener('input', refreshScanNext);
+    $('create-scan-next-btn').addEventListener('click', () => {
+      const r = readBody();
+      if (!r.ok) {
+        if (!r.heightOk && !r.error) $('create-body-error').textContent = '키를 입력해주세요. (필수)';
+        return;
+      }
+      st.body = r.body;
+      saveScanIfConsented(st.body);
+      showCreateStep(2);
+    });
+    $('create-rescan-btn').addEventListener('click', () => showCreateStep(1));
   }
 
   /* ---------- 부위 이름·채우기 ---------- */
@@ -665,7 +828,7 @@
   }
 
   function bindEvents() {
-    $('create-modal-close').addEventListener('click', () => { $('create-modal').hidden = true; });
+    $('create-modal-close').addEventListener('click', () => { stopScanCamera(); $('create-modal').hidden = true; });
     $('cart-open-btn').addEventListener('click', () => { renderCart(); $('cart-modal').hidden = false; });
     $('cart-close-btn').addEventListener('click', () => { $('cart-modal').hidden = true; });
     $('create-order-cancel-btn').addEventListener('click', () => { $('create-order-modal').hidden = true; pending = null; });
@@ -794,11 +957,17 @@
     if (!items.length) { toast('담긴 디자인이 없습니다.'); return; }
     pending = {
       mode,
-      items: items.map(i => ({ label: i.label, studio: i.studio, finishAmount: i.finishAmount, quantity: i.quantity })),
+      items: items.map(i => ({
+        label: i.label,
+        studio: i.studio && i.studio.body ? i.studio : { ...i.studio, body: st.body ? { ...st.body } : null },
+        finishAmount: i.finishAmount,
+        quantity: i.quantity,
+      })),
     };
     const totalQty = pending.items.reduce((a, i) => a + i.quantity, 0);
     $('create-order-summary').innerHTML =
       pending.items.map((i, n) => `${n + 1}. ${i.label} ×${i.quantity} · ${i.finishAmount ? 'Premium' : 'Lite'}`).join('<br>') +
+      (st.body ? `<br>${bodyText(st.body)}` : '') +
       `<br><b>총 ${pending.items.length}종 · ${totalQty}벌</b>` +
       '<br><span style="font-size:12px;color:var(--ink-soft)">결제 금액은 주문 확정 때 서버가 계산해 결제 창에 보여줍니다.</span>';
     $('create-order-shipping-section').hidden = !pending.items.some(i => i.finishAmount === FINISH_PREMIUM);
@@ -872,15 +1041,16 @@
   buildStatic();
   ensurePaintCanvas();
   bindEvents();
+  bindScan();
   renderAll();
   renderCart();
   renderBadge();
 
   // index.html 이 불러온 뒤 버튼으로 팝업을 열어요.
+  // 체형을 아직 안 받았으면 바디 스캔(STEP 1)부터, 받았으면 바로 옷 만들기(STEP 2)로 열어요.
   window.openCreateStudio = function () {
     $('create-modal').hidden = false;
-    status('옷을 고르고 부위를 채워보세요.');
-    showModelFor(st.typeKey);
+    showCreateStep(st.body ? 2 : 1);
   };
 
   // 테스트·점검용: 부위 나누기와 모델 준비 함수를 밖에서 볼 수 있게 해 둬요.
