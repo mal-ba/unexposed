@@ -19,8 +19,33 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const TOSS_CLIENT_KEY = process.env.TOSS_CLIENT_KEY || '';
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-only-secret-change-me';
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || '';
+// 대시보드에서 주소를 복사하다 보면 끝에 /rest/v1/ 이 딸려오는 일이 많아요. 라이브러리가 그 부분을
+// 직접 붙이기 때문에, 붙어 있으면 떼고 써요(안 떼면 모든 요청이 실패해요).
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
+const SUPABASE_SECRET_KEY = (process.env.SUPABASE_SECRET_KEY || '').trim();
+
+// 서버는 RLS를 통과하는 비밀 키(sb_secret_… / service_role)로 접속해야 해요.
+// 공개 키(sb_publishable_… / anon)를 넣으면 오류 없이 "0줄"만 돌아와서 옷장·통계가 텅 비어 보여요.
+function supabaseKeyKind(key){
+  if(!key) return 'missing';
+  if(key.startsWith('sb_secret_')) return 'secret';
+  if(key.startsWith('sb_publishable_')) return 'publishable';
+  const parts = key.split('.');
+  if(parts.length === 3){
+    try {
+      const role = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')).role;
+      if(role === 'service_role') return 'secret';
+      if(role === 'anon') return 'publishable';
+    } catch(e){ /* 모르는 형식이면 아래로 */ }
+  }
+  return 'unknown';
+}
+const SUPABASE_KEY_KIND = supabaseKeyKind(SUPABASE_SECRET_KEY);
+// 관리자 페이지 맨 위에 띄울 설정 경고 (없으면 빈 배열)
+const SETUP_WARNINGS = [];
+if(SUPABASE_KEY_KIND === 'publishable'){
+  SETUP_WARNINGS.push('Render의 SUPABASE_SECRET_KEY에 공개 키(publishable/anon)가 들어 있어요. 이 키로는 데이터를 읽을 수 없어서 옷장·통계·관리자 목록이 비어 보입니다. Supabase → Project Settings → API Keys의 Secret key(sb_secret_…)로 바꿔주세요.');
+}
 const WARDROBE_BUCKET = 'wardrobe-assets';
 const COMMUNITY_BUCKET = 'community-assets'; // 커뮤니티 게시물 이미지용 버킷이에요.
 // 쉼표로 여러 개 등록 가능: 예전 방식의 관리자 목록이에요. 지금은 Supabase의
@@ -1411,7 +1436,7 @@ app.delete('/api/admin/subscriptions/:email', requireLogin, requireAdmin, async 
 
 // 관리자 여부만 가볍게 확인할 때 써요 (admin.html이 로그인 직후 이걸로 접근 권한을 확인해요).
 app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
-  res.json({ ok: true, isAdmin: true, isSuperAdmin: isSuperAdminEmail(req.user.email) });
+  res.json({ ok: true, isAdmin: true, isSuperAdmin: isSuperAdminEmail(req.user.email), setupWarnings: SETUP_WARNINGS });
 });
 
 /* ---------------- 관리자 관리 (대빵 전용) ----------------
@@ -1729,6 +1754,7 @@ async function start() {
     console.log(`UNEXPOSED 서버 실행 중: http://localhost:${PORT}`);
     if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있습니다. .env 파일을 확인하세요.');
     if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) console.warn('⚠️  Supabase 설정이 비어있습니다. .env 파일을 확인하세요.');
+    SETUP_WARNINGS.forEach(w => console.error('⚠️  ' + w));
     console.log(r2Enabled ? '업로드 파일 저장소: Cloudflare R2' : '업로드 파일 저장소: Supabase Storage (R2 설정 없음)');
   });
 }
