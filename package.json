@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",
+    "aws4fetch": "^1.0.20",
     "compression": "^1.7.5",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.5",

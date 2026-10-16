@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { createClient } = require('@supabase/supabase-js');
+const { AwsClient } = require('aws4fetch');
 const multer = require('multer');
 const compression = require('compression');
 const { applyAntiCopy } = require('./anti-copy'); // 복제 방지 (AI 크롤러 차단·난독화·우클릭 방지 등)
@@ -49,6 +50,23 @@ if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
   console.warn('⚠️  SUPABASE_URL / SUPABASE_SECRET_KEY가 설정되어 있지 않습니다. .env 파일을 확인하세요.');
 }
 const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
+
+// ── 업로드 파일 저장소: Cloudflare R2 (설정돼 있을 때) ───────────────
+// 3D 옷 파일(.glb)은 수십 MB라, Supabase Storage에서 내려주면 무료 전송량(월 5GB)을
+// 금방 다 써요. R2는 내려받는 전송량이 무료라, 아래 다섯 값이 모두 있으면 옷장·커뮤니티
+// 업로드를 R2에 저장해요. 하나라도 비어 있으면 예전처럼 Supabase Storage를 써요.
+const R2 = {
+  accountId: process.env.R2_ACCOUNT_ID || '',
+  accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  bucket: process.env.R2_BUCKET || '',
+  publicUrl: (process.env.R2_PUBLIC_URL || '').replace(/\/+$/, ''), // 예: https://pub-xxxx.r2.dev
+};
+const r2Enabled = !!(R2.accountId && R2.accessKeyId && R2.secretAccessKey && R2.bucket && R2.publicUrl);
+const r2Client = r2Enabled
+  ? new AwsClient({ accessKeyId: R2.accessKeyId, secretAccessKey: R2.secretAccessKey, service: 's3', region: 'auto' })
+  : null;
+const r2ObjectUrl = key => `https://${R2.accountId}.r2.cloudflarestorage.com/${R2.bucket}/${key.split('/').map(encodeURIComponent).join('/')}`;
 
 // ── 로그인 유지 방식 ──────────────────────────────────────────
 // express-session(서버 메모리 저장) 대신, 서명된 JWT를 쿠키에 담아서 로그인 상태를
@@ -177,14 +195,32 @@ function fixMulterFilenameEncoding(name) {
   }
 }
 
-// Supabase Storage에 파일을 올리고, 누구나 접근 가능한 공개 URL을 돌려줘요.
+// 파일을 올리고, 누구나 접근 가능한 공개 URL을 돌려줘요. (R2가 설정돼 있으면 R2, 아니면 Supabase Storage)
 // itemId로 폴더를 나눠서, 서로 다른 아이템끼리 파일 이름이 겹쳐도 안전해요.
 // filePath는 디스크에 임시로 저장된 파일 경로예요 — 파일 전체를 메모리에 올리지 않고
-// 스트림으로 읽어서 그대로 Supabase에 흘려보내요(대용량 파일에도 RAM 부담이 거의 없어요).
+// 스트림으로 읽어서 그대로 흘려보내요(대용량 파일에도 RAM 부담이 거의 없어요).
 async function uploadFileToBucket(bucketName, itemId, filePath, desiredFileName, defaultContentType) {
   const safeName = sanitizeFilename(desiredFileName);
   const storagePath = `${itemId}/${Date.now()}_${safeName}`;
   const contentType = guessContentType(safeName) || defaultContentType;
+
+  if (r2Enabled) {
+    // R2는 버킷 하나에 옷장·커뮤니티 파일을 폴더(bucketName/)로 나눠 담아요.
+    const key = `${bucketName}/${storagePath}`;
+    const { size } = await fs.promises.stat(filePath);
+    const res = await r2Client.fetch(r2ObjectUrl(key), {
+      method: 'PUT',
+      body: fs.createReadStream(filePath),
+      duplex: 'half',
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': String(size),
+        'Cache-Control': 'public, max-age=31536000, immutable', // 파일 이름에 시간이 들어가서 내용이 바뀌지 않아요
+      },
+    });
+    if (!res.ok) throw new Error(`R2 업로드 실패 (${res.status}): ${(await res.text()).slice(0, 200)}`);
+    return { publicUrl: `${R2.publicUrl}/${key.split('/').map(encodeURIComponent).join('/')}`, storagePath: key };
+  }
 
   const { error } = await supabase.storage
     .from(bucketName)
@@ -230,9 +266,15 @@ function guessContentType(filename) {
   return map[ext] || null;
 }
 
-// Supabase Storage에 있는 파일이면 지우고, 그 외(깃허브에 직접 올려둔 정적 파일 등)는 건드리지 않아요.
+// R2나 Supabase Storage에 있는 파일이면 지우고, 그 외(깃허브에 직접 올려둔 정적 파일 등)는 건드리지 않아요.
 async function deleteFromWardrobeBucketIfManaged(publicUrl) {
   if (!publicUrl) return;
+  if (r2Enabled && publicUrl.startsWith(R2.publicUrl + '/')) {
+    const key = publicUrl.slice(R2.publicUrl.length + 1).split('/').map(decodeURIComponent).join('/');
+    const res = await r2Client.fetch(r2ObjectUrl(key), { method: 'DELETE' });
+    if (!res.ok && res.status !== 404) console.warn('R2 파일 삭제 실패:', res.status, key);
+    return;
+  }
   const marker = `/storage/v1/object/public/${WARDROBE_BUCKET}/`;
   const idx = publicUrl.indexOf(marker);
   if (idx === -1) return; // 우리 버킷 파일이 아니면(예: /wardrobe-assets/... 깃허브 정적 파일) 그냥 둬요.
@@ -1687,6 +1729,7 @@ async function start() {
     console.log(`UNEXPOSED 서버 실행 중: http://localhost:${PORT}`);
     if (!GOOGLE_CLIENT_ID) console.warn('⚠️  GOOGLE_CLIENT_ID가 비어있습니다. .env 파일을 확인하세요.');
     if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) console.warn('⚠️  Supabase 설정이 비어있습니다. .env 파일을 확인하세요.');
+    console.log(r2Enabled ? '업로드 파일 저장소: Cloudflare R2' : '업로드 파일 저장소: Supabase Storage (R2 설정 없음)');
   });
 }
 start();
