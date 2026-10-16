@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>커뮤니티 — UNEXPOSED</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --deep:#0F2E2C; --deep-2:#123B38; --mist:#F5F2EA; --paper:#FBFAF6; --star:#6FB8C2; --star-dark:#3E7F86;
@@ -104,6 +104,7 @@
   .post-delete-btn:hover{ text-decoration:underline; }
   .empty-note{ font-size:14px; color:var(--ink-soft); padding:30px 0; text-align:center; }
 </style>
+<link rel="stylesheet" href="/site-theme.css">
 </head>
 <body>
 
@@ -126,7 +127,7 @@
   <div class="modal-box">
     <button class="modal-close-btn" id="upload-close-btn" type="button" aria-label="닫기" data-i18n-aria="close">✕</button>
     <h2 data-i18n="communityUploadModalTitle">내 작품 올리기</h2>
-    <p class="login-note" id="login-note" data-i18n="communityLoginNote">로그인 후 이용할 수 있습니다 — 왼쪽 상단 메뉴에서 로그인해주세요.</p>
+    <p class="login-note" id="login-note" data-i18n="communityLoginNote">로그인 후 이용할 수 있습니다. 왼쪽 상단 메뉴에서 로그인해 주세요.</p>
     <form class="upload-form" id="upload-form" hidden>
       <input type="text" id="post-title-input" placeholder="제목 (예: 여름용 원피스 코디)" maxlength="80" required data-i18n-placeholder="communityTitlePlaceholder">
       <textarea id="post-desc-input" placeholder="설명(선택) — 어떤 원단·무늬를 썼는지 등" maxlength="500" data-i18n-placeholder="communityDescPlaceholder"></textarea>
@@ -144,7 +145,7 @@
   <p class="intro" data-i18n="communityIntro">직접 디자인한 옷·아이템 스크린샷을 올려서 다른 사람들에게 자랑해보세요. 오른쪽 위 "작품 올리기"를 눌러서 올릴 수 있습니다 (로그인 필요).</p>
 
   <div class="gallery-grid" id="gallery-grid"></div>
-  <p class="empty-note" id="gallery-empty" hidden data-i18n="communityEmptyNote">아직 올라온 작품이 없습니다. 첫 번째로 올려보세요!</p>
+  <p class="empty-note" id="gallery-empty" hidden data-i18n="communityEmptyNote">아직 올라온 작품이 없습니다. 첫 번째 작품을 올려 주세요!</p>
 </main>
 
 <div id="footer-mount"></div>

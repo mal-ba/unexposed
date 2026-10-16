@@ -207,13 +207,13 @@
   function onRegionTap(key) {
     const kind = kindOf(st.typeKey);
     if (!kind.cols[key.split('_')[1]] || !kind.rows[key.split('_')[0]]) return;
-    if (st.tool === 'brush') { status('브러시는 옷 그림 칸에 직접 그려요.'); return; }
+    if (st.tool === 'brush') { status('브러시로는 옷 그림 칸에 직접 그릴 수 있습니다.'); return; }
     const m = st.mirror ? mirrorKey(key) : null;
     const useMirror = !!(m && kind.cols[m.split('_')[1]]);
     if (st.tool === 'eraser') {
       setRegion(key, null);
       if (useMirror) setRegion(m, null);
-      status(`${regionLabel(kind, key)} 지웠어요.`);
+      status(`${regionLabel(kind, key)} 지웠습니다.`);
     } else {
       const fill = { fabric: st.fabric, color: st.color };
       setRegion(key, fill);
@@ -320,7 +320,7 @@
       return true;
     } catch (e) {
       view.failed = true;
-      console.warn('3D 뷰어를 시작하지 못했어요:', e);
+      console.warn('3D 뷰어를 시작하지 못했습니다:', e);
       return false;
     }
   }
@@ -452,7 +452,7 @@
     if (moved > 6) return; // 돌리기(드래그)였으면 채우지 않아요
     const key = pickRegion(e.clientX, e.clientY);
     if (key) onRegionTap(key);
-    else status('옷 부분을 눌러야 채워져요.');
+    else status('옷 부분을 눌러야 채워집니다.');
   }
 
   // 3D 모델이 없을 때는 빈 칸 배경만 보여줘요.
@@ -465,7 +465,7 @@
       return;
     }
     ensure3D().then(async ok => {
-      if (!ok) { detachModel(); setGLVisible(false); loading.hidden = false; loading.textContent = '3D를 쓸 수 없어 칸으로 채워요.'; return; }
+      if (!ok) { detachModel(); setGLVisible(false); loading.hidden = false; loading.textContent = '3D를 쓸 수 없어 칸으로 채웁니다.'; return; }
       setGLVisible(true);
       if (modelCache[typeKey]) { if (view.currentType === typeKey) attachModel(modelCache[typeKey]); return; }
       loading.hidden = false; loading.textContent = '3D 옷을 불러오는 중...';
@@ -475,9 +475,9 @@
         if (view.currentType === typeKey) attachModel(prepared);
         loading.hidden = true;
       } catch (e) {
-        console.warn('모델을 불러오지 못했어요:', file, e);
+        console.warn('모델을 불러오지 못했습니다:', file, e);
         detachModel(); setGLVisible(false);
-        loading.hidden = false; loading.textContent = '이 옷의 3D 파일을 불러오지 못해 칸으로 채워요.';
+        loading.hidden = false; loading.textContent = '이 옷의 3D 파일을 불러오지 못해 칸으로 채웁니다.';
       }
     });
   }
@@ -556,8 +556,8 @@
     $('mirror-toggle').checked = st.mirror;
     const painting = st.tool === 'brush' || st.tool === 'eraser';
     $('viewer-hint').textContent = painting
-      ? '옷 위에 드래그해서 그려요 (그림은 미리보기용이에요)'
-      : (view.renderer ? '드래그로 돌려보고, 옷을 누르면 그 부위를 채워요' : '아래 부위 칸을 눌러 지금 고른 원단·색으로 채워요');
+      ? '옷 위를 드래그하면 그림을 그릴 수 있습니다 (그림은 미리보기용입니다)'
+      : (view.renderer ? '드래그해서 돌려볼 수 있고, 옷을 누르면 그 부위가 채워집니다' : '아래 부위 칸을 누르면 지금 고른 원단·색으로 채워집니다');
     applyToolToStage();
   }
   function renderRegions() {
@@ -603,7 +603,7 @@
       `1벌 추가 금액 ${won(e.unit)} × ${st.quantity}벌 = ${won(e.unit * st.quantity)}`,
     ];
     $('create-quote').innerHTML = lines.join('<br>') +
-      '<br><span style="font-size:11.5px;color:var(--ink-soft)">결제 금액은 주문 확정 때 서버가 1벌 가격 × 수량으로 다시 계산해요.</span>';
+      '<br><span style="font-size:11.5px;color:var(--ink-soft)">결제 금액은 주문 확정 때 서버가 1벌 가격 × 수량으로 다시 계산합니다.</span>';
   }
   function renderAll() {
     renderTypes(); renderSizes(); renderFabrics(); renderColors(); renderTools();
@@ -621,7 +621,7 @@
     if (st.typeKey !== key) resetDesign();
     st.typeKey = key;
     st.tool = 'fill';
-    status(`${TYPES[key].label} 선택 · 옷을 누르거나 부위 칸을 눌러 채워요`);
+    status(`${TYPES[key].label} 선택 · 옷이나 부위 칸을 누르면 채워집니다`);
     showModelFor(key);
     renderAll();
   }
@@ -686,11 +686,11 @@
     $('fill-all-btn').addEventListener('click', () => {
       const kind = kindOf(st.typeKey);
       for (const key of regionKeys(kind)) setRegion(key, { fabric: st.fabric, color: st.color });
-      status('전체를 채웠어요.');
+      status('전체를 채웠습니다.');
       renderRegions(); renderQuote();
     });
-    $('clear-paint-btn').addEventListener('click', () => { clearPaint(); status('브러시 자국을 지웠어요.'); renderQuote(); });
-    $('reset-btn').addEventListener('click', () => { resetDesign(); status('이 옷을 처음 상태로 되돌렸어요.'); renderAll(); });
+    $('clear-paint-btn').addEventListener('click', () => { clearPaint(); status('브러시 자국을 지웠습니다.'); renderQuote(); });
+    $('reset-btn').addEventListener('click', () => { resetDesign(); status('이 옷을 처음 상태로 되돌렸습니다.'); renderAll(); });
 
     document.querySelectorAll('#create-finish-choices .calc-chip').forEach(b => b.addEventListener('click', () => {
       st.finishAmount = Number(b.dataset.finish); renderFinish(); renderQuote();
@@ -734,7 +734,7 @@
     b.textContent = String(cart.length);
   }
   function addToCart() {
-    if (cart.length >= MAX_CART) { toast(`장바구니에는 최대 ${MAX_CART}개 디자인까지 담을 수 있어요.`); return; }
+    if (cart.length >= MAX_CART) { toast(`장바구니에는 최대 ${MAX_CART}개 디자인까지 담을 수 있습니다.`); return; }
     const list = cart.slice();
     list.push({
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -745,7 +745,7 @@
     });
     saveCart(list);
     renderBadge();
-    toast('장바구니에 담았어요.');
+    toast('장바구니에 담았습니다.');
   }
   function renderCart() {
     const list = $('cart-list');
@@ -777,7 +777,7 @@
       const totalQty = cart.reduce((a, i) => a + i.quantity, 0);
       const est = cart.reduce((a, i) => a + estimate(i.studio, i.finishAmount).unit * i.quantity, 0);
       summary.innerHTML = `총 ${cart.length}종 · ${totalQty}벌<br>추가 금액 합계(참고) ${won(est)}`;
-      $('cart-note').textContent = '결제 금액은 주문 확정 때 서버가 1벌 가격 × 총 수량으로 계산해요.';
+      $('cart-note').textContent = '결제 금액은 주문 확정 때 서버가 1벌 가격 × 총 수량으로 계산합니다.';
     } else {
       $('cart-note').textContent = '';
     }
@@ -786,12 +786,12 @@
   /* ---------- 주문 확인 · 결제 ---------- */
   function openOrder(mode, items) {
     if (!loggedIn()) {
-      toast('유료 주문은 Google 계정으로 로그인한 뒤 할 수 있어요. 왼쪽 상단 메뉴에서 로그인해주세요.');
+      toast('유료 주문은 Google 계정으로 로그인한 뒤 할 수 있습니다. 왼쪽 상단 메뉴에서 로그인해주세요.');
       const menu = document.getElementById('menu-toggle-btn');
       if (menu) menu.click();
       return;
     }
-    if (!items.length) { toast('담긴 디자인이 없어요.'); return; }
+    if (!items.length) { toast('담긴 디자인이 없습니다.'); return; }
     pending = {
       mode,
       items: items.map(i => ({ label: i.label, studio: i.studio, finishAmount: i.finishAmount, quantity: i.quantity })),
@@ -800,7 +800,7 @@
     $('create-order-summary').innerHTML =
       pending.items.map((i, n) => `${n + 1}. ${i.label} ×${i.quantity} · ${i.finishAmount ? 'Premium' : 'Lite'}`).join('<br>') +
       `<br><b>총 ${pending.items.length}종 · ${totalQty}벌</b>` +
-      '<br><span style="font-size:12px;color:var(--ink-soft)">결제 금액은 주문 확정 때 서버가 계산해 결제 창에 보여줘요.</span>';
+      '<br><span style="font-size:12px;color:var(--ink-soft)">결제 금액은 주문 확정 때 서버가 계산해 결제 창에 보여줍니다.</span>';
     $('create-order-shipping-section').hidden = !pending.items.some(i => i.finishAmount === FINISH_PREMIUM);
     $('create-order-modal-note').textContent = '';
     $('create-order-modal').hidden = false;
@@ -843,7 +843,7 @@
         : { designMode: 'studio', studio: first.studio, quantity: first.quantity, finishAmount: first.finishAmount, finishLabel: first.finishAmount ? 'Premium' : 'Lite' };
       const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) throw new Error(data.error || '주문을 만들지 못했어요.');
+      if (!res.ok || !data.ok) throw new Error(data.error || '주문을 만들지 못했습니다.');
 
       if (data.needsShipping && ship) {
         const r2 = await fetch(`/api/orders/${encodeURIComponent(data.orderId)}/shipping`, {
@@ -851,16 +851,16 @@
           body: JSON.stringify({ shipping: ship, consent: true }),
         });
         const d2 = await r2.json().catch(() => ({}));
-        if (!r2.ok || !d2.ok) throw new Error(d2.error || '배송지를 저장하지 못했어요.');
+        if (!r2.ok || !d2.ok) throw new Error(d2.error || '배송지를 저장하지 못했습니다.');
       }
 
       const w = window.open(data.buyUrl, '_blank', 'noopener');
       note.innerHTML = w
-        ? '결제 창을 열었어요. 결제가 끝나면 주문이 확인돼요.'
-        : `팝업이 막혔어요. <a href="${data.buyUrl}" target="_blank" rel="noopener">여기</a>를 눌러 결제해주세요.`;
+        ? '결제 창을 열었습니다. 결제가 끝나면 주문이 확인됩니다.'
+        : `팝업이 막혔습니다. <a href="${data.buyUrl}" target="_blank" rel="noopener">여기</a>를 눌러 결제해주세요.`;
       if (isCart) { saveCart([]); renderCart(); renderBadge(); }
     } catch (err) {
-      note.textContent = err.message || '오류가 발생했어요. 잠시 후 다시 시도해주세요.';
+      note.textContent = err.message || '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
     } finally {
       btn.textContent = '결제하기';
       refreshPayButton();

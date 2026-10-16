@@ -18,14 +18,14 @@
 
     const style = document.createElement('style');
     style.textContent = `
-      .survey-overlay{ position:fixed; inset:0; z-index:10000; background:rgba(15,46,44,0.55);
+      .survey-overlay{ position:fixed; inset:0; z-index:10000; background:rgba(15,46,44,0.5);
         display:flex; align-items:center; justify-content:center; padding:16px; }
-      .survey-box{ position:relative; width:100%; max-width:380px; background:#FBFAF6; color:#14201E;
-        border-radius:18px; padding:28px 24px 20px; box-shadow:0 20px 50px rgba(0,0,0,0.3);
-        font-family:inherit; text-align:center; }
-      .survey-box h3{ margin:0 0 10px; font-size:19px; font-weight:600; }
+      .survey-box{ position:relative; width:100%; max-width:380px; background:#F8F6F0; color:#171C1B;
+        border-radius:2px; border-top:4px solid #D8663F; padding:26px 24px 18px; box-shadow:0 18px 40px rgba(0,0,0,0.22);
+        font-family:inherit; text-align:left; word-break:keep-all; }
+      .survey-box h3{ margin:0 0 10px; font-size:19px; font-weight:400; font-family:'Fraunces','Gowun Batang',serif; padding-right:24px; }
       .survey-box p{ margin:0 0 20px; font-size:14px; line-height:1.6; color:#4A5654; }
-      .survey-go{ display:block; width:100%; box-sizing:border-box; padding:13px; border-radius:999px;
+      .survey-go{ display:block; width:100%; box-sizing:border-box; padding:13px; border-radius:2px; text-align:center;
         background:#0F2E2C; color:#FBFAF6; font-size:15px; font-weight:600; text-decoration:none; }
       .survey-go:hover{ background:#123B38; }
       .survey-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:16px; font-size:13px; color:#4A5654; }
@@ -43,7 +43,7 @@
       <div class="survey-box" role="dialog" aria-modal="true" aria-labelledby="survey-title">
         <button class="survey-x" type="button" aria-label="닫기">✕</button>
         <h3 id="survey-title">설문조사에 참여해 주세요</h3>
-        <p>UNEXPOSED를 더 좋게 만들기 위해 설문조사를 하고 있어요. 잠깐 시간 내서 참여해 주시면 큰 힘이 돼요!</p>
+        <p>UNEXPOSED를 더 좋게 만들기 위해 설문조사를 하고 있습니다. 잠시 시간을 내어 참여해 주시면 큰 힘이 됩니다!</p>
         <a class="survey-go" href="${SURVEY_URL}" target="_blank" rel="noopener noreferrer">설문 참여하기</a>
         <div class="survey-foot">
           <label><input type="checkbox" class="survey-never"><span>다시 보지 않기</span></label>
