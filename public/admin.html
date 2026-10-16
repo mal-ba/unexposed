@@ -416,8 +416,16 @@
     try{
       const res = await fetch('/api/admin/orders');
       const data = await res.json();
-      if(!data.ok){
+      // 401·403(로그인 풀림·관리자 아님)만 권한 문제예요. 500 같은 DB 오류를
+      // "접근 권한이 없습니다"로 보여주면 원인을 착각하게 돼서, 오류 문구를 그대로 보여줘요.
+      if(res.status === 401 || res.status === 403){
         showView('denied');
+        return;
+      }
+      if(!data.ok){
+        ordersTbody.innerHTML = '';
+        ordersEmpty.hidden = false;
+        ordersEmpty.textContent = `${data.error || '주문 목록을 불러오지 못했습니다.'} (데이터베이스 연결을 확인해주세요)`;
         return;
       }
       renderOrders(data.orders);
