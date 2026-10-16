@@ -10,6 +10,9 @@
   padding:18px 20px 24px; overflow-y:auto;
   animation:side-menu-slide-in 0.22s ease-out;
 }
+/* 패널이 화면보다 길어지면(휴대폰) flex 자식들이 줄어들면서 로그인 영역 버튼이
+   아래 메뉴 항목 위로 겹쳐 보였어요. 줄어들지 않게 하고 패널 자체가 스크롤되게 해요. */
+.side-menu-panel > *{ flex-shrink:0; }
 @keyframes side-menu-slide-in{
   from{ transform:translateX(-16px); opacity:0.4; }
   to{ transform:translateX(0); opacity:1; }
