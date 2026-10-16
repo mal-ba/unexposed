@@ -39,6 +39,8 @@
   .sub-plan-select{ padding:9px 10px; border-radius:8px; border:1px solid var(--line); font-size:13px; font-family:inherit; background:var(--paper); color:var(--ink); }
   .sub-exp{ font-size:11px; color:var(--ink-soft); }
   .badge-studio{ background:#E4DDF0; color:#5B4A86; }
+  .setup-warning{ white-space:pre-line; background:#FBE9E3; color:#8A2E14; border:1px solid #D8663F; border-radius:10px; padding:12px 16px; margin-bottom:18px; font-size:13.5px; line-height:1.6; }
+  .setup-warning[hidden]{ display:none; }
   .order-note{ display:block; margin-top:6px; font-size:11.5px; color:#4A5654; white-space:pre-line; }
   .refresh-btn, .logout-btn{
     padding:9px 16px; border-radius:999px; border:1px solid var(--line); background:var(--paper);
@@ -168,6 +170,7 @@
 </div>
 
 <div id="dashboard-view" hidden>
+  <div class="setup-warning" id="setup-warning" hidden></div>
   <div class="top-bar">
     <div>
       <h1>UNEXPOSED 관리자</h1>
@@ -818,6 +821,11 @@
         return;
       }
       adminEmailText.textContent = `${me.user.name} (${me.user.email}) 로 로그인됨`;
+      // 서버 설정이 잘못돼 있으면(예: 공개 키로 DB 접속) 맨 위에 빨간 안내를 띄워요.
+      const setupWarning = document.getElementById('setup-warning');
+      const warnings = adminData.setupWarnings || [];
+      setupWarning.hidden = warnings.length === 0;
+      setupWarning.textContent = warnings.join('\n');
       showView('dashboard');
       loadOrders();
       loadSubscriptions();
