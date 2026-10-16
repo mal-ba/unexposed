@@ -378,7 +378,7 @@
   ordersTbody.addEventListener('click', async e => {
     const btn = e.target.closest('.paid-btn[data-paid-order-id]');
     if(!btn) return;
-    if(!confirm('이 주문의 결제가 PenWorldwide에서 확인되었나요?')) return;
+    if(!confirm('이 주문의 결제가 PenWorldwide에서 확인되었습니까?')) return;
     btn.disabled = true;
     try{
       const res = await fetch(`/api/admin/orders/${encodeURIComponent(btn.dataset.paidOrderId)}/paid`, { method: 'POST' });
@@ -491,7 +491,7 @@
     const action = btn.dataset.action;
     try{
       if(action === 'delete'){
-        if(!confirm('이 제보를 삭제할까요?')) return;
+        if(!confirm('이 제보를 삭제하시겠습니까?')) return;
         await fetch(`/api/admin/bug-reports/${id}`, { method: 'DELETE' });
       } else {
         await fetch(`/api/admin/bug-reports/${id}`, {
@@ -666,7 +666,7 @@
     overlay.className = 'confirm-overlay';
     overlay.innerHTML = `
       <div class="confirm-box">
-        <h3 style="margin:0 0 4px;">이 관리자를 삭제할까요?</h3>
+        <h3 style="margin:0 0 4px;">이 관리자를 삭제하시겠습니까?</h3>
         <p>${email} 계정의 관리자 권한이 즉시 사라집니다.</p>
         <div class="confirm-actions">
           <button class="confirm-cancel" type="button">취소</button>
@@ -706,7 +706,7 @@
     overlay.className = 'confirm-overlay';
     overlay.innerHTML = `
       <div class="confirm-box">
-        <h3 style="margin:0 0 4px;">정말 삭제할까요?</h3>
+        <h3 style="margin:0 0 4px;">정말 삭제하시겠습니까?</h3>
         <p>이 주문 기록은 삭제하면 되돌릴 수 없습니다.</p>
         <div class="confirm-actions">
           <button class="confirm-cancel" type="button">취소</button>
@@ -768,7 +768,7 @@
     overlay.className = 'confirm-overlay';
     overlay.innerHTML = `
       <div class="confirm-box">
-        <h3 style="margin:0 0 4px;">이 구독자를 삭제할까요?</h3>
+        <h3 style="margin:0 0 4px;">이 구독자를 삭제하시겠습니까?</h3>
         <p>${email} 님의 구독 기록이 삭제되면 되돌릴 수 없습니다.</p>
         <div class="confirm-actions">
           <button class="confirm-cancel" type="button">취소</button>

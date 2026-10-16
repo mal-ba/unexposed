@@ -43,7 +43,7 @@
       <div class="survey-box" role="dialog" aria-modal="true" aria-labelledby="survey-title">
         <button class="survey-x" type="button" aria-label="닫기">✕</button>
         <h3 id="survey-title">설문조사에 참여해 주세요</h3>
-        <p>UNEXPOSED를 더 좋게 만들기 위해 설문조사를 하고 있어요. 잠깐 시간 내서 참여해 주시면 큰 힘이 돼요!</p>
+        <p>UNEXPOSED를 더 좋게 만들기 위해 설문조사를 하고 있습니다. 잠시 시간을 내어 참여해 주시면 큰 힘이 됩니다!</p>
         <a class="survey-go" href="${SURVEY_URL}" target="_blank" rel="noopener noreferrer">설문 참여하기</a>
         <div class="survey-foot">
           <label><input type="checkbox" class="survey-never"><span>다시 보지 않기</span></label>

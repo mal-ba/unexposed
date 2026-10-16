@@ -1130,14 +1130,14 @@
       });
       const data = await res.json();
       if(data.ok){
-        bugreportNote.textContent = '제보 감사해요! 확인 후 처리할게요.';
+        bugreportNote.textContent = '제보 감사합니다! 확인 후 처리하겠습니다.';
         bugreportInput.value = '';
         setTimeout(() => { bugreportModal.hidden = true; }, 1200);
       } else {
-        bugreportNote.textContent = data.error || '전송에 실패했어요.';
+        bugreportNote.textContent = data.error || '전송에 실패했습니다.';
       }
     } catch(err){
-      bugreportNote.textContent = '전송 중 오류가 발생했어요.';
+      bugreportNote.textContent = '전송 중 오류가 발생했습니다.';
     } finally {
       bugreportSubmitBtn.disabled = false;
       bugreportSubmitBtn.textContent = '제보하기';
@@ -1169,9 +1169,9 @@
     banner.hidden = false;
 
     if(isKakao){
-      bannerText.textContent = '카카오톡 인앱 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.';
+      bannerText.textContent = '카카오톡 인앱 브라우저에서는 Google 로그인이 구글 정책상 차단됩니다.';
     } else {
-      bannerText.textContent = '지금 앱 내장 브라우저에서는 Google 로그인이 구글 정책상 차단돼요.';
+      bannerText.textContent = '지금 앱 내장 브라우저에서는 Google 로그인이 구글 정책상 차단됩니다.';
     }
 
     openBtn.addEventListener('click', () => {
@@ -1395,10 +1395,10 @@
         profileModal.hidden = true;
         if(profileModalDoneCallback){ profileModalDoneCallback(); profileModalDoneCallback = null; }
       } else {
-        profileSaveNote.textContent = data.error || '저장에 실패했어요.';
+        profileSaveNote.textContent = data.error || '저장에 실패했습니다.';
       }
     } catch(err){
-      profileSaveNote.textContent = '저장 중 오류가 발생했어요.';
+      profileSaveNote.textContent = '저장 중 오류가 발생했습니다.';
     } finally {
       profileSaveBtn.disabled = false;
       profileSaveBtn.textContent = '저장하기';
@@ -1430,15 +1430,15 @@
       const data = await res.json();
       if(data.ok){
         setLoggedIn(data.user, data.isAdmin);
-        planNote.textContent = `${data.user.name}님, 환영해요!`;
+        planNote.textContent = `${data.user.name}님, 환영합니다!`;
         checkAdminAndShowFab();
         if(data.profile) window.userProfile = data.profile;
         runLoginFollowups({ existingProfile: data.profile, bodyDataConsent: data.bodyDataConsent });
       } else {
-        planNote.textContent = data.error || '로그인에 실패했어요.';
+        planNote.textContent = data.error || '로그인에 실패했습니다.';
       }
     } catch(err){
-      planNote.textContent = '로그인 중 오류가 발생했어요. 서버가 켜져 있는지 확인해주세요.';
+      planNote.textContent = '로그인 중 오류가 발생했습니다. 서버가 켜져 있는지 확인해주세요.';
     }
   };
 
@@ -1477,7 +1477,7 @@
             card.classList.add('selected');
             card.querySelector('.plan-select-btn').textContent = '✓ 구독 중';
             const cycleLabel = isYearlySub ? '매년' : '매월';
-            planNote.textContent = `${data.subscription.plan} 플랜 구독 중 · ${data.user.email} 계정으로 ${cycleLabel} ${fmt(data.subscription.amount)}이 결제돼요.`;
+            planNote.textContent = `${data.subscription.plan} 플랜 구독 중 · ${data.user.email} 계정으로 ${cycleLabel} ${fmt(data.subscription.amount)}이 결제됩니다.`;
           }
         }
       }
@@ -1546,7 +1546,7 @@
       const res = await fetch('/api/scan/history');
       const data = await res.json();
       if(data.count > 0){
-        consentHistoryText.textContent = `지금까지 저장된 스캔 기록: ${data.count}개 (동의를 철회하면 즉시 삭제돼요)`;
+        consentHistoryText.textContent = `지금까지 저장된 스캔 기록: ${data.count}개 (동의를 철회하면 즉시 삭제됩니다)`;
       }
     } catch(err){ /* 무시해도 괜찮아요 */ }
     consentModal.hidden = false;
@@ -1569,14 +1569,14 @@
       if(data.ok){
         setBodyDataConsentGranted(data.consent);
         consentSaveNote.textContent = consent
-          ? '저장됐어요. 앞으로 스캔한 사진·키 정보가 서버에 저장돼요.'
-          : '저장됐어요. 스캔 데이터는 저장되지 않고 화면에만 표시돼요.';
+          ? '저장되었습니다. 앞으로 스캔한 사진·키 정보가 서버에 저장됩니다.'
+          : '저장되었습니다. 스캔 데이터는 저장되지 않고 화면에만 표시됩니다.';
         setTimeout(() => { consentModal.hidden = true; }, 900);
       } else {
-        consentSaveNote.textContent = data.error || '저장에 실패했어요.';
+        consentSaveNote.textContent = data.error || '저장에 실패했습니다.';
       }
     } catch(err){
-      consentSaveNote.textContent = '저장 중 오류가 발생했어요.';
+      consentSaveNote.textContent = '저장 중 오류가 발생했습니다.';
     } finally {
       consentSaveBtn.disabled = false;
       consentSaveBtn.textContent = '저장하기';
@@ -1600,7 +1600,7 @@
     });
     card.classList.add('selected');
     card.querySelector('.plan-select-btn').textContent = '✓ 선택됨';
-    planNote.textContent = `${card.dataset.plan} 플랜을 선택했어요.`;
+    planNote.textContent = `${card.dataset.plan} 플랜을 선택했습니다.`;
   }
 
   document.querySelectorAll('.price-card').forEach(card => {
@@ -1622,7 +1622,7 @@
         return;
       }
       if(!authState.loggedIn){
-        planNote.textContent = '유료 플랜은 Google 계정으로 로그인한 뒤 구독할 수 있어요. 왼쪽 상단 메뉴에서 로그인해주세요.';
+        planNote.textContent = '유료 플랜은 Google 계정으로 로그인한 뒤 구독할 수 있습니다. 왼쪽 상단 메뉴에서 로그인해주세요.';
         menuToggleBtn.click();
         return;
       }
@@ -1655,7 +1655,7 @@
       });
       const order = await orderRes.json();
       if(!order.ok){
-        planNote.textContent = order.error || '주문 생성에 실패했어요.';
+        planNote.textContent = order.error || '주문 생성에 실패했습니다.';
         paymentModal.hidden = true;
         return;
       }
@@ -1673,7 +1673,7 @@
         failUrl: `${window.location.origin}/payment-fail.html`,
       });
     } catch(err){
-      planNote.textContent = '결제창을 여는 중 오류가 발생했어요.';
+      planNote.textContent = '결제창을 여는 중 오류가 발생했습니다.';
       paymentModal.hidden = true;
     } finally {
       paymentConfirmBtn.disabled = false;
@@ -1799,7 +1799,7 @@
     if (loading) return loading;
     loading = (async () => {
       const res = await fetch('/create.html');
-      if (!res.ok) throw new Error('제작 스튜디오를 불러오지 못했어요.');
+      if (!res.ok) throw new Error('제작 스튜디오를 불러오지 못했습니다.');
       document.getElementById('create-bundle-mount').innerHTML = await res.text();
       await new Promise((resolve, reject) => {
         const s = document.createElement('script');
@@ -1819,7 +1819,7 @@
       await loadCreateStudio();
       window.openCreateStudio();
     } catch (err) {
-      alert(err.message || '제작 스튜디오를 열지 못했어요.');
+      alert(err.message || '제작 스튜디오를 열지 못했습니다.');
     } finally {
       openBtn.disabled = false;
     }

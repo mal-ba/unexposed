@@ -608,7 +608,7 @@
             updateOrderPayButtonState();
             return;
           }
-          finishOrderModal('배송지가 저장되었습니다. 결제가 확인되면 제작을 시작할게요.');
+          finishOrderModal('배송지가 저장되었습니다. 결제가 확인되면 제작을 시작하겠습니다.');
         } catch(err){
           orderModalNote.textContent = '배송지 저장 중 오류가 발생했습니다.';
           orderPayBtn.textContent = '배송지 저장';
@@ -658,7 +658,7 @@
           orderModalNote.textContent = `주문번호 ${order.orderId} · 구매 페이지에서 결제를 마친 뒤 배송지를 입력해주세요.${linkNote}`;
           updateOrderPayButtonState();
         } else {
-          finishOrderModal(`주문이 접수되었어요 (${fmt(order.amount)}). 구매 페이지에서 결제를 마치면 제작을 시작합니다.${linkNote}`);
+          finishOrderModal(`주문이 접수되었습니다 (${fmt(order.amount)}). 구매 페이지에서 결제를 마치면 제작을 시작합니다.${linkNote}`);
         }
       } catch(err){
         if(buyWin) buyWin.close();
