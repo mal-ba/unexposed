@@ -342,7 +342,9 @@ function applyAntiCopy(app, { publicDir }) {
     try {
       const code = await getProtectedJs(filePath);
       res.type('application/javascript; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=300');
+      // no-cache: 저장은 하되 쓸 때마다 서버에 바뀌었는지 물어봐요(안 바뀌었으면 304로 짧게 끝나요).
+      // 배포 직후 새 HTML + 예전 JS가 섞여서 옛 문구가 다시 덮어쓰는 일을 막아요.
+      res.setHeader('Cache-Control', 'no-cache');
       if (path.basename(filePath) === 'service-worker.js') res.setHeader('Service-Worker-Allowed', '/');
       res.send(code);
     } catch (e) {
@@ -374,7 +376,7 @@ function applyAntiCopy(app, { publicDir }) {
     try {
       const html = await fs.promises.readFile(filePath, 'utf8');
       res.type('text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.setHeader('Cache-Control', 'no-cache'); // 위 JS와 같은 이유로, 매번 새 버전인지 확인해요
       res.send(html);
     } catch (e) {
       if (e.code === 'ENOENT') return next();
