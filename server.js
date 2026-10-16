@@ -961,6 +961,25 @@ const STUDIO_PAINT_AMOUNT = 10000; // 브러시로 직접 그린 그림 → 나�
 const STUDIO_MAX_QTY = 10;         // 한 디자인당 최대 수량
 const STUDIO_MAX_CART_ITEMS = 20;  // 장바구니 최대 디자인 수
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+// 제작 스튜디오 바디 스캔: 키는 필수, 몸무게는 선택 (create.js 의 BODY 와 같은 범위)
+const STUDIO_BODY = { heightMin: 120, heightMax: 210, weightMin: 30, weightMax: 200 };
+
+function parseStudioBody(body){
+  if(!body || typeof body !== 'object') return { error: '키 정보가 없습니다. 제작 스튜디오에서 체형을 먼저 입력해주세요.' };
+  const h = Number(body.heightCm);
+  if(!isFinite(h) || h < STUDIO_BODY.heightMin || h > STUDIO_BODY.heightMax){
+    return { error: `키는 ${STUDIO_BODY.heightMin}~${STUDIO_BODY.heightMax}cm 사이여야 합니다.` };
+  }
+  let weightKg = null;
+  if(body.weightKg !== null && body.weightKg !== undefined && body.weightKg !== ''){
+    const w = Number(body.weightKg);
+    if(!isFinite(w) || w < STUDIO_BODY.weightMin || w > STUDIO_BODY.weightMax){
+      return { error: `몸무게는 ${STUDIO_BODY.weightMin}~${STUDIO_BODY.weightMax}kg 사이여야 합니다.` };
+    }
+    weightKg = Math.round(w * 10) / 10;
+  }
+  return { heightCm: Math.round(h * 10) / 10, weightKg };
+}
 const wonText = n => `${Number(n).toLocaleString('ko-KR')}원`;
 
 function clampQty(v){
@@ -974,6 +993,8 @@ function buildStudioOrder(studio){
   const type = STUDIO_TYPES[studio.typeKey];
   if(!type) return { error: '알 수 없는 옷 종류입니다.' };
   const kind = STUDIO_KINDS[type.kind];
+  const body = parseStudioBody(studio.body);
+  if(body.error) return { error: body.error };
   const lengthMul = Math.min(1.6, Math.max(0.6, Number(studio.lengthMul) || 1));
   const girthMul = Math.min(1.5, Math.max(0.7, Number(studio.girthMul) || 1));
   const regions = (studio.regions && typeof studio.regions === 'object') ? studio.regions : {};
@@ -999,6 +1020,7 @@ function buildStudioOrder(studio){
   const detailLabels = hasPaint ? [`브러시 그림(나염) · +${STUDIO_PAINT_AMOUNT.toLocaleString('ko-KR')}원`] : [];
   const fabricNote = [
     `[제작 스튜디오] ${type.label} · ${kind.size[0]} ×${lengthMul.toFixed(2)} · ${kind.size[1]} ×${girthMul.toFixed(2)}`,
+    `체형: 키 ${body.heightCm}cm · 몸무게 ${body.weightKg != null ? body.weightKg + 'kg' : '미입력'}`,
     regionLines.length ? regionLines.join(' / ') : '부위 채우기 없음(기본 옷감색)',
   ].join('\n');
   const detailNote = hasPaint ? '브러시로 직접 그린 그림이 있습니다 (나염 필요).' : null;
