@@ -21,7 +21,7 @@
 </script>
 <!-- ↑ 임시 디버깅용 (폰에서 콘솔 에러 확인용) — 문제 해결되면 이 블록은 지워도 돼요 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://js.tosspayments.com/v1/payment"></script>
 <script type="importmap">
@@ -550,6 +550,7 @@
   }
 
 </style>
+<link rel="stylesheet" href="/site-theme.css">
 </head>
 <body>
 
@@ -683,50 +684,18 @@
       <p data-i18n="detailDiffDesc">정교한 3D 실력을 요구하지 않는다. 눈으로 보고, 손끝으로 매만지는 방식. 패션을 몰라도, 원하는 느낌 그대로 옷이 된다.</p>
     </div>
     <div class="detail-block">
-      <div class="detail-icon">
-        <svg viewBox="0 0 80 80">
-          <rect x="6" y="16" width="42" height="30" rx="3" fill="none" stroke="#0F2E2C" stroke-width="3"/>
-          <rect x="2" y="46" width="50" height="4" rx="2" fill="#0F2E2C"/>
-          <rect x="54" y="20" width="22" height="38" rx="4" fill="none" stroke="#3E7F86" stroke-width="3"/>
-          <line x1="61" y1="52" x2="69" y2="52" stroke="#3E7F86" stroke-width="3" stroke-linecap="round"/>
-          <path d="M48 30 a10 10 0 1 1 -2 -6" fill="none" stroke="#D8663F" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M46 20 l2 4 l4 -1" fill="none" stroke="#D8663F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
       <h3 data-i18n="detailEnvTitle" class="serif">지원 환경</h3>
       <p data-i18n="detailEnvDesc">웹과 모바일, 하나의 작업. 스캔은 손 안에서, 정밀한 조정은 화면 앞에서 — 이어서 계속된다.</p>
     </div>
     <div class="detail-block">
-      <div class="detail-icon">
-        <svg viewBox="0 0 80 80">
-          <rect x="14" y="40" width="52" height="26" rx="4" fill="#6FB8C2"/>
-          <rect x="10" y="28" width="52" height="26" rx="4" fill="#3E7F86"/>
-          <rect x="18" y="14" width="52" height="26" rx="4" fill="#0F2E2C"/>
-        </svg>
-      </div>
       <h3 data-i18n="detailFabricTitle" class="serif">원단·소재 구성</h3>
       <p data-i18n="detailFabricDesc">베이직·프리미엄·스페셜, 세 겹의 원단. 고르는 즉시 제작 견적이 함께 따라온다.</p>
     </div>
     <div class="detail-block">
-      <div class="detail-icon">
-        <svg viewBox="0 0 80 80">
-          <path d="M40 8 L68 18 V38 C68 56 56 68 40 74 C24 68 12 56 12 38 V18 Z" fill="none" stroke="#0F2E2C" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M28 40 L37 49 L54 30" fill="none" stroke="#3E7F86" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
       <h3 data-i18n="detailPrivacyTitle" class="serif">데이터 프라이버시</h3>
       <p data-i18n="detailPrivacyDesc">사생활은 지켜진다. 아바타가 만들어지는 순간 원본은 사라지고, 어떤 형태로도 남지 않는다.</p>
     </div>
     <div class="detail-block">
-      <div class="detail-icon">
-        <svg viewBox="0 0 80 80">
-          <path d="M40 10 C52 10 62 20 62 34 C62 48 52 62 40 66 C28 62 18 48 18 34 C18 20 28 10 40 10 Z" fill="none" stroke="#D8663F" stroke-width="3"/>
-          <circle cx="30" cy="32" r="3.5" fill="#0F2E2C"/>
-          <circle cx="50" cy="32" r="3.5" fill="#0F2E2C"/>
-          <path d="M30 46 C34 50 46 50 50 46" fill="none" stroke="#0F2E2C" stroke-width="3" stroke-linecap="round"/>
-          <path d="M22 24 C25 16 33 12 40 12" fill="none" stroke="#3E7F86" stroke-width="3" stroke-linecap="round"/>
-        </svg>
-      </div>
       <h3 data-i18n="detailMakeupTitle" class="serif">메이크업 커스터마이징</h3>
       <p data-i18n="detailMakeupDesc">립과 아이, 블러셔까지 — 아바타 위에 그대로 얹는다. 원하는 룩이 있다면, 옷장에서 꺼내 입혀볼 수도 있다.</p>
     </div>
@@ -864,15 +833,6 @@
   <!-- 꾸미기 시작 박스 3개는 따로 한 줄로 모아요 (번호는 위 설명과 짝이에요) -->
   <div class="design-cta-grid">
     <div class="design-cta-box">
-      <div class="design-cta-num">01</div>
-      <div class="design-cta-icon">
-        <svg viewBox="0 0 80 80">
-          <ellipse cx="40" cy="18" rx="11" ry="13" fill="#0F2E2C"/>
-          <path d="M22 40 C22 32 30 28 40 28 C50 28 58 32 58 40 L55 66 C55 70 51 72 40 72 C29 72 25 70 25 66 Z" fill="#0F2E2C"/>
-          <circle cx="63" cy="60" r="13" fill="none" stroke="#D8663F" stroke-width="3"/>
-          <path d="M58 60 L61.5 63.5 L68 56.5" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
       <h3 data-i18n="designCtaTitle" class="serif">내 체형으로 디자인 시작하기</h3>
       <p data-i18n="designCtaDesc">스캔 → 키 입력 → 원단/디테일 선택까지 한 화면에서 이어진다. 3D 아바타로 입혀보거나, 3D 없이 원단·디테일만 빠르게 고르는 2D 방식 중에서 고른다.</p>
       <div class="design-mode-btns">
@@ -881,14 +841,6 @@
       </div>
     </div>
     <div class="design-cta-box" id="create-cta-box">
-      <div class="design-cta-num">02</div>
-      <div class="design-cta-icon">
-        <svg viewBox="0 0 80 80">
-          <rect x="18" y="24" width="44" height="40" rx="6" fill="#0F2E2C"/>
-          <path d="M28 24 L28 14 L52 14 L52 24" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="40" cy="44" r="8" fill="none" stroke="#FBFAF6" stroke-width="3"/>
-        </svg>
-      </div>
       <h3 data-i18n="createCtaTitle" class="serif">제작 스튜디오로 옷 만들기</h3>
       <p data-i18n="createCtaDesc">버튼을 누르면 옷 종류·치수를 정하고, 부위별로 원단을 골라 채색해볼 수 있어요.</p>
       <div class="design-mode-btns">
@@ -896,17 +848,6 @@
       </div>
     </div>
     <div class="design-cta-box" id="makeup-cta-box">
-      <div class="design-cta-num">03</div>
-      <div class="design-cta-icon">
-        <svg viewBox="0 0 80 80">
-          <circle cx="40" cy="34" r="20" fill="#0F2E2C"/>
-          <path d="M20 34 C20 55 60 55 60 34" fill="none" stroke="#0F2E2C" stroke-width="0"/>
-          <path d="M22 66 C22 56 30 50 40 50 C50 50 58 56 58 66" fill="none" stroke="#0F2E2C" stroke-width="4" stroke-linecap="round"/>
-          <circle cx="32" cy="32" r="2.6" fill="#FBFAF6"/>
-          <circle cx="48" cy="32" r="2.6" fill="#FBFAF6"/>
-          <path d="M30 44 C33 47 47 47 50 44" fill="none" stroke="#D8663F" stroke-width="3" stroke-linecap="round"/>
-        </svg>
-      </div>
       <h3 data-i18n="makeupCtaTitle" class="serif">메이크업 3D로 입혀보기</h3>
       <p data-i18n="makeupCtaDesc">버튼을 누르면 3D 얼굴 모델을 불러오고, 등록된 메이크업 아이템을 바로 입혀보며 위치·크기·색상을 맞춰볼 수 있어요.</p>
       <div class="design-mode-btns">
@@ -998,8 +939,8 @@
     PentaCorp.
   </div>
   <div class="footer-action-boxes">
-    <button class="footer-action-box" id="contact-fab" type="button">💬 <span data-i18n="contactBtnLabel">문의하기</span></button>
-    <button class="footer-action-box" id="bugreport-fab" type="button">🐛 <span data-i18n="bugreportBtnLabel">버그 제보하기</span></button>
+    <button class="footer-action-box" id="contact-fab" type="button"><span data-i18n="contactBtnLabel">문의하기</span></button>
+    <button class="footer-action-box" id="bugreport-fab" type="button"><span data-i18n="bugreportBtnLabel">버그 제보하기</span></button>
   </div>
   <div class="footer-social">
     <a href="https://www.instagram.com/trrrlooo77/" target="_blank" rel="noopener noreferrer">Instagram</a>
@@ -1141,7 +1082,7 @@
       const cssLink = document.createElement('link');
       cssLink.rel = 'stylesheet';
       cssLink.href = '/support-panel.css';
-      document.head.appendChild(cssLink);
+      document.head.insertBefore(cssLink, document.querySelector('link[href="/site-theme.css"]')); // 공통 테마가 마지막에 덮어쓰도록 그 앞에 넣어요
 
       const html = await (await fetch('/support-panel.html')).text();
       document.getElementById('support-mount').outerHTML = html;
@@ -1564,7 +1505,7 @@
       const cssLink = document.createElement('link');
       cssLink.rel = 'stylesheet';
       cssLink.href = '/side-menu.css';
-      document.head.appendChild(cssLink);
+      document.head.insertBefore(cssLink, document.querySelector('link[href="/site-theme.css"]')); // 공통 테마가 마지막에 덮어쓰도록 그 앞에 넣어요
 
       const html = await (await fetch('/side-menu.html')).text();
       document.getElementById('side-menu-mount').outerHTML = html;
@@ -1768,7 +1709,7 @@
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = '/customize.css';
-      document.head.appendChild(link);
+      document.head.insertBefore(link, document.querySelector('link[href="/site-theme.css"]')); // 공통 테마가 마지막에 덮어쓰도록 그 앞에 넣어요
 
       // 3) classic script (customize.js)를 불러와서 실행해요.
       await new Promise((resolve, reject) => {

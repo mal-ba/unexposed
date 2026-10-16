@@ -18,14 +18,14 @@
 
     const style = document.createElement('style');
     style.textContent = `
-      .survey-overlay{ position:fixed; inset:0; z-index:10000; background:rgba(15,46,44,0.55);
+      .survey-overlay{ position:fixed; inset:0; z-index:10000; background:rgba(15,46,44,0.5);
         display:flex; align-items:center; justify-content:center; padding:16px; }
-      .survey-box{ position:relative; width:100%; max-width:380px; background:#FBFAF6; color:#14201E;
-        border-radius:18px; padding:28px 24px 20px; box-shadow:0 20px 50px rgba(0,0,0,0.3);
-        font-family:inherit; text-align:center; }
-      .survey-box h3{ margin:0 0 10px; font-size:19px; font-weight:600; }
+      .survey-box{ position:relative; width:100%; max-width:380px; background:#F8F6F0; color:#171C1B;
+        border-radius:2px; border-top:4px solid #D8663F; padding:26px 24px 18px; box-shadow:0 18px 40px rgba(0,0,0,0.22);
+        font-family:inherit; text-align:left; word-break:keep-all; }
+      .survey-box h3{ margin:0 0 10px; font-size:19px; font-weight:400; font-family:'Fraunces','Gowun Batang',serif; padding-right:24px; }
       .survey-box p{ margin:0 0 20px; font-size:14px; line-height:1.6; color:#4A5654; }
-      .survey-go{ display:block; width:100%; box-sizing:border-box; padding:13px; border-radius:999px;
+      .survey-go{ display:block; width:100%; box-sizing:border-box; padding:13px; border-radius:2px; text-align:center;
         background:#0F2E2C; color:#FBFAF6; font-size:15px; font-weight:600; text-decoration:none; }
       .survey-go:hover{ background:#123B38; }
       .survey-foot{ display:flex; align-items:center; justify-content:space-between; margin-top:16px; font-size:13px; color:#4A5654; }

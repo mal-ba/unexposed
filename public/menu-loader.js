@@ -21,7 +21,7 @@
       const cssLink = document.createElement('link');
       cssLink.rel = 'stylesheet';
       cssLink.href = '/side-menu.css';
-      document.head.appendChild(cssLink);
+      document.head.insertBefore(cssLink, document.querySelector('link[href="/site-theme.css"]')); // 공통 테마가 마지막에 덮어쓰도록 그 앞에 넣어요
 
       const html = await (await fetch('/side-menu.html')).text();
       const mount = document.getElementById('side-menu-mount');
