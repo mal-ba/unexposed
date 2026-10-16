@@ -15,7 +15,7 @@ import { SEG_CATEGORY, analyzePhotoBySegments } from '/segment-utils.js';
    정면·좌·우 사진은 얼굴에, 4장 전부는 머리카락(옆·뒤통수까지)에 쓰여요.
    ========================================================================== */
 const SCAN_STAGES = [
-  { key: 'front', label: '정면', instruction: '정면을 카메라로 봐주세요. 이 사진으로 얼굴이랑 앞머리를 만듭니다.', required: true },
+  { key: 'front', label: '정면', instruction: '정면으로 카메라를 바라봐 주세요. 이 사진으로 얼굴과 앞머리를 만듭니다.', required: true },
   { key: 'left', label: '왼쪽 옆모습', instruction: '고개를 오른쪽으로 돌려서, 얼굴 왼쪽이 보이게 찍어주세요.', required: false },
   { key: 'right', label: '오른쪽 옆모습', instruction: '고개를 왼쪽으로 돌려서, 얼굴 오른쪽이 보이게 찍어주세요.', required: false },
   { key: 'back', label: '뒷모습', instruction: '뒤돌아서 뒤통수가 보이게 찍어주세요 (다른 사람이 찍어줘도 좋습니다).', required: false },
