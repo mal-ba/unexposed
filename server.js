@@ -349,6 +349,7 @@ app.get('/', (req, res) => {
     const rendered = html
       .replaceAll('%%GOOGLE_CLIENT_ID%%', GOOGLE_CLIENT_ID)
       .replaceAll('%%TOSS_CLIENT_KEY%%', TOSS_CLIENT_KEY);
+    res.setHeader('Cache-Control', 'no-cache'); // 배포하면 바로 새 화면이 보이도록 매번 확인해요
     res.send(rendered);
   });
 });
@@ -359,6 +360,7 @@ app.get('/admin.html', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'admin.html');
   fs.readFile(filePath, 'utf8', (err, html) => {
     if (err) return res.status(500).send('admin.html을 읽을 수 없습니다.');
+    res.setHeader('Cache-Control', 'no-cache');
     res.send(html.replaceAll('%%GOOGLE_CLIENT_ID%%', GOOGLE_CLIENT_ID));
   });
 });
@@ -370,8 +372,10 @@ app.get('/admin.html', (req, res) => {
 // - 아이콘/이미지/GLB/폰트처럼 한번 올리면 잘 안 바뀌는 파일 → 길게 캐싱(30일)
 //   그래도 완전히 안전하려면 파일명이 바뀔 때만 갱신되는 게 맞지만, 지금 구조에선
 //   가끔 교체될 수 있으니 "immutable"까지는 안 쓰고 30일 정도로만 잡아요.
-// - HTML/JS/CSS처럼 자주 수정하는 파일 → 짧게(5분)만 캐싱해서, 배포해도
-//   "분명 고쳤는데 반영이 안 된다" 하는 혼란이 안 생기게 해요.
+// - HTML/JS/CSS처럼 자주 수정하는 파일 → no-cache: 브라우저가 저장은 하되 쓸 때마다
+//   서버에 바뀌었는지 물어봐요(ETag). 안 바뀌었으면 304로 짧게 끝나고, 바뀌었으면 바로
+//   새 파일을 받아요. 예전엔 5분 캐싱이라, 배포 직후 새 HTML에 옛 i18n.js가 섞여서
+//   고친 문구가 옛 문구로 다시 덮어써지는 일이 있었어요.
 const LONG_CACHE_EXTS = new Set(['.glb', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico', '.woff', '.woff2']);
 app.use(express.static(path.join(__dirname, 'public'), {
   index: false,
@@ -380,7 +384,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
     if (LONG_CACHE_EXTS.has(ext)) {
       res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30일
     } else {
-      res.setHeader('Cache-Control', 'public, max-age=300'); // 5분 (html/js/css 등)
+      res.setHeader('Cache-Control', 'no-cache'); // html/js/css 등: 매번 바뀌었는지 확인
     }
   },
 }));
