@@ -12,6 +12,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { AwsClient } = require('aws4fetch');
 const multer = require('multer');
 const compression = require('compression');
+const { Readable } = require('stream');
 const { applyAntiCopy } = require('./anti-copy'); // 복제 방지 (AI 크롤러 차단·난독화·우클릭 방지 등)
 
 const PORT = process.env.PORT || 3000;
@@ -47,7 +48,7 @@ if(SUPABASE_KEY_KIND === 'publishable'){
   SETUP_WARNINGS.push('Render의 SUPABASE_SECRET_KEY에 공개 키(publishable/anon)가 들어 있어요. 이 키로는 데이터를 읽을 수 없어서 옷장·통계·관리자 목록이 비어 보입니다. Supabase → Project Settings → API Keys의 Secret key(sb_secret_…)로 바꿔주세요.');
 }
 const WARDROBE_BUCKET = 'wardrobe-assets';
-const COMMUNITY_BUCKET = 'community-assets'; // 커뮤니티 게시물 이미지용 버킷이에요.
+const COMMUNITY_BUCKET = 'community-assets'; // 커뮤니티 게시물 3D 파일(.glb)·썸네일용 버킷이에요.
 // 쉼표로 여러 개 등록 가능: 예전 방식의 관리자 목록이에요. 지금은 Supabase의
 // admin_accounts 테이블로 실시간 관리하는 게 기본이지만, 혹시 그 테이블이 비어있거나
 // 문제가 생겨도 로그인이 완전히 막히지 않도록 안전장치로 계속 같이 확인해요.
@@ -228,14 +229,25 @@ async function uploadFileToBucket(bucketName, itemId, filePath, desiredFileName,
   const safeName = sanitizeFilename(desiredFileName);
   const storagePath = `${itemId}/${Date.now()}_${safeName}`;
   const contentType = guessContentType(safeName) || defaultContentType;
-
+  // 저장소 연결이 실패해서 스트림을 아직 안 읽었는데 호출한 쪽이 임시 파일을 지우면,
+  // 늦게 열리던 스트림이 ENOENT 오류를 던져 서버 전체가 죽어요. 그래서 오류를 여기서 받아두고
+  // 끝나면 항상 닫아요(업로드 중 오류는 fetch/upload 쪽에서 따로 실패로 돌아와요).
+  const body = fs.createReadStream(filePath);
+  body.on('error', () => {});
+  try {
+    return await putFileToStorage(bucketName, storagePath, body, filePath, contentType);
+  } finally {
+    body.destroy();
+  }
+}
+async function putFileToStorage(bucketName, storagePath, body, filePath, contentType) {
   if (r2Enabled) {
     // R2는 버킷 하나에 옷장·커뮤니티 파일을 폴더(bucketName/)로 나눠 담아요.
     const key = `${bucketName}/${storagePath}`;
     const { size } = await fs.promises.stat(filePath);
     const res = await r2Client.fetch(r2ObjectUrl(key), {
       method: 'PUT',
-      body: fs.createReadStream(filePath),
+      body,
       duplex: 'half',
       headers: {
         'Content-Type': contentType,
@@ -249,7 +261,7 @@ async function uploadFileToBucket(bucketName, itemId, filePath, desiredFileName,
 
   const { error } = await supabase.storage
     .from(bucketName)
-    .upload(storagePath, fs.createReadStream(filePath), {
+    .upload(storagePath, body, {
       contentType,
       upsert: false,
       duplex: 'half', // Node의 fetch가 스트림 body를 보낼 때 요구하는 옵션이에요.
@@ -272,6 +284,7 @@ function cleanupTempUploadFiles(reqFiles){
     ...(reqFiles.glbFile || []),
     ...(reqFiles.thumbnailFile || []),
     ...(reqFiles.image || []),
+    ...(reqFiles.glb || []),
   ];
   for(const f of all){
     fs.unlink(f.path, () => {}); // 실패해도(이미 지워졌거나) 무시해요.
@@ -293,6 +306,9 @@ function guessContentType(filename) {
 
 // R2나 Supabase Storage에 있는 파일이면 지우고, 그 외(깃허브에 직접 올려둔 정적 파일 등)는 건드리지 않아요.
 async function deleteFromWardrobeBucketIfManaged(publicUrl) {
+  return deleteFromBucketIfManaged(WARDROBE_BUCKET, publicUrl);
+}
+async function deleteFromBucketIfManaged(bucketName, publicUrl) {
   if (!publicUrl) return;
   if (r2Enabled && publicUrl.startsWith(R2.publicUrl + '/')) {
     const key = publicUrl.slice(R2.publicUrl.length + 1).split('/').map(decodeURIComponent).join('/');
@@ -300,11 +316,11 @@ async function deleteFromWardrobeBucketIfManaged(publicUrl) {
     if (!res.ok && res.status !== 404) console.warn('R2 파일 삭제 실패:', res.status, key);
     return;
   }
-  const marker = `/storage/v1/object/public/${WARDROBE_BUCKET}/`;
+  const marker = `/storage/v1/object/public/${bucketName}/`;
   const idx = publicUrl.indexOf(marker);
   if (idx === -1) return; // 우리 버킷 파일이 아니면(예: /wardrobe-assets/... 깃허브 정적 파일) 그냥 둬요.
-  const storagePath = publicUrl.slice(idx + marker.length);
-  await supabase.storage.from(WARDROBE_BUCKET).remove([storagePath]);
+  const storagePath = decodeURIComponent(publicUrl.slice(idx + marker.length));
+  await supabase.storage.from(bucketName).remove([storagePath]);
 }
 
 const AGE_GROUPS = ['10s', '20s', '30s40s', '50s+'];
@@ -397,14 +413,35 @@ const wardrobeUpload = multer({
   limits: { fileSize: 35 * 1024 * 1024 }, // 파일 하나당 최대 35MB
 });
 
-// 커뮤니티 게시물용: 옷장 파일보다 훨씬 가벼운 이미지 한 장만 받아요.
+// 커뮤니티 게시물용: 3D 파일(.glb) 하나(필수)와 썸네일 이미지 하나(선택)를 받아요.
 const communityUpload = multer({
   storage: multer.diskStorage({
     destination: os.tmpdir(),
     filename: (req, file, cb) => cb(null, `community_${crypto.randomUUID()}${path.extname(file.originalname || '')}`),
   }),
-  limits: { fileSize: 8 * 1024 * 1024 }, // 이미지 한 장, 최대 8MB
+  limits: { fileSize: 35 * 1024 * 1024 }, // 파일 하나당 최대 35MB (옷장 .glb와 같아요)
 });
+// 업로드 크기 초과 등 multer 오류를 JSON으로 돌려줘요(그냥 두면 HTML 오류 페이지가 나가요).
+function communityUploadFields(req, res, next) {
+  communityUpload.fields([{ name: 'glb', maxCount: 1 }, { name: 'image', maxCount: 1 }])(req, res, err => {
+    if (!err) return next();
+    cleanupTempUploadFiles(req.files);
+    const tooLarge = err.code === 'LIMIT_FILE_SIZE';
+    res.status(400).json({ ok: false, error: tooLarge ? '파일은 35MB까지만 올릴 수 있습니다.' : '파일 업로드 형식이 올바르지 않습니다.' });
+  });
+}
+
+// .glb 파일은 맨 앞 4바이트가 'glTF'예요. 확장자만 바꾼 다른 파일을 걸러내요.
+async function isGlbFile(filePath) {
+  const fh = await fs.promises.open(filePath, 'r');
+  try {
+    const buf = Buffer.alloc(4);
+    const { bytesRead } = await fh.read(buf, 0, 4, 0);
+    return bytesRead === 4 && buf.toString('ascii') === 'glTF';
+  } finally {
+    await fh.close();
+  }
+}
 
 // index.html 안의 %%GOOGLE_CLIENT_ID%%, %%TOSS_CLIENT_KEY%% 를
 // 실제 값으로 치환해서 내려줍니다. (express.static보다 먼저 등록해야
@@ -1447,69 +1484,117 @@ app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
    로그인 여부와 상관없이(익명 방문자도 포함) 기록해요 — "몇 시에 몇 명 왔는지"를
    보려는 목적이라, 누가 왔는지보다 언제 얼마나 왔는지가 중요해서예요. */
 /* ---------------- 커뮤니티 (사람들이 만든 작품 공유) ---------------- */
+function communityPostToJson(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    imageUrl: row.image_url || null,
+    glbUrl: row.glb_url || null,
+    authorName: row.author_name,
+    authorEmail: row.author_email,
+    createdAt: row.created_at,
+  };
+}
+
 // 목록 조회는 누구나(로그인 안 해도) 볼 수 있어요.
+// ?glb=1 이면 3D 파일(.glb)이 있는 게시물만 돌려줘요(3D 꾸미기·제작 스튜디오의 다운로드 목록용).
 app.get('/api/community/posts', async (req, res) => {
-  const { data, error } = await supabase
+  let query = supabase
     .from('community_posts')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(100);
+  if (req.query.glb === '1') query = query.not('glb_url', 'is', null);
+  const { data, error } = await query;
   if (error) return res.status(500).json({ ok: false, error: '게시물을 불러오지 못했습니다.' });
-  res.json({
-    ok: true,
-    posts: (data || []).map(row => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      imageUrl: row.image_url,
-      authorName: row.author_name,
-      authorEmail: row.author_email,
-      createdAt: row.created_at,
-    })),
-  });
+  res.json({ ok: true, posts: (data || []).map(communityPostToJson) });
 });
 
-// 작성은 로그인해야 가능해요. 이미지 하나 필수.
-app.post('/api/community/posts', requireLogin, communityUpload.single('image'), async (req, res) => {
+// 작성은 로그인해야 가능해요. 3D 파일(.glb) 필수, 썸네일 이미지는 선택.
+app.post('/api/community/posts', requireLogin, communityUploadFields, async (req, res) => {
   const title = String(req.body?.title || '').trim().slice(0, 80);
   const description = String(req.body?.description || '').trim().slice(0, 500);
-  const imageFile = req.file;
+  const glbFile = req.files && req.files.glb && req.files.glb[0];
+  const imageFile = req.files && req.files.image && req.files.image[0];
 
-  if (!title) {
-    if (imageFile) fs.unlink(imageFile.path, () => {});
-    return res.status(400).json({ ok: false, error: '제목을 입력해주세요.' });
-  }
-  if (!imageFile) {
-    return res.status(400).json({ ok: false, error: '이미지를 올려주세요.' });
-  }
-
-  const id = crypto.randomUUID();
-  let imageUrl = null;
   try {
-    const uploaded = await uploadFileToBucket(
-      COMMUNITY_BUCKET, id, imageFile.path,
-      fixMulterFilenameEncoding(imageFile.originalname) || `${id}.png`, 'image/png'
-    );
-    imageUrl = uploaded.publicUrl;
-  } catch (err) {
-    console.error('커뮤니티 이미지 업로드 실패:', err.message || err);
-    fs.unlink(imageFile.path, () => {});
-    return res.status(500).json({ ok: false, error: '이미지 업로드 중 오류가 발생했습니다.' });
-  }
-  fs.unlink(imageFile.path, () => {});
+    if (!title) return res.status(400).json({ ok: false, error: '제목을 입력해주세요.' });
+    if (!glbFile) return res.status(400).json({ ok: false, error: '3D 파일(.glb)을 올려주세요.' });
+    const glbName = fixMulterFilenameEncoding(glbFile.originalname) || '';
+    if (path.extname(glbName).toLowerCase() !== '.glb' || !(await isGlbFile(glbFile.path))) {
+      return res.status(400).json({ ok: false, error: '.glb 형식의 3D 파일만 올릴 수 있습니다.' });
+    }
+    if (imageFile && !/^image\//.test(imageFile.mimetype || '')) {
+      return res.status(400).json({ ok: false, error: '썸네일은 이미지 파일만 올릴 수 있습니다.' });
+    }
 
-  const row = {
-    id,
-    title,
-    description,
-    image_url: imageUrl,
-    author_email: req.user.email,
-    author_name: req.user.name,
-    created_at: new Date().toISOString(),
-  };
-  const { error } = await supabase.from('community_posts').insert(row);
-  if (error) return res.status(500).json({ ok: false, error: '게시물 저장 중 오류가 발생했습니다.' });
-  res.json({ ok: true, post: { ...row, imageUrl: row.image_url, authorName: row.author_name } });
+    const id = crypto.randomUUID();
+    let glbUrl = null;
+    let imageUrl = null;
+    try {
+      glbUrl = (await uploadFileToBucket(COMMUNITY_BUCKET, id, glbFile.path, glbName || `${id}.glb`, 'model/gltf-binary')).publicUrl;
+      if (imageFile) {
+        imageUrl = (await uploadFileToBucket(
+          COMMUNITY_BUCKET, id, imageFile.path,
+          fixMulterFilenameEncoding(imageFile.originalname) || `${id}.png`, 'image/png'
+        )).publicUrl;
+      }
+    } catch (err) {
+      console.error('커뮤니티 파일 업로드 실패:', err.message || err);
+      await deleteFromBucketIfManaged(COMMUNITY_BUCKET, glbUrl).catch(() => {});
+      return res.status(500).json({ ok: false, error: '파일 업로드 중 오류가 발생했습니다.' });
+    }
+
+    const row = {
+      id,
+      title,
+      description,
+      image_url: imageUrl,
+      glb_url: glbUrl,
+      author_email: req.user.email,
+      author_name: req.user.name,
+      created_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from('community_posts').insert(row);
+    if (error) {
+      console.error('커뮤니티 게시물 저장 실패:', error.message);
+      await Promise.all([
+        deleteFromBucketIfManaged(COMMUNITY_BUCKET, glbUrl),
+        deleteFromBucketIfManaged(COMMUNITY_BUCKET, imageUrl),
+      ]).catch(() => {});
+      return res.status(500).json({ ok: false, error: '게시물 저장 중 오류가 발생했습니다.' });
+    }
+    res.json({ ok: true, post: communityPostToJson(row) });
+  } finally {
+    cleanupTempUploadFiles(req.files);
+  }
+});
+
+// 3D 파일 내려받기: 저장소 주소를 그대로 열면 브라우저가 파일을 받지 않고 다른 탭에서
+// 열거나(교차 출처라 download 속성도 안 먹어요) 이상한 이름으로 저장돼서, 서버가 대신
+// 받아서 "작품제목.glb" 이름의 첨부파일로 흘려보내요. 누구나(로그인 안 해도) 받을 수 있어요.
+app.get('/api/community/posts/:id/download', async (req, res) => {
+  const { data: post } = await supabase.from('community_posts').select('id, title, glb_url').eq('id', req.params.id).maybeSingle();
+  if (!post || !post.glb_url) return res.status(404).json({ ok: false, error: '3D 파일을 찾을 수 없습니다.' });
+  let upstream;
+  try {
+    upstream = await fetch(post.glb_url);
+  } catch (err) {
+    upstream = null;
+  }
+  if (!upstream || !upstream.ok || !upstream.body) {
+    return res.status(502).json({ ok: false, error: '3D 파일을 내려받지 못했습니다.' });
+  }
+  const base = String(post.title || 'model').replace(/[\\/:*?"<>|\x00-\x1F]/g, '_').trim().slice(0, 80) || 'model';
+  // octet-stream: 이미 압축된 바이너리라 compression 미들웨어가 다시 gzip하지 않게 해요.
+  res.setHeader('Content-Type', 'application/octet-stream');
+  const asciiBase = /[A-Za-z0-9]/.test(sanitizeFilename(base)) ? sanitizeFilename(base) : 'model'; // 한글 이름을 모르는 옛 브라우저용
+  res.setHeader('Content-Disposition', `attachment; filename="${asciiBase}.glb"; filename*=UTF-8''${encodeURIComponent(base)}.glb`);
+  const len = upstream.headers.get('content-length');
+  if (len) res.setHeader('Content-Length', len);
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  Readable.fromWeb(upstream.body).on('error', () => res.destroy()).pipe(res);
 });
 
 // 삭제는 글쓴이 본인이거나 관리자만.
@@ -1521,6 +1606,11 @@ app.delete('/api/community/posts/:id', requireLogin, async (req, res) => {
   }
   const { error } = await supabase.from('community_posts').delete().eq('id', req.params.id);
   if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했습니다.' });
+  // 저장소에 남은 파일도 같이 지워요(수십 MB짜리 .glb가 계속 쌓이지 않게). 실패해도 삭제 자체는 성공이에요.
+  await Promise.all([
+    deleteFromBucketIfManaged(COMMUNITY_BUCKET, post.glb_url),
+    deleteFromBucketIfManaged(COMMUNITY_BUCKET, post.image_url),
+  ]).catch(err => console.warn('커뮤니티 파일 삭제 실패:', err.message || err));
   res.json({ ok: true });
 });
 
