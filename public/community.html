@@ -270,6 +270,10 @@
     return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   }
 
+  function esc(str){
+    return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   function renderPosts(posts){
     if(posts.length === 0){
       galleryGrid.innerHTML = '';
@@ -278,19 +282,19 @@
     }
     galleryEmpty.hidden = true;
     galleryGrid.innerHTML = posts.map(p => `
-      <div class="post-card" data-id="${p.id}">
+      <div class="post-card" data-id="${esc(p.id)}">
         <div class="post-card-thumb">
           ${p.imageUrl
-            ? `<img src="${p.imageUrl}" alt="${(p.title || '').replace(/"/g, '&quot;')}" loading="lazy">`
+            ? `<img src="${esc(p.imageUrl)}" alt="${esc(p.title)}" loading="lazy">`
             : `<div class="post-card-placeholder">${p.glbUrl ? '3D' : ''}</div>`}
           ${p.glbUrl ? '<span class="post-card-badge">GLB</span>' : ''}
         </div>
         <div class="post-card-body">
-          <div class="post-card-title">${p.title}</div>
-          ${p.description ? `<div class="post-card-desc">${p.description}</div>` : ''}
+          <div class="post-card-title">${esc(p.title)}</div>
+          ${p.description ? `<div class="post-card-desc">${esc(p.description)}</div>` : ''}
           <div class="post-card-meta">
-            <span>${p.authorName || t('communityAnonymous')} · ${fmtDate(p.createdAt)}</span>
-            ${(me && (me.email === p.authorEmail)) ? `<button class="post-delete-btn" data-post-id="${p.id}" type="button">${t('communityDeleteBtn')}</button>` : ''}
+            <span>${esc(p.authorName || t('communityAnonymous'))} · ${fmtDate(p.createdAt)}</span>
+            ${(me && (me.email === p.authorEmail)) ? `<button class="post-delete-btn" data-post-id="${esc(p.id)}" type="button">${t('communityDeleteBtn')}</button>` : ''}
           </div>
         </div>
       </div>
