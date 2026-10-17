@@ -101,12 +101,16 @@ create table if not exists public.community_posts (
   id           uuid primary key,
   title        text not null,
   description  text,
-  image_url    text not null,
+  image_url    text,           -- 썸네일 이미지 (선택)
+  glb_url      text,           -- 3D 파일(.glb) 주소
   author_email text not null,
   author_name  text,
   created_at   timestamptz not null default now()
 );
 create index if not exists community_posts_created_at_idx on public.community_posts (created_at desc);
+-- 예전 표(이미지만 올리던 때)에서 업그레이드할 때도 그대로 실행돼요.
+alter table public.community_posts add column if not exists glb_url text;
+alter table public.community_posts alter column image_url drop not null;
 
 -- 브라우저에서 직접 접근 못 하게 RLS 켜기 (서버의 서비스 키는 영향 없음)
 alter table public.admin_accounts  enable row level security;

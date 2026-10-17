@@ -76,6 +76,8 @@
   .file-label:hover{ background:var(--line); }
   .file-preview{ margin-top:2px; }
   .file-preview img{ max-width:140px; max-height:140px; border-radius:10px; border:1px solid var(--line); display:block; }
+  .file-name{ font-size:12.5px; color:var(--ink-soft); word-break:break-all; }
+  .file-hint{ font-size:12px; color:var(--ink-soft); margin:-4px 0 0; line-height:1.5; }
   .upload-submit-btn{
     align-self:flex-start; padding:11px 22px; border-radius:999px; border:none;
     background:var(--deep); color:#fff; font-size:14px; font-weight:600; cursor:pointer;
@@ -93,7 +95,16 @@
     border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--paper);
     display:flex; flex-direction:column;
   }
-  .post-card img{ width:100%; aspect-ratio:1; object-fit:cover; background:var(--mist); }
+  .post-card-thumb{ position:relative; }
+  .post-card img{ width:100%; aspect-ratio:1; object-fit:cover; background:var(--mist); display:block; }
+  .post-card-placeholder{
+    width:100%; aspect-ratio:1; background:var(--mist); color:var(--star-dark);
+    display:flex; align-items:center; justify-content:center; font-family:'Fraunces', serif; font-size:30px;
+  }
+  .post-card-badge{
+    position:absolute; top:8px; left:8px; padding:2px 8px; border-radius:999px;
+    background:var(--deep); color:var(--paper); font-size:10.5px; font-weight:700; letter-spacing:0.04em;
+  }
   .post-card-body{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:4px; flex:1; }
   .post-card-title{ font-size:13.5px; font-weight:700; }
   .post-card-desc{ font-size:12px; color:var(--ink-soft); line-height:1.5; flex:1; }
@@ -131,7 +142,10 @@
     <form class="upload-form" id="upload-form" hidden>
       <input type="text" id="post-title-input" placeholder="제목 (예: 여름용 원피스 코디)" maxlength="80" required data-i18n-placeholder="communityTitlePlaceholder">
       <textarea id="post-desc-input" placeholder="설명(선택) — 어떤 원단·무늬를 썼는지 등" maxlength="500" data-i18n-placeholder="communityDescPlaceholder"></textarea>
-      <label class="file-label" for="post-image-input"><span data-i18n="communityChooseImage">이미지 선택</span> <input type="file" id="post-image-input" accept="image/*" hidden></label>
+      <label class="file-label" for="post-glb-input"><span data-i18n="communityChooseGlb">3D 파일 선택 (.glb)</span> <input type="file" id="post-glb-input" accept=".glb,model/gltf-binary" hidden></label>
+      <div class="file-name" id="post-glb-name"></div>
+      <p class="file-hint" data-i18n="communityGlbHint">.glb 형식만 올릴 수 있습니다 (최대 35MB). 올린 파일은 3D 꾸미기·제작 스튜디오에서 누구나 내려받을 수 있습니다.</p>
+      <label class="file-label" for="post-image-input"><span data-i18n="communityChooseThumb">썸네일 이미지 (선택)</span> <input type="file" id="post-image-input" accept="image/*" hidden></label>
       <div class="file-preview" id="post-image-preview"></div>
       <button class="upload-submit-btn" id="post-submit-btn" type="submit" disabled data-i18n="communitySubmitBtn">올리기</button>
       <p class="upload-note" id="upload-note"></p>
@@ -142,7 +156,7 @@
 <main>
   <div class="eyebrow">COMMUNITY</div>
   <h1 data-i18n="communityTitle">사람들이 만든 작품들</h1>
-  <p class="intro" data-i18n="communityIntro">직접 디자인한 옷·아이템 스크린샷을 올려서 다른 사람들에게 자랑해보세요. 오른쪽 위 "작품 올리기"를 눌러서 올릴 수 있습니다 (로그인 필요).</p>
+  <p class="intro" data-i18n="communityIntro">직접 만든 옷·아이템 3D 파일(.glb)을 올려서 다른 사람들에게 자랑해보세요. 오른쪽 위 "작품 올리기"를 눌러서 올릴 수 있고 (로그인 필요), 올라온 3D 파일은 3D 꾸미기·제작 스튜디오의 "커뮤니티 3D"에서 누구나 내려받을 수 있습니다.</p>
 
   <div class="gallery-grid" id="gallery-grid"></div>
   <p class="empty-note" id="gallery-empty" hidden data-i18n="communityEmptyNote">아직 올라온 작품이 없습니다. 첫 번째 작품을 올려 주세요!</p>
@@ -156,6 +170,8 @@
   const uploadForm = document.getElementById('upload-form');
   const titleInput = document.getElementById('post-title-input');
   const descInput = document.getElementById('post-desc-input');
+  const glbInput = document.getElementById('post-glb-input');
+  const glbName = document.getElementById('post-glb-name');
   const imageInput = document.getElementById('post-image-input');
   const imagePreview = document.getElementById('post-image-preview');
   const submitBtn = document.getElementById('post-submit-btn');
@@ -185,10 +201,25 @@
     } catch(err){ /* 로그인 안 한 상태로 취급 */ }
   }
 
+  const MAX_FILE_BYTES = 35 * 1024 * 1024; // 서버(multer) 한도와 같아요
+
   function updateSubmitState(){
-    submitBtn.disabled = !(titleInput.value.trim() && imageInput.files[0]);
+    submitBtn.disabled = !(titleInput.value.trim() && glbInput.files[0]);
   }
   titleInput.addEventListener('input', updateSubmitState);
+  glbInput.addEventListener('change', () => {
+    const file = glbInput.files[0];
+    uploadNote.textContent = '';
+    if(file && !/\.glb$/i.test(file.name)){
+      glbInput.value = '';
+      uploadNote.textContent = t('communityGlbOnly');
+    } else if(file && file.size > MAX_FILE_BYTES){
+      glbInput.value = '';
+      uploadNote.textContent = t('communityFileTooLarge');
+    }
+    glbName.textContent = glbInput.files[0] ? glbInput.files[0].name : '';
+    updateSubmitState();
+  });
   imageInput.addEventListener('change', () => {
     const file = imageInput.files[0];
     imagePreview.innerHTML = '';
@@ -209,12 +240,15 @@
       const formData = new FormData();
       formData.append('title', titleInput.value.trim());
       formData.append('description', descInput.value.trim());
-      formData.append('image', imageInput.files[0]);
+      formData.append('glb', glbInput.files[0]);
+      if(imageInput.files[0]) formData.append('image', imageInput.files[0]);
       const res = await fetch('/api/community/posts', { method: 'POST', body: formData });
       const data = await res.json();
       if(data.ok){
         titleInput.value = '';
         descInput.value = '';
+        glbInput.value = '';
+        glbName.textContent = '';
         imageInput.value = '';
         imagePreview.innerHTML = '';
         uploadNote.textContent = t('communityUploaded');
@@ -245,7 +279,12 @@
     galleryEmpty.hidden = true;
     galleryGrid.innerHTML = posts.map(p => `
       <div class="post-card" data-id="${p.id}">
-        <img src="${p.imageUrl}" alt="${(p.title || '').replace(/"/g, '&quot;')}" loading="lazy">
+        <div class="post-card-thumb">
+          ${p.imageUrl
+            ? `<img src="${p.imageUrl}" alt="${(p.title || '').replace(/"/g, '&quot;')}" loading="lazy">`
+            : `<div class="post-card-placeholder">${p.glbUrl ? '3D' : ''}</div>`}
+          ${p.glbUrl ? '<span class="post-card-badge">GLB</span>' : ''}
+        </div>
         <div class="post-card-body">
           <div class="post-card-title">${p.title}</div>
           ${p.description ? `<div class="post-card-desc">${p.description}</div>` : ''}
