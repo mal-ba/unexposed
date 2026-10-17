@@ -447,7 +447,6 @@
   .design-cta-grid .design-cta-box{ max-width:none; margin:0; padding:36px 26px; display:flex; flex-direction:column; }
   .design-cta-grid .design-cta-box[hidden]{ display:none; }
   .design-cta-grid .design-cta-box .design-mode-btns{ margin-top:auto; }
-  #scan .makeup-section-box{ margin-top:40px; }
   /* ---------- PRODUCT DETAIL ---------- */
   .detail-grid{ display:grid; gap:0; background:none; border:none; border-radius:0; grid-template-columns:1fr; }
   @media(min-width:760px){ .detail-grid{ grid-template-columns:1fr 1fr; column-gap:52px; } }
@@ -501,6 +500,8 @@
 
   /* ---------- 메인 페이지 독립 "메이크업" 구역 ---------- */
   .makeup-section-box{ max-width:640px; margin:0 auto; }
+  /* 메이크업 팝업 창: .modal-box 기본 폭(380px)보다 넓게 띄워요 */
+  #makeup-modal .wizard-box{ max-width:760px; width:96%; max-height:92vh; overflow-y:auto; }
   #landing-makeup-3d{ width:100%; height:100%; }
   #landing-makeup-3d canvas{ display:block; width:100%; height:100%; touch-action:none; }
   .makeup-props-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -857,7 +858,18 @@
     </div>
   </div>
 
-  <div class="makeup-section-box" id="makeup-section-box" hidden>
+  <!-- 메이크업 팝업: 3D 꾸미기·제작 스튜디오처럼 버튼을 누르면 창으로 떠요. -->
+  <div class="modal-overlay wizard-overlay" id="makeup-modal" hidden>
+  <div class="modal-box wizard-box">
+    <div class="wizard-header">
+      <div class="wizard-steps">
+        <span class="wizard-step active" id="makeup-step-indicator-1">1. 얼굴 스캔</span>
+        <span class="wizard-step-arrow">→</span>
+        <span class="wizard-step" id="makeup-step-indicator-2">2. 메이크업</span>
+      </div>
+      <button class="wizard-close" id="makeup-modal-close" type="button" data-i18n-aria="close" aria-label="닫기">✕</button>
+    </div>
+  <div class="makeup-section-box" id="makeup-section-box">
 
     <!-- STEP 1 : 얼굴 스캔 (정면 → 왼쪽 → 오른쪽 → 뒷모습, 4단계) -->
     <div id="makeup-scan-step">
@@ -931,6 +943,8 @@
         <p class="garment-status" id="landing-makeup-status"></p>
       </div>
     </div>
+  </div>
+  </div>
   </div>
 </section>
 
@@ -1749,8 +1763,6 @@
 
   /* ---------- 메인 페이지 독립 "메이크업" 구역 (버튼 눌러야 3D를 불러와요) ---------- */
   const openMakeupFlowBtn = document.getElementById('open-makeup-flow-btn');
-  const makeupCtaBox = document.getElementById('makeup-cta-box');
-  const makeupSectionBox = document.getElementById('makeup-section-box');
   let makeupBundleLoaded = false;
   let makeupBundleLoading = null;
 
@@ -1768,15 +1780,28 @@
     return makeupBundleLoading;
   }
 
+  const makeupModal = document.getElementById('makeup-modal');
+  function closeMakeupModal(){
+    makeupModal.hidden = true;
+    if(window.stopMakeupCamera) window.stopMakeupCamera();
+  }
+  document.getElementById('makeup-modal-close').addEventListener('click', closeMakeupModal);
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && !makeupModal.hidden) closeMakeupModal();
+  });
+
   openMakeupFlowBtn.addEventListener('click', async () => {
     openMakeupFlowBtn.disabled = true;
     try{
-      // makeup.js의 initViewer()가 컨테이너 크기를 읽기 전에, 먼저 보이게 해줘야 해요
+      // makeup.js의 initViewer()가 컨테이너 크기를 읽기 전에, 먼저 팝업을 띄워야 해요
       // (숨겨진 상태면 크기가 0이라 3D 화면이 깨져요).
-      makeupCtaBox.hidden = true;
-      makeupSectionBox.hidden = false;
-      makeupSectionBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      makeupModal.hidden = false;
       await loadMakeupBundle();
+      // 팝업을 닫았다 다시 열면 3D 화면 크기를 다시 맞춰요.
+      window.dispatchEvent(new Event('resize'));
+    } catch (err) {
+      alert('메이크업을 불러오지 못했습니다.');
+      makeupModal.hidden = true;
     } finally {
       openMakeupFlowBtn.disabled = false;
     }

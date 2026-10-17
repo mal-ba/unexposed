@@ -146,11 +146,18 @@ scanStageDots.querySelectorAll('.stage-dot').forEach((dot, i) => {
   });
 });
 
+// 팝업 상단의 "1. 얼굴 스캔 → 2. 메이크업" 표시를 현재 단계에 맞춰요.
+function setStepIndicator(step){
+  document.getElementById('makeup-step-indicator-1')?.classList.toggle('active', step === 1);
+  document.getElementById('makeup-step-indicator-2')?.classList.toggle('active', step === 2);
+}
+
 scanConfirmBtn.addEventListener('click', () => {
   if(!capturedPhotos.front) return;
   stopScanStream();
   scanStepEl.hidden = true;
   threeDStepEl.hidden = false;
+  setStepIndicator(2);
   threeDStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   startOrUpdateViewer();
   // 찍은 사진들을 AI로 분석해서, 각도에 맞게 얼굴/머리카락을 입혀줘요.
@@ -160,6 +167,7 @@ scanConfirmBtn.addEventListener('click', () => {
 rescanBtn.addEventListener('click', () => {
   threeDStepEl.hidden = true;
   scanStepEl.hidden = false;
+  setStepIndicator(1);
   currentStageIndex = 0;
   renderStageUI();
   scanStepEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
