@@ -20,5 +20,11 @@
     { "src": "/icon-384.png?v=3", "sizes": "384x384", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png?v=3", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512-maskable.png?v=3", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/home-wide.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "UNEXPOSED 홈 화면" },
+    { "src": "/screenshots/howto-wide.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "스캔부터 주문까지 4단계" },
+    { "src": "/screenshots/home-narrow.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "UNEXPOSED 홈 화면" },
+    { "src": "/screenshots/howto-narrow.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "스캔부터 주문까지 4단계" }
   ]
 }

@@ -1807,7 +1807,7 @@
     }
   });
 
-  // 서비스 워커 등록 (설치 가능한 앱이 되기 위한 최소 요건이에요)
+  // 서비스 워커 등록 (설치 가능한 앱 + 오프라인/빠른 재방문용 캐싱)
   if('serviceWorker' in navigator){
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js').catch(() => {});
