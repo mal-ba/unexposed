@@ -212,7 +212,7 @@
     <input type="email" name="email" placeholder="구독자 Google 이메일" required>
     <select name="cycle" class="sub-plan-select">
       <option value="monthly">월간 (25,000원 · 31일)</option>
-      <option value="yearly">연간 (300,000원 · 366일)</option>
+      <option value="yearly">연간 (200,000원 · 366일)</option>
     </select>
     <input type="date" name="subscribedAt" title="결제일 (비우면 오늘)">
     <button class="admin-add-btn" type="submit">구독자 등록</button>
@@ -756,7 +756,7 @@
       const res = await fetch('/api/admin/subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // 메인 페이지 요금 카드와 같은 Premium 월간(25,000원)·연간(300,000원)으로 등록해요.
+        // 메인 페이지 요금 카드와 같은 Premium 월간(25,000원)·연간(200,000원)으로 등록해요.
         body: JSON.stringify({ email: fd.get('email'), plan: 'Premium', cycle: fd.get('cycle'), subscribedAt: fd.get('subscribedAt') || null }),
       });
       const data = await res.json();
