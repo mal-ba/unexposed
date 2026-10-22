@@ -1968,9 +1968,24 @@ app.use((err, req, res, next) => {
   res.status(500).json({ ok: false, error: '서버 오류가 발생했습니다.' });
 });
 
+// 커뮤니티 표에 3D 파일 칸(glb_url)이 있는지 서버가 뜰 때 한 번 확인해요. 없으면 커뮤니티 목록·올리기가
+// 모두 실패하는데 화면에는 '불러오지 못했습니다'만 보여서, 관리자 페이지 맨 위에 고치는 방법을 띄워요.
+async function checkCommunitySchema(){
+  const { error } = await supabase.from('community_posts').select('id, glb_url').limit(1);
+  if(!error) return;
+  const msg = `${error.message || ''} ${error.details || ''}`;
+  if(/glb_url|community_posts|does not exist|schema cache/i.test(msg)){
+    const warning = `커뮤니티 표(community_posts)가 없거나 3D 파일 칸(glb_url)이 없어서 커뮤니티 목록·올리기가 모두 실패합니다. (${error.message})\n` +
+      'Supabase → SQL Editor에서 저장소의 supabase/schema.sql 을 실행해주세요. 이미 있는 표와 데이터는 그대로 두고 빠진 칸만 추가합니다.';
+    SETUP_WARNINGS.push(warning);
+    console.error('⚠️  ' + warning);
+  }
+}
+
 async function start() {
   // Supabase가 일시정지/응답 없음 상태여도 서버는 먼저 뜨도록, 초기화 작업은 기다리지 않고 뒤에서 실행합니다.
   seedBuiltinWardrobeIfEmpty().catch(err => console.error('옷장 초기화 실패:', err && err.message));
+  checkCommunitySchema().catch(err => console.error('커뮤니티 표 확인 실패:', err && err.message));
   refreshAdminEmailsCache().catch(err => console.error('관리자 목록 초기화 실패:', err && err.message));
   app.listen(PORT, () => {
     console.log(`UNEXPOSED 서버 실행 중: http://localhost:${PORT}`);
