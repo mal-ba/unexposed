@@ -149,6 +149,7 @@ function isAdminEmail(email) {
 }
 
 const MAX_SCAN_RECORDS_PER_USER = 30; // 무한 증가를 막기 위한 사람당 보관 개수 제한
+const MAX_SCAN_PHOTO_SETS_PER_USER = 3; // 4방향 사진 묶음은 최근 3개 기록에만 보관
 
 // 피봇 후 가격 체계: Lite(자가 제작용 패턴만) / Premium(AI 패턴 생성 + 재봉사 매칭 + 완제품 배송 + 아바타 기반 핏 보장 QC)
 // Lite·Premium 월간 결제(25,000원), Premium 연간 결제(200,000원) — 메인 요금제 카드와 맞춰요.
@@ -712,30 +713,47 @@ app.get('/api/consent/body-data', requireLogin, (req, res) => {
   res.json({ consent: getBodyConsent(req.user.email) });
 });
 
-// 동의한 사용자에 한해서만, 스캔한 신체 데이터(키 + 사진 썸네일)를 서버에 쌓습니다.
+// 동의한 사용자에 한해서만, 스캔한 신체 데이터(키 + 사진)를 서버에 쌓습니다.
+// 사진은 제작 스튜디오에서 앞·뒤·왼쪽·오른쪽 4장(photos)으로 받고, 예전 방식의
+// 사진 한 장(photoThumbnail)도 계속 받아요.
+const SCAN_PHOTO_VIEWS = ['front', 'back', 'left', 'right'];
 app.post('/api/scan/save', requireLogin, (req, res) => {
   const consentRecord = getBodyConsent(req.user.email);
   if (!consentRecord || !consentRecord.consent) {
     return res.status(403).json({ ok: false, error: '신체 데이터 수집에 동의하지 않아서 저장할 수 없습니다.' });
   }
-  const { heightCm, photoThumbnail } = req.body || {};
+  const { heightCm, photoThumbnail, photos } = req.body || {};
   if (!heightCm) {
     return res.status(400).json({ ok: false, error: 'heightCm이 필요합니다.' });
   }
-  // 썸네일은 용량을 제한합니다 (base64 기준 대략 300KB 이하만 허용).
-  if (photoThumbnail && photoThumbnail.length > 400000) {
+  // 사진은 장마다 용량을 제한합니다 (base64 기준 대략 300KB 이하만 허용).
+  const isPhoto = v => typeof v === 'string' && v.startsWith('data:image/') && v.length <= 400000;
+  if (photoThumbnail && !isPhoto(photoThumbnail)) {
     return res.status(400).json({ ok: false, error: '이미지 용량이 너무 큽니다.' });
+  }
+  const viewPhotos = {};
+  if (photos && typeof photos === 'object') {
+    for (const view of SCAN_PHOTO_VIEWS) {
+      if (!photos[view]) continue;
+      if (!isPhoto(photos[view])) {
+        return res.status(400).json({ ok: false, error: '이미지 용량이 너무 큽니다.' });
+      }
+      viewPhotos[view] = photos[view];
+    }
   }
   try {
     const records = getScanRecords(req.user.email);
     records.push({
       id: crypto.randomUUID(),
       height_cm: Number(heightCm),
-      photo_thumbnail: photoThumbnail || null,
+      photo_thumbnail: photoThumbnail || viewPhotos.front || null,
+      photos: Object.keys(viewPhotos).length ? viewPhotos : null,
       captured_at: new Date().toISOString(),
     });
     // 사람당 보관 개수를 넘으면 오래된 것부터 정리합니다.
     const trimmed = records.slice(-MAX_SCAN_RECORDS_PER_USER);
+    // 4방향 사진은 용량이 커서 최근 기록 몇 개에만 남기고, 그 전 기록에서는 지워요.
+    trimmed.slice(0, -MAX_SCAN_PHOTO_SETS_PER_USER).forEach(r => { if (r.photos) r.photos = null; });
     setScanRecords(req.user.email, trimmed);
     res.json({ ok: true, count: trimmed.length });
   } catch (e) {
