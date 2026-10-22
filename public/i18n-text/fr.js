@@ -608,7 +608,7 @@ window.i18nAddText('fr', {
   '신체 사진과 스캔 데이터는 서버에 영구 저장하지 않습니다. 즉시 암호화하고 삭제하는 것을 원칙으로 합니다.': 'Les photos et données de scan ne sont jamais conservées durablement sur le serveur. Notre principe : chiffrer et supprimer immédiatement.',
   '그림판 수준의 초간편 UI': 'Une interface ultra simple, comme un logiciel de dessin',
   '퀵 스타트 모드와 AI 라인 분리 기능으로, 단 3번의 탭 안에 디자인을 완성할 수 있도록 만듭니다.': 'Avec le mode démarrage rapide et la séparation des lignes par IA, tu peux finir un design en 3 touches.',
-  '현재 UNEXPOSED는 PentaCorp 학생 팀이 운영하는 데모·시제품 단계입니다. 실제 재봉사 매칭, 원단 제작, 배송 파트너 연결은 준비 중이며, 위 내용은 저희가 지향하는 서비스 방향을 설명합니다.': 'UNEXPOSED est actuellement une démo/un prototype géré par l’équipe étudiante PentaCorp. La mise en relation avec les couturiers, la production de tissus et les partenaires de livraison sont en préparation ; ce qui précède décrit la direction visée.',
+  '현재 UNEXPOSED는 PentaCorp 팀이 운영하는 데모·시제품 단계입니다. 실제 재봉사 매칭, 원단 제작, 배송 파트너 연결은 준비 중이며, 위 내용은 저희가 지향하는 서비스 방향을 설명합니다.': 'UNEXPOSED est actuellement une démo/un prototype géré par l’équipe PentaCorp. La mise en relation avec les couturiers, la production de tissus et les partenaires de livraison sont en préparation ; ce qui précède décrit la direction visée.',
   '제작·배송 흐름이 궁금하다면 →': 'Curieux du processus de fabrication et de livraison ? →',
   '· 브랜드 이야기가 궁금하다면 →': '· Curieux de l’histoire de la marque ? →',
   'consent 값은 true/false여야 합니다.': 'consent doit valoir true/false.',
