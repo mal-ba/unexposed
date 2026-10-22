@@ -21,31 +21,36 @@
       </div>
     </div>
 
-    <!-- STEP 1 : 바디 스캔 — 3D 꾸미기처럼 사진을 찍거나 올리고 키(필수)·몸무게(선택)를 입력해요. -->
+    <!-- STEP 1 : 바디 스캔 — 앞·뒤·왼쪽·오른쪽 사진 4장을 찍거나 올리고 키(필수)·몸무게(선택)를 입력해요. -->
     <div class="wizard-panel" id="create-scan-panel">
       <div class="sec-head" style="text-align:left; margin-bottom:16px;">
         <div class="eyebrow">제작 스튜디오 (베타)</div>
         <h2 class="serif" style="font-size:24px; margin:4px 0 6px;">먼저 체형을 알려주세요</h2>
-        <p style="margin:0;">정면 사진을 촬영하거나 업로드하고 키를 입력하면, 그 체형을 기준으로 옷을 만듭니다. 키는 꼭 입력해야 하고, 몸무게는 입력하지 않아도 됩니다.</p>
+        <p style="margin:0;">앞모습·뒷모습·왼쪽·오른쪽 옆모습 사진 4장을 촬영하거나 업로드하고 키를 입력하면, 그 체형을 기준으로 옷을 만듭니다. 사진 4장과 키는 꼭 필요하고, 몸무게는 입력하지 않아도 됩니다.</p>
       </div>
       <div class="create-scan-wrap">
         <div class="create-scan-camera">
           <video id="create-scan-video" autoplay playsinline muted></video>
-          <canvas id="create-scan-canvas" hidden></canvas>
           <div class="create-scan-actions">
             <button class="btn btn-primary" id="create-scan-start-btn" type="button">카메라 켜기</button>
             <button class="btn btn-ghost-dark" id="create-scan-capture-btn" type="button" hidden>사진 촬영</button>
+            <button class="btn btn-ghost-dark" id="create-scan-flip-btn" type="button" hidden>카메라 전환</button>
             <label class="create-scan-upload">
               <span>사진 업로드</span>
               <input type="file" accept="image/*" id="create-scan-file-input" hidden>
             </label>
           </div>
-          <p class="create-scan-hint" id="create-scan-hint">카메라 권한을 허용하면 실시간 미리보기가 나타납니다. 카메라를 쓸 수 없다면 사진 파일을 업로드하셔도 됩니다.</p>
+          <label class="create-scan-timer"><input type="checkbox" id="create-scan-timer-input"> 10초 타이머 (혼자 찍을 때)</label>
+          <p class="create-scan-hint" id="create-scan-hint">사진 칸에서 찍을 방향(앞·뒤·왼쪽·오른쪽)을 고른 다음 촬영하거나 업로드하세요. 카메라 권한을 허용하면 실시간 미리보기가 나타나고, 카메라를 쓸 수 없다면 사진 파일을 업로드하셔도 됩니다.</p>
         </div>
         <div class="create-scan-result">
-          <div class="create-scan-photo" id="create-scan-photo">
-            <span>촬영하거나 업로드한 사진이 여기에 표시됩니다</span>
+          <div class="create-scan-views" id="create-scan-views">
+            <button type="button" class="create-scan-photo active" data-view="front"><span class="create-scan-photo-empty">앞모습</span><b class="create-scan-view-label">앞모습</b></button>
+            <button type="button" class="create-scan-photo" data-view="back"><span class="create-scan-photo-empty">뒷모습</span><b class="create-scan-view-label">뒷모습</b></button>
+            <button type="button" class="create-scan-photo" data-view="left"><span class="create-scan-photo-empty">왼쪽 옆모습</span><b class="create-scan-view-label">왼쪽 옆모습</b></button>
+            <button type="button" class="create-scan-photo" data-view="right"><span class="create-scan-photo-empty">오른쪽 옆모습</span><b class="create-scan-view-label">오른쪽 옆모습</b></button>
           </div>
+          <p class="create-scan-count" id="create-scan-count">사진 0 / 4</p>
           <div class="create-body-fields">
             <label>
               <span>키 (cm) <b class="req">필수</b></span>
@@ -56,7 +61,7 @@
               <input type="number" id="create-weight-input" inputmode="decimal" min="30" max="200" step="0.1" placeholder="예: 60">
             </label>
           </div>
-          <p class="create-body-note">입력한 키·몸무게는 주문할 때 제작 참고용으로 재봉사에게 함께 전달됩니다.</p>
+          <p class="create-body-note">사진 4장과 입력한 키·몸무게는 주문할 때 제작 참고용으로 재봉사에게 함께 전달됩니다.</p>
           <p class="create-body-error" id="create-body-error"></p>
           <button class="btn btn-primary create-scan-next" id="create-scan-next-btn" type="button" disabled>이 체형으로 옷 만들기 →</button>
         </div>

@@ -70,6 +70,17 @@
     body: null, // { heightCm, weightKg|null } — 바디 스캔을 마쳐야 채워져요
   };
   let scanStream = null;
+  let scanFacing = 'user';     // 'user'(앞 카메라) | 'environment'(뒤 카메라)
+  let scanCountdown = null;    // 타이머 촬영 중이면 setInterval id
+  // 옷을 만들려면 몸을 네 방향에서 봐야 해서, 앞·뒤·왼쪽·오른쪽 사진을 모두 받아요.
+  const SCAN_VIEWS = [
+    { key: 'front', label: '앞모습' },
+    { key: 'back', label: '뒷모습' },
+    { key: 'left', label: '왼쪽 옆모습' },
+    { key: 'right', label: '오른쪽 옆모습' },
+  ];
+  const scanPhotos = { front: null, back: null, left: null, right: null };
+  let scanActiveView = 'front';
   let memCart = [];
   let cart = loadCart();
   let pending = null; // 주문 확인 모달에 올라간 주문 { mode: 'single'|'cart', items }
@@ -159,8 +170,16 @@
   .create-scan-actions .btn{padding:10px 16px;font-size:13px}
   .create-scan-upload{display:inline-flex;align-items:center;padding:10px 16px;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--paper)}
   .create-scan-hint{font-size:12px;color:var(--ink-soft);margin-top:8px}
-  .create-scan-photo{aspect-ratio:3/4;max-height:260px;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12.5px;color:var(--ink-soft);padding:10px;overflow:hidden;background:var(--paper)}
-  .create-scan-photo img{width:100%;height:100%;object-fit:contain}
+  .create-scan-views{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .create-scan-photo{position:relative;aspect-ratio:3/4;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font:inherit;font-size:11.5px;color:var(--ink-soft);padding:4px;overflow:hidden;background:var(--paper);cursor:pointer}
+  .create-scan-photo.active{border:2px solid var(--star-dark)}
+  .create-scan-photo.filled{border-style:solid}
+  .create-scan-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+  .create-scan-photo .create-scan-view-label{display:none;position:absolute;left:0;right:0;bottom:0;padding:2px 0;font-size:10.5px;font-weight:600;background:rgba(0,0,0,.55);color:#fff}
+  .create-scan-photo.filled .create-scan-photo-empty{display:none}
+  .create-scan-photo.filled .create-scan-view-label{display:block}
+  .create-scan-count{font-size:12px;color:var(--ink-soft);margin-top:6px}
+  .create-scan-timer{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);margin-top:8px;cursor:pointer}
   .create-body-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
   .create-body-fields label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-soft)}
   .create-body-fields input{padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-family:inherit;background:var(--paper);color:var(--ink);font-size:14px}
@@ -237,7 +256,7 @@
   }
   function refreshScanNext() {
     const r = readBody();
-    $('create-scan-next-btn').disabled = !r.ok;
+    $('create-scan-next-btn').disabled = !r.ok || scanMissingViews().length > 0;
     $('create-height-input').setAttribute('aria-invalid', String($('create-height-input').value.trim() !== '' && !r.heightOk));
     $('create-weight-input').setAttribute('aria-invalid', String(!r.weightOk));
     $('create-body-error').textContent = r.error;
@@ -248,36 +267,111 @@
       : `기준 체형 · 키 ${body.heightCm}cm`;
   }
   function stopScanCamera() {
+    cancelScanCountdown();
     if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
     const v = $('create-scan-video');
     if (v) v.srcObject = null;
     $('create-scan-capture-btn').hidden = true;
+    $('create-scan-flip-btn').hidden = true;
     $('create-scan-start-btn').hidden = false;
   }
-  function showScanPhoto(dataUrl) {
-    const slot = $('create-scan-photo');
-    slot.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.alt = '';
-    slot.appendChild(img);
+  function cancelScanCountdown() {
+    if (scanCountdown) { clearInterval(scanCountdown); scanCountdown = null; }
+    const btn = $('create-scan-capture-btn');
+    if (btn) btn.textContent = '사진 촬영';
   }
-  function scanPhotoDataUrl() {
-    const img = $('create-scan-photo').querySelector('img');
-    return img && img.src && img.src.startsWith('data:') ? img.src : null;
+  function viewLabel(key) {
+    return (SCAN_VIEWS.find(v => v.key === key) || SCAN_VIEWS[0]).label;
+  }
+  function scanMissingViews() {
+    return SCAN_VIEWS.filter(v => !scanPhotos[v.key]).map(v => v.key);
+  }
+  function scanSlot(key) {
+    return $('create-scan-views').querySelector(`[data-view="${key}"]`);
+  }
+  function setActiveView(key) {
+    scanActiveView = key;
+    SCAN_VIEWS.forEach(v => scanSlot(v.key).classList.toggle('active', v.key === key));
+  }
+  function renderScanCount() {
+    const missing = scanMissingViews();
+    const done = SCAN_VIEWS.length - missing.length;
+    $('create-scan-count').textContent = `사진 ${done} / ${SCAN_VIEWS.length}`
+      + (missing.length ? ` · 남은 사진: ${missing.map(viewLabel).join(', ')}` : ' · 모두 준비됐어요');
+  }
+  // 사진을 넣으면 다음으로 비어 있는 방향을 자동으로 골라줘요.
+  function afterScanPhoto(doneKey, how) {
+    const missing = scanMissingViews();
+    if (missing.length) {
+      setActiveView(missing[0]);
+      $('create-scan-hint').textContent = `${viewLabel(doneKey)} 사진을 ${how}했습니다. 이제 ${viewLabel(missing[0])} 사진을 ${how}해주세요.`;
+    } else {
+      $('create-scan-hint').textContent = `사진 4장이 모두 준비됐습니다. 키를 입력하고 다음으로 넘어가세요. 바꾸고 싶은 사진은 눌러서 다시 ${how}하면 됩니다.`;
+    }
+    renderScanCount();
+    refreshScanNext();
+  }
+  function setScanPhoto(key, dataUrl) {
+    scanPhotos[key] = dataUrl;
+    const slot = scanSlot(key);
+    const old = slot.querySelector('img');
+    if (old) old.remove();
+    if (dataUrl) {
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.alt = viewLabel(key);
+      slot.insertBefore(img, slot.firstChild);
+    }
+    slot.classList.toggle('filled', !!dataUrl);
+  }
+  // 큰 사진도 서버 저장 한도(장당 약 300KB) 안에 들어가도록 긴 변 960px JPEG로 줄여요.
+  function shrinkImage(source, w, h) {
+    const max = 960;
+    const scale = Math.min(1, max / Math.max(w, h));
+    const c = document.createElement('canvas');
+    c.width = Math.round(w * scale);
+    c.height = Math.round(h * scale);
+    c.getContext('2d').drawImage(source, 0, 0, c.width, c.height);
+    let q = 0.82;
+    let out = c.toDataURL('image/jpeg', q);
+    while (out.length > 380000 && q > 0.4) { q -= 0.1; out = c.toDataURL('image/jpeg', q); }
+    return out;
+  }
+  async function startScanCamera() {
+    try {
+      if (scanStream) scanStream.getTracks().forEach(t => t.stop());
+      scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: scanFacing }, audio: false });
+      $('create-scan-video').srcObject = scanStream;
+      $('create-scan-start-btn').hidden = true;
+      $('create-scan-capture-btn').hidden = false;
+      $('create-scan-flip-btn').hidden = false;
+      $('create-scan-hint').textContent = `${viewLabel(scanActiveView)}이 보이게 서서 몸 전체가 화면에 들어오게 한 다음 "사진 촬영"을 눌러주세요.`;
+    } catch (e) {
+      stopScanCamera();
+      $('create-scan-hint').textContent = '카메라를 사용할 수 없습니다. 업로드 버튼으로 진행해주세요.';
+    }
+  }
+  function captureScanPhoto() {
+    const v = $('create-scan-video');
+    if (!scanStream || !v.videoWidth) return;
+    const key = scanActiveView;
+    setScanPhoto(key, shrinkImage(v, v.videoWidth, v.videoHeight));
+    afterScanPhoto(key, '촬영');
   }
   // 3D 꾸미기와 같은 규칙: 로그인 + 신체 데이터 수집에 동의한 경우에만 사진·키를 서버에 저장해요.
   // 몸무게는 동의 문구(사진·키 정보)에 없어서 스캔 기록에는 저장하지 않고, 주문할 때만 함께 보내요.
   async function saveScanIfConsented(body) {
     if (!loggedIn() || window.bodyDataConsentGranted !== true) return;
-    const photo = scanPhotoDataUrl();
+    const photos = {};
+    SCAN_VIEWS.forEach(v => { if (scanPhotos[v.key] && scanPhotos[v.key].length < 380000) photos[v.key] = scanPhotos[v.key]; });
     try {
       await fetch('/api/scan/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           heightCm: body.heightCm,
-          photoThumbnail: photo && photo.length < 380000 ? photo : null,
+          photoThumbnail: photos.front || null,
+          photos,
         }),
       });
     } catch (e) { /* 저장에 실패해도 스튜디오는 그대로 써요 */ }
@@ -299,39 +393,48 @@
     if (box) box.scrollTop = 0;
   }
   function bindScan() {
-    $('create-scan-start-btn').addEventListener('click', async () => {
-      try {
-        scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-        $('create-scan-video').srcObject = scanStream;
-        $('create-scan-start-btn').hidden = true;
-        $('create-scan-capture-btn').hidden = false;
-        $('create-scan-hint').textContent = '정면을 바라보고 몸 전체가 화면에 들어오게 선 다음 "사진 촬영"을 눌러주세요.';
-      } catch (e) {
-        $('create-scan-hint').textContent = '카메라를 사용할 수 없습니다. 아래 업로드 버튼으로 진행해주세요.';
-      }
+    $('create-scan-start-btn').addEventListener('click', startScanCamera);
+    $('create-scan-flip-btn').addEventListener('click', () => {
+      cancelScanCountdown();
+      scanFacing = scanFacing === 'user' ? 'environment' : 'user';
+      startScanCamera();
     });
     $('create-scan-capture-btn').addEventListener('click', () => {
-      const v = $('create-scan-video');
       if (!scanStream) return;
-      const c = $('create-scan-canvas');
-      c.width = v.videoWidth || 480;
-      c.height = v.videoHeight || 640;
-      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-      showScanPhoto(c.toDataURL('image/jpeg', 0.85));
-      stopScanCamera();
-      $('create-scan-start-btn').textContent = '다시 촬영';
-      $('create-scan-hint').textContent = '촬영이 완료되었습니다. 키를 입력하고 다음으로 넘어가세요.';
+      if (scanCountdown) { cancelScanCountdown(); return; } // 타이머 도중 다시 누르면 취소
+      if (!$('create-scan-timer-input').checked) { captureScanPhoto(); return; }
+      let left = 10;
+      const btn = $('create-scan-capture-btn');
+      btn.textContent = `${left}초 뒤 촬영 (취소)`;
+      scanCountdown = setInterval(() => {
+        left -= 1;
+        if (left > 0) { btn.textContent = `${left}초 뒤 촬영 (취소)`; return; }
+        cancelScanCountdown();
+        captureScanPhoto();
+      }, 1000);
     });
+    SCAN_VIEWS.forEach(v => scanSlot(v.key).addEventListener('click', () => {
+      cancelScanCountdown();
+      setActiveView(v.key);
+      $('create-scan-hint').textContent = `${v.label} 사진을 촬영하거나 업로드해주세요.`;
+    }));
     $('create-scan-file-input').addEventListener('change', e => {
       const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        showScanPhoto(reader.result);
-        $('create-scan-hint').textContent = '사진 업로드가 완료되었습니다. 키를 입력하고 다음으로 넘어가세요.';
-      };
-      reader.readAsDataURL(file);
       e.target.value = '';
+      if (!file) return;
+      const key = scanActiveView;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        setScanPhoto(key, shrinkImage(img, img.naturalWidth, img.naturalHeight));
+        URL.revokeObjectURL(url);
+        afterScanPhoto(key, '업로드');
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        $('create-scan-hint').textContent = '사진 파일을 읽지 못했습니다. 다른 사진으로 다시 시도해주세요.';
+      };
+      img.src = url;
     });
     $('create-height-input').addEventListener('input', refreshScanNext);
     $('create-weight-input').addEventListener('input', refreshScanNext);
@@ -339,6 +442,11 @@
       const r = readBody();
       if (!r.ok) {
         if (!r.heightOk && !r.error) $('create-body-error').textContent = '키를 입력해주세요. (필수)';
+        return;
+      }
+      const missing = scanMissingViews();
+      if (missing.length) {
+        $('create-body-error').textContent = `${missing.map(viewLabel).join(', ')} 사진이 필요합니다.`;
         return;
       }
       st.body = r.body;
@@ -1000,6 +1108,13 @@
     const btn = $('create-order-pay-btn');
     const note = $('create-order-modal-note');
     const ship = needsShipping() ? readShipping() : null;
+    // 재봉사가 체형을 보고 만들 수 있게, 1단계에서 찍은 사진 4장을 주문에 함께 보내요.
+    const missing = scanMissingViews();
+    if (missing.length) {
+      note.textContent = `주문하려면 체형 사진 4장이 필요합니다. 제작 스튜디오 1단계(바디 스캔)에서 ${missing.map(viewLabel).join(', ')} 사진을 등록해주세요.`;
+      return;
+    }
+    const bodyPhotos = { ...scanPhotos };
     btn.disabled = true;
     btn.textContent = '주문 처리 중...';
     note.textContent = '';
@@ -1008,8 +1123,8 @@
       const first = pending.items[0];
       const url = isCart ? '/api/orders/create-cart-order' : '/api/orders/create-order';
       const body = isCart
-        ? { items: pending.items.map(i => ({ studio: i.studio, quantity: i.quantity, finishAmount: i.finishAmount })) }
-        : { designMode: 'studio', studio: first.studio, quantity: first.quantity, finishAmount: first.finishAmount, finishLabel: first.finishAmount ? 'Premium' : 'Lite' };
+        ? { items: pending.items.map(i => ({ studio: i.studio, quantity: i.quantity, finishAmount: i.finishAmount })), bodyPhotos }
+        : { designMode: 'studio', studio: first.studio, quantity: first.quantity, finishAmount: first.finishAmount, finishLabel: first.finishAmount ? 'Premium' : 'Lite', bodyPhotos };
       const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || '주문을 만들지 못했습니다.');
