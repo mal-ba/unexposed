@@ -1075,7 +1075,7 @@ const STUDIO_MAX_QTY = 10;         // 한 디자인당 최대 수량
 const STUDIO_MAX_CART_ITEMS = 20;  // 장바구니 최대 디자인 수
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 // 제작 스튜디오 바디 스캔: 키는 필수, 몸무게는 선택 (create.js 의 BODY 와 같은 범위)
-const STUDIO_BODY = { heightMin: 30, heightMax: 250, weightMin: 30, weightMax: 200 };
+const STUDIO_BODY = { heightMin: 30, heightMax: 250, weightMin: 3, weightMax: 300 };
 
 function parseStudioBody(body){
   if(!body || typeof body !== 'object') return { error: '키 정보가 없습니다. 제작 스튜디오에서 체형을 먼저 입력해주세요.' };
