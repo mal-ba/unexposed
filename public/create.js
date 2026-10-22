@@ -106,11 +106,9 @@
   .type-chip.active,.tool-chip.active,.fabric-chip.active,.calc-chip.active{background:var(--deep);color:var(--paper);border-color:var(--deep)}
   .viewer-box{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--mist);margin:10px 0}
   #create-3d{position:relative;height:340px;background:#fbfaf6;border-radius:8px;overflow:hidden}
-  #create-3d .stage-gl,#create-3d .stage-paint{position:absolute;left:0;top:0;width:100%;height:100%}
-  #create-3d .stage-gl{display:block}
+  #create-3d .stage-gl{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
   #create-3d .stage-gl[hidden]{display:none}
-  #create-3d .stage-paint{touch-action:none;pointer-events:none}
-  #create-3d .stage-paint.on{pointer-events:auto;cursor:crosshair}
+  #create-3d .stage-gl.painting{cursor:crosshair}
   .view-btns{display:none}
   .viewer-hint{font-size:12px;color:var(--ink-soft);margin-top:8px;text-align:center}
   .tool-row{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
@@ -478,7 +476,7 @@
   function onRegionTap(key) {
     const kind = kindOf(st.typeKey);
     if (!kind.cols[key.split('_')[1]] || !kind.rows[key.split('_')[0]]) return;
-    if (st.tool === 'brush') { status('브러시로는 옷 그림 칸에 직접 그릴 수 있습니다.'); return; }
+    if (st.tool === 'brush') { status('브러시는 위의 3D 옷 위를 드래그해서 칠합니다.'); return; }
     const m = st.mirror ? mirrorKey(key) : null;
     const useMirror = !!(m && kind.cols[m.split('_')[1]]);
     if (st.tool === 'eraser') {
@@ -582,12 +580,17 @@
       window.addEventListener('resize', resizeView);
       renderer.domElement.addEventListener('pointerdown', onGLPointerDown);
       renderer.domElement.addEventListener('pointerup', onGLPointerUp);
+      // OrbitControls 보다 먼저 받아서, 옷 위에서 칠할 때는 돌리기를 잠깐 꺼요.
+      stage.addEventListener('pointerdown', onStagePointerDown, true);
+      renderer.domElement.addEventListener('pointermove', onStagePointerMove);
+      renderer.domElement.addEventListener('pointerup', onStagePointerEnd);
+      renderer.domElement.addEventListener('pointercancel', onStagePointerEnd);
       (function loop() {
         requestAnimationFrame(loop);
         controls.update();
         renderer.render(scene, camera);
       })();
-      applyToolToStage();
+      renderTools();
       return true;
     } catch (e) {
       view.failed = true;
@@ -637,17 +640,27 @@
       const triCount = pos.count / 3;
       const keys = new Array(triCount);
       const colors = new Float32Array(pos.count * 3);
+      const triNormals = new Float32Array(triCount * 3);
       for (let t = 0; t < triCount; t++) {
         const a = t * 3;
-        const cx = (pos.getX(a) + pos.getX(a + 1) + pos.getX(a + 2)) / 3;
-        const cy = (pos.getY(a) + pos.getY(a + 1) + pos.getY(a + 2)) / 3;
-        const cz = (pos.getZ(a) + pos.getZ(a + 1) + pos.getZ(a + 2)) / 3;
+        const ax = pos.getX(a), ay = pos.getY(a), az = pos.getZ(a);
+        const bx = pos.getX(a + 1), by = pos.getY(a + 1), bz = pos.getZ(a + 1);
+        const qx = pos.getX(a + 2), qy = pos.getY(a + 2), qz = pos.getZ(a + 2);
+        const cx = (ax + bx + qx) / 3, cy = (ay + by + qy) / 3, cz = (az + bz + qz) / 3;
         keys[t] = classify(typeKey, (cx - center.x) / halfW, (cy - box.min.y) / H, (cz - center.z) / halfD, ctx);
+        // 브러시가 옷 반대편(뒷면)까지 번지지 않도록 면 방향을 기억해요.
+        const ux = bx - ax, uy = by - ay, uz = bz - az, vx = qx - ax, vy = qy - ay, vz = qz - az;
+        const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        const len = Math.hypot(nx, ny, nz) || 1;
+        triNormals[a] = nx / len; triNormals[a + 1] = ny / len; triNormals[a + 2] = nz / len;
       }
       m.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       m.material = mat;
       m.userData.triKeys = keys;
       m.userData.colors = colors;
+      m.userData.triNormals = triNormals;
+      m.userData.paint = new Float32Array(pos.count * 3); // 브러시로 칠한 색 (꼭짓점마다)
+      m.userData.painted = new Uint8Array(pos.count);     // 1이면 브러시 색이 부위 색보다 위에 보여요
     }
     const maxDim = Math.max(size.x, size.y, size.z, 1e-6);
     return { root, meshes, scale: 2.0 / maxDim, center };
@@ -672,14 +685,14 @@
     if (!view.rootData) return;
     const defaultRgb = hexToRgb(DEFAULT_FABRIC_COLOR);
     for (const m of view.rootData.meshes) {
-      const keys = m.userData.triKeys;
-      const colors = m.userData.colors;
+      const { triKeys: keys, colors, paint, painted } = m.userData;
       for (let t = 0; t < keys.length; t++) {
         const fill = st.regions[keys[t]];
         const rgb = fill ? hexToRgb(fill.color) : defaultRgb;
         for (let k = 0; k < 3; k++) {
-          const i = (t * 3 + k) * 3;
-          colors[i] = rgb[0]; colors[i + 1] = rgb[1]; colors[i + 2] = rgb[2];
+          const v = t * 3 + k, i = v * 3;
+          const c = painted[v] ? [paint[i], paint[i + 1], paint[i + 2]] : rgb;
+          colors[i] = c[0]; colors[i + 1] = c[1]; colors[i + 2] = c[2];
         }
       }
       m.geometry.attributes.color.needsUpdate = true;
@@ -702,16 +715,19 @@
     view.rootData = null;
   }
 
-  // 모델 위에서 눌린 삼각형의 부위 이름을 찾아요.
-  function pickRegion(clientX, clientY) {
+  // 화면에서 누른 곳 아래에 있는 옷 삼각형을 찾아요.
+  function hitModel(clientX, clientY) {
     if (!view.root) return null;
     const r = view.renderer.domElement.getBoundingClientRect();
     const ndc = new view.THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     view.raycaster.setFromCamera(ndc, view.camera);
     const hits = view.raycaster.intersectObjects(view.root.children, false);
-    if (!hits.length) return null;
-    const h = hits[0];
-    return h.object.userData.triKeys ? h.object.userData.triKeys[h.faceIndex] : null;
+    return hits.length && hits[0].object.userData.triKeys ? hits[0] : null;
+  }
+  // 모델 위에서 눌린 삼각형의 부위 이름을 찾아요.
+  function pickRegion(clientX, clientY) {
+    const h = hitModel(clientX, clientY);
+    return h ? h.object.userData.triKeys[h.faceIndex] : null;
   }
 
   let downAt = null;
@@ -758,48 +774,105 @@
   }
   function applyToolToStage() {
     const painting = st.tool === 'brush' || st.tool === 'eraser';
-    if (paintCanvas) paintCanvas.classList.toggle('on', painting);
-    if (view.controls) view.controls.enabled = !painting;
+    if (view.renderer) view.renderer.domElement.classList.toggle('painting', painting);
   }
 
-  /* ---------- 그림(브러시) 캔버스: 3D 위에 겹쳐서 그려요 ---------- */
-  let paintCanvas = null, ctx = null, drawing = false, lastPt = null;
-  function ensurePaintCanvas() {
-    if (paintCanvas) return;
-    const stage = $('create-3d');
-    paintCanvas = document.createElement('canvas');
-    paintCanvas.className = 'stage-paint';
-    paintCanvas.width = 600;
-    paintCanvas.height = 680;
-    stage.appendChild(paintCanvas);
-    ctx = paintCanvas.getContext('2d');
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    const pos = e => {
-      const r = paintCanvas.getBoundingClientRect();
-      return { x: (e.clientX - r.left) * paintCanvas.width / r.width, y: (e.clientY - r.top) * paintCanvas.height / r.height };
-    };
-    paintCanvas.addEventListener('pointerdown', e => {
-      if (st.tool !== 'brush' && st.tool !== 'eraser') return;
-      drawing = true; lastPt = pos(e); paintCanvas.setPointerCapture(e.pointerId);
-    });
-    paintCanvas.addEventListener('pointermove', e => {
-      if (!drawing) return;
-      const p = pos(e);
-      ctx.globalCompositeOperation = st.tool === 'eraser' ? 'destination-out' : 'source-over';
-      ctx.strokeStyle = st.color;
-      ctx.lineWidth = st.brush * paintCanvas.width;
-      ctx.beginPath(); ctx.moveTo(lastPt.x, lastPt.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-      lastPt = p;
-      if (st.tool === 'brush' && !st.hasPaint) { st.hasPaint = true; renderQuote(); }
-    });
-    const end = () => { drawing = false; lastPt = null; };
-    paintCanvas.addEventListener('pointerup', end);
-    paintCanvas.addEventListener('pointercancel', end);
+  /* ---------- 브러시: 3D 옷 표면(꼭짓점 색)에 바로 칠해요 ---------- */
+  let stroke = null; // { id, last: 직전에 칠한 점(모델 좌표) }
+  const rgbCache = {};
+  const rgbOf = hex => rgbCache[hex] || (rgbCache[hex] = hexToRgb(hex));
+
+  // 모델 좌표 p 둘레 radius 안, 법선 n 과 같은 쪽을 향한 면의 꼭짓점을 칠하거나 지워요.
+  function stampPaint(p, n, radius, erase) {
+    const r2 = radius * radius;
+    const brush = rgbOf(st.color);
+    const def = rgbOf(DEFAULT_FABRIC_COLOR);
+    let changed = false;
+    for (const m of view.rootData.meshes) {
+      const pos = m.geometry.attributes.position;
+      const { triNormals: tn, triKeys, colors, paint, painted } = m.userData;
+      let meshChanged = false;
+      for (let v = 0, cnt = painted.length; v < cnt; v++) {
+        const dx = pos.getX(v) - p.x, dy = pos.getY(v) - p.y, dz = pos.getZ(v) - p.z;
+        if (dx * dx + dy * dy + dz * dz > r2) continue;
+        const t = (v / 3) | 0, j = t * 3;
+        if (tn[j] * n.x + tn[j + 1] * n.y + tn[j + 2] * n.z < 0.2) continue;
+        const i = v * 3;
+        let c;
+        if (erase) {
+          if (!painted[v]) continue;
+          painted[v] = 0;
+          const fill = st.regions[triKeys[t]];
+          c = fill ? rgbOf(fill.color) : def;
+        } else {
+          painted[v] = 1;
+          c = brush;
+          paint[i] = c[0]; paint[i + 1] = c[1]; paint[i + 2] = c[2];
+        }
+        colors[i] = c[0]; colors[i + 1] = c[1]; colors[i + 2] = c[2];
+        meshChanged = true;
+      }
+      if (meshChanged) { m.geometry.attributes.color.needsUpdate = true; changed = true; }
+    }
+    return changed;
   }
+
+  // 누른 곳(과 좌우 대칭 자리)을 칠하고, 빠르게 그어도 끊기지 않도록 직전 점과 사이를 메워요.
+  function paintHit(h) {
+    const THREE = view.THREE;
+    const p = h.object.worldToLocal(h.point.clone());
+    const n = h.face.normal;
+    const radius = st.brush * 2 / view.rootData.scale;
+    const erase = st.tool === 'eraser';
+    const from = stroke.last || p;
+    const steps = Math.max(1, Math.ceil(from.distanceTo(p) / (radius * 0.5)));
+    const cx = view.rootData.center.x;
+    let changed = false;
+    for (let s = 1; s <= steps; s++) {
+      const q = new THREE.Vector3().lerpVectors(from, p, s / steps);
+      if (stampPaint(q, n, radius, erase)) changed = true;
+      if (st.mirror && stampPaint({ x: 2 * cx - q.x, y: q.y, z: q.z }, { x: -n.x, y: n.y, z: n.z }, radius, erase)) changed = true;
+    }
+    stroke.last = p;
+    if (changed && !erase && !st.hasPaint) { st.hasPaint = true; renderQuote(); }
+  }
+
+  function anyPaint() {
+    for (const prepared of Object.values(modelCache)) {
+      for (const m of prepared.meshes) if (m.userData.painted.includes(1)) return true;
+    }
+    return false;
+  }
+
+  // 옷 위를 누르면 칠하고, 옷 바깥을 누르면 평소처럼 돌려볼 수 있어요.
+  function onStagePointerDown(e) {
+    if (st.tool !== 'brush' && st.tool !== 'eraser') return;
+    if (!view.rootData || stroke) return;
+    const h = hitModel(e.clientX, e.clientY);
+    view.controls.enabled = !h;
+    if (!h) return;
+    stroke = { id: e.pointerId, last: null };
+    view.renderer.domElement.setPointerCapture(e.pointerId);
+    paintHit(h);
+  }
+  function onStagePointerMove(e) {
+    if (!stroke || e.pointerId !== stroke.id) return;
+    const h = hitModel(e.clientX, e.clientY);
+    if (h) paintHit(h); else stroke.last = null;
+  }
+  function onStagePointerEnd(e) {
+    if (!stroke || e.pointerId !== stroke.id) return;
+    stroke = null;
+    view.controls.enabled = true;
+    if (st.tool === 'eraser' && st.hasPaint && !anyPaint()) { st.hasPaint = false; renderQuote(); }
+  }
+
   function clearPaint() {
-    if (ctx) ctx.clearRect(0, 0, paintCanvas.width, paintCanvas.height);
+    for (const prepared of Object.values(modelCache)) {
+      for (const m of prepared.meshes) m.userData.painted.fill(0);
+    }
     st.hasPaint = false;
+    paintModel();
   }
 
   /* ---------- 화면 그리기 ---------- */
@@ -825,10 +898,12 @@
     document.querySelectorAll('#tool-row .tool-chip').forEach(b => b.classList.toggle('active', b.dataset.tool === st.tool));
     $('brush-size-row').hidden = st.tool !== 'brush';
     $('mirror-toggle').checked = st.mirror;
-    const painting = st.tool === 'brush' || st.tool === 'eraser';
-    $('viewer-hint').textContent = painting
-      ? '옷 위를 드래그하면 그림을 그릴 수 있습니다 (그림은 미리보기용입니다)'
-      : (view.renderer ? '드래그해서 돌려볼 수 있고, 옷을 누르면 그 부위가 채워집니다' : '아래 부위 칸을 누르면 지금 고른 원단·색으로 채워집니다');
+    const has3D = !!(view.renderer && !view.failed && MODEL_FILES[st.typeKey]);
+    let hint;
+    if (st.tool === 'brush') hint = has3D ? '옷 위를 드래그하면 그 자리에 바로 칠해집니다 · 옷 바깥을 드래그하면 돌려볼 수 있습니다' : '브러시는 3D 옷 위에서만 쓸 수 있습니다';
+    else if (st.tool === 'eraser') hint = has3D ? '옷 위를 드래그하면 브러시 자국이 지워지고, 아래 부위 칸을 누르면 그 부위 색이 지워집니다' : '아래 부위 칸을 누르면 그 부위 색이 지워집니다';
+    else hint = has3D ? '드래그해서 돌려볼 수 있고, 옷을 누르면 그 부위가 채워집니다' : '아래 부위 칸을 누르면 지금 고른 원단·색으로 채워집니다';
+    $('viewer-hint').textContent = hint;
     applyToolToStage();
   }
   function renderRegions() {
@@ -1154,7 +1229,6 @@
   /* ---------- 시작 ---------- */
   injectStyle();
   buildStatic();
-  ensurePaintCanvas();
   bindEvents();
   bindScan();
   renderAll();
