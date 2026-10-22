@@ -494,13 +494,19 @@
       const fill = { fabric: st.fabric, color: st.color };
       setRegion(key, fill);
       if (useMirror) setRegion(m, { ...fill });
-      status(`${regionLabel(kind, key)} → ${FABRICS[st.fabric].name}${useMirror ? ' (좌우 대칭)' : ''}`);
+      status([regionLabel(kind, key), ' → ', FABRICS[st.fabric].name, useMirror ? ' (좌우 대칭)' : '']);
     }
     renderRegions();
     renderQuote();
   }
 
-  function status(msg) { const el = $('studio-status'); if (el) el.textContent = msg; }
+  // 배열로 주면 조각마다 따로 글자 덩어리로 넣어요. (i18n.js 가 부위 이름·원단 이름을 각각 통째로 번역할 수 있게)
+  function status(msg) {
+    const el = $('studio-status');
+    if (!el) return;
+    if (Array.isArray(msg)) el.replaceChildren(...msg.filter(Boolean).map(t => document.createTextNode(t)));
+    else el.textContent = msg;
+  }
   function toast(msg) {
     const el = $('cart-toast');
     if (!el) return;
