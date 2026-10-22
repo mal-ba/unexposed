@@ -361,8 +361,22 @@
 
   const STORAGE_KEY = 'unexposed-lang';
 
+  // 저장된 선택이 없으면 기기/브라우저 언어(navigator.languages)를 보고 지원 언어 중
+  // 맞는 걸 골라요. 맞는 게 없으면 영어로 시작해요. (감지 결과는 저장하지 않아서,
+  // 사용자가 버튼으로 직접 고르기 전까지는 기기 언어를 계속 따라가요.)
+  function detectLang(){
+    const prefs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language];
+    for (const p of prefs){
+      const base = String(p || '').toLowerCase().split('-')[0];
+      if (base === 'ms') return 'id';
+      if (LANGS.some(l => l.code === base)) return base;
+    }
+    return 'en';
+  }
   function getLang(){
-    return localStorage.getItem(STORAGE_KEY) || 'ko';
+    let saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch(e){}
+    return (saved && LANGS.some(l => l.code === saved)) ? saved : detectLang();
   }
   function setLang(code){
     localStorage.setItem(STORAGE_KEY, code);
