@@ -49,6 +49,9 @@ if(SUPABASE_KEY_KIND === 'publishable'){
 }
 const WARDROBE_BUCKET = 'wardrobe-assets';
 const COMMUNITY_BUCKET = 'community-assets'; // 커뮤니티 게시물 3D 파일(.glb)·썸네일용 버킷이에요.
+// 주문에 딸린 체형 사진(앞·뒤·왼쪽·오른쪽)용 비공개 버킷이에요. 몸 사진이라 공개 URL을 만들지 않고,
+// 관리자만 /api/admin/orders/:orderId/body-photos/:view 로 볼 수 있어요. (R2는 공개 버킷이라 쓰지 않아요)
+const ORDER_PHOTO_BUCKET = 'order-body-photos';
 // 쉼표로 여러 개 등록 가능: 예전 방식의 관리자 목록이에요. 지금은 Supabase의
 // admin_accounts 테이블로 실시간 관리하는 게 기본이지만, 혹시 그 테이블이 비어있거나
 // 문제가 생겨도 로그인이 완전히 막히지 않도록 안전장치로 계속 같이 확인해요.
@@ -384,7 +387,7 @@ function toPublicWardrobeItem(row, viewerEmail) {
 const app = express();
 app.set('trust proxy', 1); // Render/Railway 같은 리버스 프록시 뒤에서 secure 쿠키가 정상 동작하도록
 app.use(compression()); // 응답을 gzip으로 압축해서 전송량을 줄여요 (html/css/js 등 텍스트 파일에 특히 효과적)
-app.use(express.json({ limit: '2mb' })); // 신체 스캔 썸네일 등 작은 JSON 요청용 (큰 파일은 multer로 따로 처리)
+app.use(express.json({ limit: '3mb' })); // 신체 스캔 사진(4장, 장당 약 300KB) 등 JSON 요청용 (큰 파일은 multer로 따로 처리)
 app.use(cookieParser());
 
 // 복제 방지 레이어 — '/' 라우트와 express.static 보다 반드시 먼저 등록해야 해요.
@@ -1166,6 +1169,40 @@ function shippingColumns(needsShipping, consent, s){
   };
 }
 
+/* ---------------- 주문 체형 사진 (재봉사 제작 참고용) ---------------- */
+const BODY_PHOTO_VIEWS = { front: '앞모습', back: '뒷모습', left: '왼쪽 옆모습', right: '오른쪽 옆모습' };
+const BODY_PHOTO_NOTE = '체형 사진: 앞·뒤·왼쪽·오른쪽 4장 첨부 (관리자 페이지에서 보기)';
+
+// 클라이언트가 보낸 data URL 4장을 검사해서 이미지 바이트로 바꿔요. 4장이 모두 있어야 해요.
+function parseBodyPhotos(photos){
+  if(!photos || typeof photos !== 'object') return { error: '체형 사진 4장(앞·뒤·왼쪽·오른쪽)이 필요합니다. 제작 스튜디오 1단계에서 사진을 등록해주세요.' };
+  const out = {};
+  for(const [view, label] of Object.entries(BODY_PHOTO_VIEWS)){
+    const v = photos[view];
+    const m = typeof v === 'string' && v.length <= 400000 && /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(v);
+    if(!m) return { error: `${label} 사진이 없거나 올바르지 않습니다. 제작 스튜디오 1단계에서 사진을 다시 등록해주세요.` };
+    out[view] = { buffer: Buffer.from(m[2], 'base64'), contentType: `image/${m[1]}` };
+  }
+  return { photos: out };
+}
+
+async function uploadPrivatePhoto(storagePath, buffer, contentType){
+  const put = () => supabase.storage.from(ORDER_PHOTO_BUCKET).upload(storagePath, buffer, { contentType, upsert: true });
+  let { error } = await put();
+  if(error && /bucket not found/i.test(error.message || '')){
+    // 버킷이 아직 없으면 비공개로 만들고 한 번 더 올려요.
+    await supabase.storage.createBucket(ORDER_PHOTO_BUCKET, { public: false });
+    ({ error } = await put());
+  }
+  if(error) throw error;
+}
+async function saveOrderBodyPhotos(orderId, photos){
+  await Promise.all(Object.entries(photos).map(([view, p]) => uploadPrivatePhoto(`${orderId}/${view}`, p.buffer, p.contentType)));
+}
+async function deleteOrderBodyPhotos(orderId){
+  await supabase.storage.from(ORDER_PHOTO_BUCKET).remove(Object.keys(BODY_PHOTO_VIEWS).map(v => `${orderId}/${v}`)).catch(() => {});
+}
+
 app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   const body = req.body || {};
   const { shipping, consent, designMode } = body;
@@ -1176,10 +1213,14 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
 
   let fa, da, fabricLabel, detailLabels, fabricNote, detailNote, safeDesignMode;
   let quantity = 1;
+  let bodyPhotos = null;
   if(designMode === 'studio'){
     // 제작 스튜디오: 금액은 클라이언트 값을 쓰지 않고, 보낸 디자인으로 서버가 다시 계산해요.
     const built = buildStudioOrder(body.studio);
     if(built.error) return res.status(400).json({ ok: false, error: built.error });
+    const parsed = parseBodyPhotos(body.bodyPhotos);
+    if(parsed.error) return res.status(400).json({ ok: false, error: parsed.error });
+    bodyPhotos = parsed.photos;
     ({ fabricAmount: fa, detailAmount: da, fabricLabel, detailLabels, fabricNote, detailNote } = built);
     safeDesignMode = 'studio';
     quantity = clampQty(body.quantity); // 스튜디오는 같은 디자인을 여러 벌 주문할 수 있어요.
@@ -1218,9 +1259,18 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     detail_note: detailNote || null,
     status: 'pending',
   };
+  if (bodyPhotos) {
+    try { await saveOrderBodyPhotos(orderId, bodyPhotos); }
+    catch (e) {
+      console.error('체형 사진 저장 오류:', e);
+      return res.status(500).json({ ok: false, error: '체형 사진을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.' });
+    }
+    row.fabric_note = `${row.fabric_note || ''}\n${BODY_PHOTO_NOTE}`.trim();
+  }
   const error = await insertOrderRow(row);
   if (error) {
     console.error('주문 생성 오류:', error);
+    if (bodyPhotos) await deleteOrderBodyPhotos(orderId);
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했습니다.' });
   }
 
@@ -1256,6 +1306,8 @@ app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
     return res.status(400).json({ ok: false, error: `장바구니에는 최대 ${STUDIO_MAX_CART_ITEMS}개 디자인까지 담을 수 있습니다.` });
   }
   if (!orderPriceReady(res)) return;
+  const parsedPhotos = parseBodyPhotos(body.bodyPhotos);
+  if (parsedPhotos.error) return res.status(400).json({ ok: false, error: parsedPhotos.error });
 
   let totalQty = 0, needsShipping = false;
   const lines = [], notes = [], paintNotes = [];
@@ -1289,12 +1341,18 @@ app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
     finish_label: needsShipping
       ? 'Premium 포함 (재봉사 매칭 + 완제품 배송 · 배송지는 결제 후 입력)'
       : 'Lite · 패턴 PDF만',
-    fabric_note: notes.join('\n\n'),
+    fabric_note: `${notes.join('\n\n')}\n\n${BODY_PHOTO_NOTE}`,
     detail_note: paintNotes.length ? paintNotes.join('\n') : null,
     status: 'pending',
   };
+  try { await saveOrderBodyPhotos(orderId, parsedPhotos.photos); }
+  catch (e) {
+    console.error('체형 사진 저장 오류:', e);
+    return res.status(500).json({ ok: false, error: '체형 사진을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.' });
+  }
   const error = await insertOrderRow(row);
   if (error) {
+    await deleteOrderBodyPhotos(orderId);
     console.error('장바구니 주문 생성 오류:', error);
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했습니다.' });
   }
@@ -1420,7 +1478,19 @@ app.get('/api/admin/orders', requireLogin, requireAdmin, async (req, res) => {
 app.delete('/api/admin/orders/:orderId', requireLogin, requireAdmin, async (req, res) => {
   const { error } = await supabase.from('orders').delete().eq('order_id', req.params.orderId);
   if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했습니다.' });
+  await deleteOrderBodyPhotos(req.params.orderId);
   res.json({ ok: true });
+});
+
+// 관리자 전용: 주문에 딸린 체형 사진 한 장을 내려줘요. (비공개 버킷이라 서버를 거쳐서만 볼 수 있어요)
+app.get('/api/admin/orders/:orderId/body-photos/:view', requireLogin, requireAdmin, async (req, res) => {
+  const { orderId, view } = req.params;
+  if (!BODY_PHOTO_VIEWS[view] || !/^order_[A-Za-z0-9_]+$/.test(orderId)) return res.status(404).end();
+  const { data, error } = await supabase.storage.from(ORDER_PHOTO_BUCKET).download(`${orderId}/${view}`);
+  if (error || !data) return res.status(404).end();
+  res.set('Content-Type', data.type || 'image/jpeg');
+  res.set('Cache-Control', 'private, no-store');
+  res.send(Buffer.from(await data.arrayBuffer()));
 });
 
 // 관리자 전용: 구독 플랜(Lite/Premium) 목록. (맞춤 제작 주문과는 별개예요)

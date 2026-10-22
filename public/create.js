@@ -1108,6 +1108,13 @@
     const btn = $('create-order-pay-btn');
     const note = $('create-order-modal-note');
     const ship = needsShipping() ? readShipping() : null;
+    // 재봉사가 체형을 보고 만들 수 있게, 1단계에서 찍은 사진 4장을 주문에 함께 보내요.
+    const missing = scanMissingViews();
+    if (missing.length) {
+      note.textContent = `주문하려면 체형 사진 4장이 필요합니다. 제작 스튜디오 1단계(바디 스캔)에서 ${missing.map(viewLabel).join(', ')} 사진을 등록해주세요.`;
+      return;
+    }
+    const bodyPhotos = { ...scanPhotos };
     btn.disabled = true;
     btn.textContent = '주문 처리 중...';
     note.textContent = '';
@@ -1116,8 +1123,8 @@
       const first = pending.items[0];
       const url = isCart ? '/api/orders/create-cart-order' : '/api/orders/create-order';
       const body = isCart
-        ? { items: pending.items.map(i => ({ studio: i.studio, quantity: i.quantity, finishAmount: i.finishAmount })) }
-        : { designMode: 'studio', studio: first.studio, quantity: first.quantity, finishAmount: first.finishAmount, finishLabel: first.finishAmount ? 'Premium' : 'Lite' };
+        ? { items: pending.items.map(i => ({ studio: i.studio, quantity: i.quantity, finishAmount: i.finishAmount })), bodyPhotos }
+        : { designMode: 'studio', studio: first.studio, quantity: first.quantity, finishAmount: first.finishAmount, finishLabel: first.finishAmount ? 'Premium' : 'Lite', bodyPhotos };
       const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || '주문을 만들지 못했습니다.');

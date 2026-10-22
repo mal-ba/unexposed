@@ -42,6 +42,11 @@
   .setup-warning{ white-space:pre-line; background:#FBE9E3; color:#8A2E14; border:1px solid #D8663F; border-radius:10px; padding:12px 16px; margin-bottom:18px; font-size:13.5px; line-height:1.6; }
   .setup-warning[hidden]{ display:none; }
   .order-note{ display:block; margin-top:6px; font-size:11.5px; color:#4A5654; white-space:pre-line; }
+  .body-photo-btn{ margin-top:6px; font-size:12px; padding:3px 8px; cursor:pointer; }
+  .body-photos{ display:grid; grid-template-columns:repeat(4, 90px); gap:6px; margin-top:6px; }
+  .body-photos figure{ margin:0; text-align:center; font-size:11px; color:#4A5654; }
+  .body-photos a{ display:block; }
+  .body-photos img{ width:90px; height:120px; object-fit:contain; background:#F5F2EA; border:1px solid #DDD; border-radius:4px; }
   .refresh-btn, .logout-btn{
     padding:9px 16px; border-radius:999px; border:1px solid var(--line); background:var(--paper);
     font-size:13px; font-weight:600; cursor:pointer; color:var(--ink);
@@ -355,7 +360,8 @@
       const optionParts = [o.fabric_label, ...(o.detail_labels || []), o.finish_label].filter(Boolean).join(' · ');
       // 요청사항·스튜디오 디자인(부위별 원단/색)은 사용자가 보낸 글이라 이스케이프해서 보여줘요.
       const escNote = t => String(t).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-      const notes = [o.fabric_note, o.detail_note].filter(Boolean).map(t => `<span class="order-note">${escNote(t)}</span>`).join('');
+      const notes = [o.fabric_note, o.detail_note].filter(Boolean).map(t => `<span class="order-note">${escNote(t)}</span>`).join('')
+        + (/체형 사진: /.test(o.fabric_note || '') ? `<button class="body-photo-btn" data-photo-order-id="${o.order_id}" type="button">체형 사진 보기</button>` : '');
       const address = [o.shipping_address1, o.shipping_address2].filter(Boolean).join(' ');
       const statusBadge = o.status === 'paid'
         ? '<span class="badge badge-paid">결제완료</span>'
@@ -376,6 +382,21 @@
         </tr>`;
     }).join('');
   }
+
+  // 체형 사진 보기: 주문에 첨부된 앞·뒤·왼쪽·오른쪽 사진을 그 자리에 펼쳐요. (사진은 관리자만 받을 수 있어요)
+  ordersTbody.addEventListener('click', e => {
+    const btn = e.target.closest('.body-photo-btn[data-photo-order-id]');
+    if(!btn) return;
+    const open = btn.nextElementSibling && btn.nextElementSibling.classList.contains('body-photos');
+    if(open){ btn.nextElementSibling.remove(); btn.textContent = '체형 사진 보기'; return; }
+    const id = encodeURIComponent(btn.dataset.photoOrderId);
+    const views = [['front','앞모습'], ['back','뒷모습'], ['left','왼쪽 옆모습'], ['right','오른쪽 옆모습']];
+    btn.insertAdjacentHTML('afterend', `<div class="body-photos">${views.map(([v, label]) => {
+      const src = `/api/admin/orders/${id}/body-photos/${v}`;
+      return `<figure><a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${label}" onerror="this.replaceWith(document.createTextNode('없음'))"></a>${label}</figure>`;
+    }).join('')}</div>`);
+    btn.textContent = '체형 사진 접기';
+  });
 
   // 주문 결제 확인: PenWorldwide에서 결제가 확인된 주문을 "결제완료"로 표시해요.
   ordersTbody.addEventListener('click', async e => {
