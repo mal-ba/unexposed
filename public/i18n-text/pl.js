@@ -889,4 +889,8 @@ window.i18nAddText('pl', {
   "3D 파일을 만들지 못했습니다.": "Nie udało się utworzyć pliku 3D.",
   "내가 만든 옷": "Moje ubranie",
   "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Pobierz ubranie, które tworzysz w studiu tworzenia, jako plik 3D (.glb). Kolory części i rysunki pędzlem są zachowane.",
+  // 커뮤니티: 올릴 때 직접 정하는 별명
+  "별명 (예: 봄바람)": "Pseudonim (np. Wiosenny wiatr)",
+  "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Przy Twojej pracy widać ten pseudonim zamiast nazwy konta Google.",
+  "별명을 입력해주세요.": "Wpisz pseudonim.",
 });
