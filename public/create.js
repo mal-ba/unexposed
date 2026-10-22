@@ -901,6 +901,69 @@
     if (changed && !erase && !st.hasPaint) { st.hasPaint = true; renderQuote(); }
   }
 
+  /* ---------- 내가 만든 옷 내려받기 (.glb) ----------
+     부위 색과 브러시 자국을 꼭짓점 색(COLOR_0)으로 구워 넣어서, 다른 3D 프로그램에서도 화면과 같은 색으로 보여요.
+     브러시 테두리는 화면(addBrushShader)과 같은 기준으로 자르고, 같은 꼭짓점은 합쳐서 파일 크기를 줄여요. */
+  function canExportDesign() { return !!view.rootData; }
+  async function exportDesignGlb() {
+    if (!view.rootData) throw new Error('not-ready');
+    const THREE = view.THREE;
+    const [{ GLTFExporter }, { mergeVertices }] = await Promise.all([
+      import('three/addons/exporters/GLTFExporter.js'),
+      import('three/addons/utils/BufferGeometryUtils.js'),
+    ]);
+    const label = TYPES[st.typeKey].label;
+    const group = new THREE.Group();
+    group.name = label;
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, side: THREE.DoubleSide });
+    for (const m of view.rootData.meshes) {
+      const { colors, paintA, paintC } = m.userData;
+      const baked = new Float32Array(colors.length);
+      for (let v = 0; v < paintA.length; v++) {
+        const a = paintA[v];
+        const k = a > 0 ? smooth01((a - 0.34) / 0.16) : 0;
+        for (let c = 0; c < 3; c++) {
+          const i = v * 3 + c;
+          baked[i] = k ? colors[i] + (paintC[i] / a - colors[i]) * k : colors[i];
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', m.geometry.attributes.position.clone());
+      g.setAttribute('color', new THREE.BufferAttribute(baked, 3));
+      const mesh = new THREE.Mesh(mergeVertices(g), mat);
+      mesh.name = label;
+      group.add(mesh);
+    }
+    const glb = await new GLTFExporter().parseAsync(group, { binary: true });
+    const url = URL.createObjectURL(new Blob([glb], { type: 'model/gltf-binary' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `UNEXPOSED-${st.typeKey}.glb`; // 파일 이름에 한글이 있으면 'download'로 바뀌는 브라우저가 있어서 영어로 써요.
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return label;
+  }
+  // 스튜디오 버튼·커뮤니티 3D 창(community-glb.js)이 같이 써요. 결과는 상태 문구로 알려줘요.
+  async function downloadDesignGlb() {
+    if (!canExportDesign()) { status('3D 옷이 아직 준비되지 않았습니다. 3D 옷이 보일 때 다시 눌러주세요.'); return false; }
+    const btn = $('export-glb-btn');
+    if (btn) btn.disabled = true;
+    status('3D 파일을 만드는 중...');
+    try {
+      const label = await exportDesignGlb();
+      status([label, ' 3D 파일(.glb)을 내려받았습니다.']);
+      return true;
+    } catch (e) {
+      console.warn('3D 파일을 만들지 못했습니다:', e);
+      status('3D 파일을 만들지 못했습니다.');
+      return false;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   /* ---------- 주문용 그림 이미지: 칠한 옷을 앞·뒤·왼쪽·오른쪽에서 찍어요 ---------- */
   // 왼쪽(-x)·오른쪽(+x)은 부위 이름의 왼쪽·오른쪽과 같은 방향이에요. (server.js 의 DESIGN_PHOTO_VIEWS 와 같아야 해요)
   const DESIGN_VIEWS = [
@@ -1149,6 +1212,7 @@
       renderRegions(); renderQuote();
     });
     $('clear-paint-btn').addEventListener('click', () => { clearPaint(); status('브러시 자국을 지웠습니다.'); renderQuote(); });
+    $('export-glb-btn').addEventListener('click', downloadDesignGlb);
     $('reset-btn').addEventListener('click', () => { resetDesign(); status('이 옷을 처음 상태로 되돌렸습니다.'); renderAll(); });
 
     document.querySelectorAll('#create-finish-choices .calc-chip').forEach(b => b.addEventListener('click', () => {
@@ -1360,6 +1424,14 @@
   window.openCreateStudio = function () {
     $('create-modal').hidden = false;
     showCreateStep(st.body ? 2 : 1);
+  };
+
+  // 커뮤니티 3D 창(community-glb.js)에서 '내가 만든 옷' 내려받기에 써요. 스튜디오 2단계(옷 만들기)가 열려 있을 때만 보여줘요.
+  window.createStudioDesignGlb = {
+    available: () => !$('create-modal').hidden && !$('create-studio-panel').hidden,
+    ready: canExportDesign,
+    label: () => TYPES[st.typeKey].label,
+    download: downloadDesignGlb,
   };
 
   // 테스트·점검용: 부위 나누기와 모델 준비 함수를 밖에서 볼 수 있게 해 둬요.

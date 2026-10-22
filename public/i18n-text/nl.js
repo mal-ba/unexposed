@@ -881,4 +881,12 @@ window.i18nAddText('nl', {
   "2번 양말 발끝": "Teen (sok 2)",
   "3번 양말 · 발끝": "Teen (sok 3)",
   "3번 양말 발끝": "Teen (sok 3)",
+  // 제작 스튜디오: 내가 만든 옷 3D 파일(.glb) 내려받기 (스튜디오 버튼 · 커뮤니티 3D 창)
+  "내 옷 3D 파일 내려받기 (.glb)": "Mijn kledingstuk als 3D downloaden (.glb)",
+  "3D 파일을 만드는 중...": "3D-bestand wordt gemaakt...",
+  "3D 파일(.glb)을 내려받았습니다.": "– 3D-bestand (.glb) gedownload.",
+  "3D 옷이 아직 준비되지 않았습니다. 3D 옷이 보일 때 다시 눌러주세요.": "Het 3D-kledingstuk is nog niet klaar. Tik opnieuw zodra het verschijnt.",
+  "3D 파일을 만들지 못했습니다.": "Het 3D-bestand kon niet worden gemaakt.",
+  "내가 만든 옷": "Mijn kledingstuk",
+  "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Download het kledingstuk dat je nu in de creatiestudio maakt als 3D-bestand (.glb). Kleuren van de delen en penseeltekeningen zitten erin.",
 });

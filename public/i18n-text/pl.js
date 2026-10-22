@@ -881,4 +881,12 @@ window.i18nAddText('pl', {
   "2번 양말 발끝": "Palce (skarpetka 2)",
   "3번 양말 · 발끝": "Palce (skarpetka 3)",
   "3번 양말 발끝": "Palce (skarpetka 3)",
+  // 제작 스튜디오: 내가 만든 옷 3D 파일(.glb) 내려받기 (스튜디오 버튼 · 커뮤니티 3D 창)
+  "내 옷 3D 파일 내려받기 (.glb)": "Pobierz moje ubranie w 3D (.glb)",
+  "3D 파일을 만드는 중...": "Tworzenie pliku 3D...",
+  "3D 파일(.glb)을 내려받았습니다.": "– pobrano plik 3D (.glb).",
+  "3D 옷이 아직 준비되지 않았습니다. 3D 옷이 보일 때 다시 눌러주세요.": "Ubranie 3D nie jest jeszcze gotowe. Dotknij ponownie, gdy się pojawi.",
+  "3D 파일을 만들지 못했습니다.": "Nie udało się utworzyć pliku 3D.",
+  "내가 만든 옷": "Moje ubranie",
+  "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Pobierz ubranie, które tworzysz w studiu tworzenia, jako plik 3D (.glb). Kolory części i rysunki pędzlem są zachowane.",
 });
