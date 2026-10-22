@@ -881,4 +881,12 @@ window.i18nAddText('de', {
   "2번 양말 발끝": "Spitze (Socke 2)",
   "3번 양말 · 발끝": "Spitze (Socke 3)",
   "3번 양말 발끝": "Spitze (Socke 3)",
+  // 제작 스튜디오: 내가 만든 옷 3D 파일(.glb) 내려받기 (스튜디오 버튼 · 커뮤니티 3D 창)
+  "내 옷 3D 파일 내려받기 (.glb)": "Meine Kleidung als 3D-Datei laden (.glb)",
+  "3D 파일을 만드는 중...": "3D-Datei wird erstellt...",
+  "3D 파일(.glb)을 내려받았습니다.": "– 3D-Datei (.glb) heruntergeladen.",
+  "3D 옷이 아직 준비되지 않았습니다. 3D 옷이 보일 때 다시 눌러주세요.": "Die 3D-Kleidung ist noch nicht bereit. Tippe erneut, sobald sie angezeigt wird.",
+  "3D 파일을 만들지 못했습니다.": "Die 3D-Datei konnte nicht erstellt werden.",
+  "내가 만든 옷": "Meine Kleidung",
+  "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Lade die Kleidung, die du gerade im Kreativstudio gestaltest, als 3D-Datei (.glb) herunter. Teilfarben und Pinselzeichnungen sind enthalten.",
 });

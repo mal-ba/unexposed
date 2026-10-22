@@ -881,4 +881,12 @@ window.i18nAddText('vi', {
   "2번 양말 발끝": "Mũi chân tất số 2",
   "3번 양말 · 발끝": "Mũi chân tất số 3",
   "3번 양말 발끝": "Mũi chân tất số 3",
+  // 제작 스튜디오: 내가 만든 옷 3D 파일(.glb) 내려받기 (스튜디오 버튼 · 커뮤니티 3D 창)
+  "내 옷 3D 파일 내려받기 (.glb)": "Tải quần áo của tôi dạng 3D (.glb)",
+  "3D 파일을 만드는 중...": "Đang tạo tệp 3D...",
+  "3D 파일(.glb)을 내려받았습니다.": "— đã tải tệp 3D (.glb).",
+  "3D 옷이 아직 준비되지 않았습니다. 3D 옷이 보일 때 다시 눌러주세요.": "Quần áo 3D chưa sẵn sàng. Hãy nhấn lại khi quần áo 3D hiện ra.",
+  "3D 파일을 만들지 못했습니다.": "Không thể tạo tệp 3D.",
+  "내가 만든 옷": "Quần áo tôi làm",
+  "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Tải quần áo bạn đang làm trong xưởng sáng tạo dưới dạng tệp 3D (.glb). Màu các bộ phận và hình vẽ bằng cọ được giữ nguyên.",
 });

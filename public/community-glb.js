@@ -36,6 +36,13 @@
   .cglb-dl{display:block;text-align:center;border-radius:999px;background:var(--deep,#0F2E2C);color:#fff;font-size:11.5px;font-weight:600;padding:6px 8px;text-decoration:none;margin-top:4px}
   .cglb-dl:hover{opacity:.9}
   .cglb-note{font-size:13px;color:var(--ink-soft);text-align:center;padding:24px 0}
+  .cglb-mine{border:1px solid var(--line);border-radius:12px;background:var(--mist);padding:12px 14px;margin:0 0 16px}
+  .cglb-mine[hidden]{display:none}
+  .cglb-mine-title{font-size:13.5px;font-weight:700;margin:0 0 4px}
+  .cglb-mine-desc{font-size:12px;color:var(--ink-soft);margin:0 0 10px}
+  .cglb-mine .cglb-dl{display:inline-block;border:none;cursor:pointer;font-family:inherit;padding:7px 14px;margin:0}
+  .cglb-mine .cglb-dl:disabled{opacity:.5;cursor:default}
+  .cglb-mine-note{font-size:12px;color:var(--ink-soft);margin:8px 0 0}
   `;
   document.head.appendChild(style);
 
@@ -52,12 +59,19 @@
           <h3 class="serif" style="font-size:19px;margin:0;">${esc(t('community3dModalTitle', '커뮤니티 3D 작품 내려받기'))}</h3>
           <button class="wizard-close" type="button" data-cglb-close aria-label="닫기">✕</button>
         </div>
+        <div class="cglb-mine" id="cglb-mine" hidden>
+          <p class="cglb-mine-title">내가 만든 옷</p>
+          <p class="cglb-mine-desc">제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.</p>
+          <button class="cglb-dl" type="button" data-cglb-mine>내 옷 3D 파일 내려받기 (.glb)</button>
+          <p class="cglb-mine-note" id="cglb-mine-note" hidden></p>
+        </div>
         <p class="cglb-desc">${esc(t('community3dModalDesc', '커뮤니티에 올라온 3D 파일(.glb)을 내려받을 수 있습니다.'))}</p>
         <div class="cglb-list" id="cglb-list"></div>
         <p class="cglb-note" id="cglb-note"></p>
       </div>`;
     modal.addEventListener('click', e => {
       if (e.target === modal || e.target.closest('[data-cglb-close]')) modal.hidden = true;
+      if (e.target.closest('[data-cglb-mine]')) downloadMine();
     });
     document.body.appendChild(modal);
     return modal;
@@ -94,8 +108,38 @@
     }
   }
 
+  // 제작 스튜디오(create.js)가 열려 있으면, 지금 만들고 있는 옷을 바로 내려받는 칸을 맨 위에 보여줘요.
+  function renderMine() {
+    const studio = window.createStudioDesignGlb;
+    const box = modal.querySelector('#cglb-mine');
+    const note = modal.querySelector('#cglb-mine-note');
+    box.hidden = !(studio && studio.available());
+    note.hidden = true;
+    if (box.hidden) return;
+    const ready = studio.ready();
+    modal.querySelector('[data-cglb-mine]').disabled = !ready;
+    if (!ready) { note.hidden = false; note.textContent = '3D 옷이 아직 준비되지 않았습니다. 3D 옷이 보일 때 다시 눌러주세요.'; }
+  }
+  async function downloadMine() {
+    const studio = window.createStudioDesignGlb;
+    if (!studio) return;
+    const btn = modal.querySelector('[data-cglb-mine]');
+    const note = modal.querySelector('#cglb-mine-note');
+    btn.disabled = true;
+    note.hidden = false;
+    note.textContent = '3D 파일을 만드는 중...';
+    const ok = await studio.download();
+    btn.disabled = false;
+    if (ok) {
+      note.replaceChildren(document.createTextNode(studio.label()), document.createTextNode(' 3D 파일(.glb)을 내려받았습니다.'));
+    } else {
+      note.textContent = '3D 파일을 만들지 못했습니다.';
+    }
+  }
+
   window.openCommunityGlbModal = function () {
     ensureModal().hidden = false;
+    renderMine();
     loadList();
   };
 

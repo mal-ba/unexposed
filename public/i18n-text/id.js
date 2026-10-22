@@ -881,4 +881,12 @@ window.i18nAddText('id', {
   "2번 양말 발끝": "Ujung jari kaus kaki 2",
   "3번 양말 · 발끝": "Ujung jari kaus kaki 3",
   "3번 양말 발끝": "Ujung jari kaus kaki 3",
+  // 제작 스튜디오: 내가 만든 옷 3D 파일(.glb) 내려받기 (스튜디오 버튼 · 커뮤니티 3D 창)
+  "내 옷 3D 파일 내려받기 (.glb)": "Unduh pakaianku dalam 3D (.glb)",
+  "3D 파일을 만드는 중...": "Membuat file 3D...",
+  "3D 파일(.glb)을 내려받았습니다.": "— file 3D (.glb) telah diunduh.",
+  "3D 옷이 아직 준비되지 않았습니다. 3D 옷이 보일 때 다시 눌러주세요.": "Pakaian 3D belum siap. Ketuk lagi setelah pakaian 3D muncul.",
+  "3D 파일을 만들지 못했습니다.": "File 3D tidak dapat dibuat.",
+  "내가 만든 옷": "Pakaian buatanku",
+  "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Unduh pakaian yang sedang kamu buat di studio kreasi sebagai file 3D (.glb). Warna bagian dan lukisan kuas ikut tersimpan.",
 });

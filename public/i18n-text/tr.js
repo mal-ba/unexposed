@@ -881,4 +881,12 @@ window.i18nAddText('tr', {
   "2번 양말 발끝": "Burun (2. çorap)",
   "3번 양말 · 발끝": "Burun (3. çorap)",
   "3번 양말 발끝": "Burun (3. çorap)",
+  // 제작 스튜디오: 내가 만든 옷 3D 파일(.glb) 내려받기 (스튜디오 버튼 · 커뮤니티 3D 창)
+  "내 옷 3D 파일 내려받기 (.glb)": "Kıyafetimi 3D olarak indir (.glb)",
+  "3D 파일을 만드는 중...": "3D dosyası oluşturuluyor...",
+  "3D 파일(.glb)을 내려받았습니다.": "— 3D dosyası (.glb) indirildi.",
+  "3D 옷이 아직 준비되지 않았습니다. 3D 옷이 보일 때 다시 눌러주세요.": "3D kıyafet henüz hazır değil. Göründüğünde tekrar dokun.",
+  "3D 파일을 만들지 못했습니다.": "3D dosyası oluşturulamadı.",
+  "내가 만든 옷": "Benim kıyafetim",
+  "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Tasarım stüdyosunda şu an yaptığın kıyafeti 3D dosyası (.glb) olarak indir. Bölüm renkleri ve fırça çizimleri dahildir.",
 });

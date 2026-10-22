@@ -1635,7 +1635,11 @@ app.get('/api/community/posts', async (req, res) => {
     .limit(100);
   if (req.query.glb === '1') query = query.not('glb_url', 'is', null);
   const { data, error } = await query;
-  if (error) return res.status(500).json({ ok: false, error: '게시물을 불러오지 못했습니다.' });
+  if (error) {
+    // 원인(표가 없음·glb_url 열이 없음 등)을 Render 로그에서 볼 수 있게 남겨요. (supabase/schema.sql 참고)
+    console.error('커뮤니티 게시물 목록 오류:', error.message, error.details || '', error.hint || '');
+    return res.status(500).json({ ok: false, error: '게시물을 불러오지 못했습니다.' });
+  }
   res.json({ ok: true, posts: (data || []).map(communityPostToJson) });
 });
 
