@@ -1157,10 +1157,18 @@
   // 추천 질문 4개가 가리키는 답변 번호 (0:스캔, 2:요금제, 1:로그인, 7:개인정보)
   const SUGGESTION_TARGETS = [0, 2, 1, 7];
 
+  // i18n.js와 같은 규칙: 저장된 선택 → 기기/브라우저 언어 → 영어
   function getLang(){
-    let code = 'ko';
-    try { code = localStorage.getItem('unexposed-lang') || 'ko'; } catch(e){}
-    return DATA.ui[code] ? code : 'ko';
+    let code = null;
+    try { code = localStorage.getItem('unexposed-lang'); } catch(e){}
+    if (code && DATA.ui[code]) return code;
+    const prefs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language];
+    for (const p of prefs){
+      let base = String(p || '').toLowerCase().split('-')[0];
+      if (base === 'ms') base = 'id';
+      if (DATA.ui[base]) return base;
+    }
+    return DATA.ui.en ? 'en' : 'ko';
   }
   function ui(){ return DATA.ui[getLang()]; }
 
