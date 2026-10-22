@@ -889,4 +889,8 @@ window.i18nAddText('nl', {
   "3D 파일을 만들지 못했습니다.": "Het 3D-bestand kon niet worden gemaakt.",
   "내가 만든 옷": "Mijn kledingstuk",
   "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Download het kledingstuk dat je nu in de creatiestudio maakt als 3D-bestand (.glb). Kleuren van de delen en penseeltekeningen zitten erin.",
+  // 커뮤니티: 올릴 때 직접 정하는 별명
+  "별명 (예: 봄바람)": "Bijnaam (bijv. Lentebries)",
+  "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Bij je werk staat deze bijnaam in plaats van de naam van je Google-account.",
+  "별명을 입력해주세요.": "Vul een bijnaam in.",
 });

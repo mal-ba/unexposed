@@ -140,6 +140,8 @@
     <h2 data-i18n="communityUploadModalTitle">내 작품 올리기</h2>
     <p class="login-note" id="login-note" data-i18n="communityLoginNote">로그인 후 이용할 수 있습니다. 왼쪽 상단 메뉴에서 로그인해 주세요.</p>
     <form class="upload-form" id="upload-form" hidden>
+      <input type="text" id="post-nickname-input" placeholder="별명 (예: 봄바람)" maxlength="20" required autocomplete="nickname">
+      <p class="file-hint">작품에는 구글 계정 이름 대신 이 별명이 보입니다.</p>
       <input type="text" id="post-title-input" placeholder="제목 (예: 여름용 원피스 코디)" maxlength="80" required data-i18n-placeholder="communityTitlePlaceholder">
       <textarea id="post-desc-input" placeholder="설명(선택) — 어떤 원단·무늬를 썼는지 등" maxlength="500" data-i18n-placeholder="communityDescPlaceholder"></textarea>
       <label class="file-label" for="post-glb-input"><span data-i18n="communityChooseGlb">3D 파일 선택 (.glb)</span> <input type="file" id="post-glb-input" accept=".glb,model/gltf-binary" hidden></label>
@@ -168,6 +170,7 @@
 <script>
   const loginNote = document.getElementById('login-note');
   const uploadForm = document.getElementById('upload-form');
+  const nicknameInput = document.getElementById('post-nickname-input');
   const titleInput = document.getElementById('post-title-input');
   const descInput = document.getElementById('post-desc-input');
   const glbInput = document.getElementById('post-glb-input');
@@ -203,9 +206,14 @@
 
   const MAX_FILE_BYTES = 35 * 1024 * 1024; // 서버(multer) 한도와 같아요
 
+  // 지난번에 쓴 별명은 이 브라우저에만 기억해 둬요. (저장이 막힌 브라우저면 그냥 비워둬요)
+  const NICKNAME_KEY = 'unexposed_community_nickname';
+  try { nicknameInput.value = localStorage.getItem(NICKNAME_KEY) || ''; } catch(e){}
+
   function updateSubmitState(){
-    submitBtn.disabled = !(titleInput.value.trim() && glbInput.files[0]);
+    submitBtn.disabled = !(nicknameInput.value.trim() && titleInput.value.trim() && glbInput.files[0]);
   }
+  nicknameInput.addEventListener('input', updateSubmitState);
   titleInput.addEventListener('input', updateSubmitState);
   glbInput.addEventListener('change', () => {
     const file = glbInput.files[0];
@@ -238,6 +246,7 @@
     uploadNote.textContent = '';
     try{
       const formData = new FormData();
+      formData.append('nickname', nicknameInput.value.trim());
       formData.append('title', titleInput.value.trim());
       formData.append('description', descInput.value.trim());
       formData.append('glb', glbInput.files[0]);
@@ -245,6 +254,7 @@
       const res = await fetch('/api/community/posts', { method: 'POST', body: formData });
       const data = await res.json();
       if(data.ok){
+        try { localStorage.setItem(NICKNAME_KEY, nicknameInput.value.trim()); } catch(e){}
         titleInput.value = '';
         descInput.value = '';
         glbInput.value = '';
@@ -294,7 +304,7 @@
           ${p.description ? `<div class="post-card-desc">${esc(p.description)}</div>` : ''}
           <div class="post-card-meta">
             <span>${esc(p.authorName || t('communityAnonymous'))} · ${fmtDate(p.createdAt)}</span>
-            ${(me && (me.email === p.authorEmail)) ? `<button class="post-delete-btn" data-post-id="${esc(p.id)}" type="button">${t('communityDeleteBtn')}</button>` : ''}
+            ${p.canDelete ? `<button class="post-delete-btn" data-post-id="${esc(p.id)}" type="button">${t('communityDeleteBtn')}</button>` : ''}
           </div>
         </div>
       </div>

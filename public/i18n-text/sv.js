@@ -889,4 +889,8 @@ window.i18nAddText('sv', {
   "3D 파일을 만들지 못했습니다.": "Det gick inte att skapa 3D-filen.",
   "내가 만든 옷": "Mitt plagg",
   "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Ladda ner plagget du skapar i skaparstudion som en 3D-fil (.glb). Delarnas färger och penselteckningar följer med.",
+  // 커뮤니티: 올릴 때 직접 정하는 별명
+  "별명 (예: 봄바람)": "Smeknamn (t.ex. Vårvind)",
+  "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Ditt verk visar det här smeknamnet i stället för namnet på ditt Google-konto.",
+  "별명을 입력해주세요.": "Ange ett smeknamn.",
 });

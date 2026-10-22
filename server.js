@@ -1612,7 +1612,9 @@ app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
    로그인 여부와 상관없이(익명 방문자도 포함) 기록해요 — "몇 시에 몇 명 왔는지"를
    보려는 목적이라, 누가 왔는지보다 언제 얼마나 왔는지가 중요해서예요. */
 /* ---------------- 커뮤니티 (사람들이 만든 작품 공유) ---------------- */
-function communityPostToJson(row) {
+// 목록은 누구나 보니까 글쓴이 이메일은 내보내지 않고, 보는 사람이 지울 수 있는지만 알려줘요.
+// (본인 글이거나 관리자면 canDelete) 이름은 올릴 때 직접 정한 별명이에요.
+function communityPostToJson(row, viewerEmail) {
   return {
     id: row.id,
     title: row.title,
@@ -1620,9 +1622,15 @@ function communityPostToJson(row) {
     imageUrl: row.image_url || null,
     glbUrl: row.glb_url || null,
     authorName: row.author_name,
-    authorEmail: row.author_email,
+    canDelete: !!viewerEmail && (row.author_email === viewerEmail || isAdminEmail(viewerEmail)),
     createdAt: row.created_at,
   };
+}
+
+// 커뮤니티 별명: 앞뒤 공백·줄바꿈·제어 문자를 빼고 1~20자.
+const COMMUNITY_NICKNAME_MAX = 20;
+function cleanNickname(v){
+  return String(v || '').replace(/\s+/g, ' ').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, COMMUNITY_NICKNAME_MAX);
 }
 
 // 목록 조회는 누구나(로그인 안 해도) 볼 수 있어요.
@@ -1640,17 +1648,20 @@ app.get('/api/community/posts', async (req, res) => {
     console.error('커뮤니티 게시물 목록 오류:', error.message, error.details || '', error.hint || '');
     return res.status(500).json({ ok: false, error: '게시물을 불러오지 못했습니다.' });
   }
-  res.json({ ok: true, posts: (data || []).map(communityPostToJson) });
+  const viewer = verifyAuthToken(req.cookies[AUTH_COOKIE_NAME]);
+  res.json({ ok: true, posts: (data || []).map(row => communityPostToJson(row, viewer && viewer.email)) });
 });
 
 // 작성은 로그인해야 가능해요. 3D 파일(.glb) 필수, 썸네일 이미지는 선택.
 app.post('/api/community/posts', requireLogin, communityUploadFields, async (req, res) => {
   const title = String(req.body?.title || '').trim().slice(0, 80);
   const description = String(req.body?.description || '').trim().slice(0, 500);
+  const nickname = cleanNickname(req.body?.nickname);
   const glbFile = req.files && req.files.glb && req.files.glb[0];
   const imageFile = req.files && req.files.image && req.files.image[0];
 
   try {
+    if (!nickname) return res.status(400).json({ ok: false, error: '별명을 입력해주세요.' });
     if (!title) return res.status(400).json({ ok: false, error: '제목을 입력해주세요.' });
     if (!glbFile) return res.status(400).json({ ok: false, error: '3D 파일(.glb)을 올려주세요.' });
     const glbName = fixMulterFilenameEncoding(glbFile.originalname) || '';
@@ -1684,8 +1695,8 @@ app.post('/api/community/posts', requireLogin, communityUploadFields, async (req
       description,
       image_url: imageUrl,
       glb_url: glbUrl,
-      author_email: req.user.email,
-      author_name: req.user.name,
+      author_email: req.user.email, // 지울 수 있는 사람 확인용 (목록에는 안 나가요)
+      author_name: nickname,
       created_at: new Date().toISOString(),
     };
     const { error } = await supabase.from('community_posts').insert(row);
@@ -1697,7 +1708,7 @@ app.post('/api/community/posts', requireLogin, communityUploadFields, async (req
       ]).catch(() => {});
       return res.status(500).json({ ok: false, error: '게시물 저장 중 오류가 발생했습니다.' });
     }
-    res.json({ ok: true, post: communityPostToJson(row) });
+    res.json({ ok: true, post: communityPostToJson(row, req.user.email) });
   } finally {
     cleanupTempUploadFiles(req.files);
   }

@@ -889,4 +889,8 @@ window.i18nAddText('vi', {
   "3D 파일을 만들지 못했습니다.": "Không thể tạo tệp 3D.",
   "내가 만든 옷": "Quần áo tôi làm",
   "제작 스튜디오에서 지금 만들고 있는 옷을 3D 파일(.glb)로 내려받습니다. 부위 색과 브러시 그림이 그대로 들어갑니다.": "Tải quần áo bạn đang làm trong xưởng sáng tạo dưới dạng tệp 3D (.glb). Màu các bộ phận và hình vẽ bằng cọ được giữ nguyên.",
+  // 커뮤니티: 올릴 때 직접 정하는 별명
+  "별명 (예: 봄바람)": "Biệt danh (vd: Gió xuân)",
+  "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Tác phẩm của bạn sẽ hiện biệt danh này thay cho tên tài khoản Google.",
+  "별명을 입력해주세요.": "Vui lòng nhập biệt danh.",
 });
