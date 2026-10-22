@@ -394,10 +394,11 @@
   const NOTE_FABRICS = ['면', '린넨', '실크', '데님', '니트', '가죽', '단색'];
 
   // 부위 한 칸: "왼쪽 몸판 앞: 면 #0F2E2C", "1번 양말 밴드: 단색 #14201E", "왼발 갑피: 가죽"
+  // 부위 이름("왼쪽 몸판 앞")은 언어마다 어순이 달라서 단어로 쪼개지 않고 통째로 사전에서 찾아요.
   function regionHtml(seg){
-    const m = /^(\d번 양말|\S+) (\S+)(?: (앞|뒤))?: (\S+)(?: (#[0-9A-Fa-f]{6}))?$/.exec(seg);
-    if(!m || !NOTE_FABRICS.includes(m[4])) return null;
-    return `${tx(m[1])} ${tx(m[2])}${m[3] ? ' ' + tx(m[3]) : ''}: ${tx(m[4])}${m[5] ? ' ' + escNote(m[5]) : ''}`;
+    const m = /^((?:\d번 양말|\S+) \S+(?: [앞뒤])?): (\S+)(?: (#[0-9A-Fa-f]{6}))?$/.exec(seg);
+    if(!m || !NOTE_FABRICS.includes(m[2])) return null;
+    return `${tx(m[1])}: ${tx(m[2])}${m[3] ? ' ' + escNote(m[3]) : ''}`;
   }
   function noteLineHtml(line){
     let m;
