@@ -893,4 +893,16 @@ window.i18nAddText('en', {
   "별명 (예: 봄바람)": "Nickname (e.g. Springbreeze)",
   "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Your work shows this nickname instead of your Google account name.",
   "별명을 입력해주세요.": "Please enter a nickname.",
+  // 커뮤니티: 작품 고치기 · 페이지 안 삭제 확인 창
+  "작품 수정하기": "Edit work",
+  "수정하기": "Save changes",
+  "수정": "Edit",
+  "새 파일을 고르지 않으면 지금 올라가 있는 파일을 그대로 둡니다.": "If you don’t choose a new file, the current one stays.",
+  "썸네일 이미지 지우기": "Remove thumbnail image",
+  "수정했습니다.": "Saved.",
+  "수정하지 못했습니다.": "Couldn’t save the changes.",
+  "본인 게시물만 고칠 수 있습니다.": "You can only edit your own posts.",
+  "게시물 수정 중 오류가 발생했습니다.": "An error occurred while saving the post.",
+  "이 작품을 삭제할까요?": "Delete this work?",
+  "삭제하지 못했습니다.": "Could not delete.",
 });

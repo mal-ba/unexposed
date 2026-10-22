@@ -893,4 +893,16 @@ window.i18nAddText('nl', {
   "별명 (예: 봄바람)": "Bijnaam (bijv. Lentebries)",
   "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Bij je werk staat deze bijnaam in plaats van de naam van je Google-account.",
   "별명을 입력해주세요.": "Vul een bijnaam in.",
+  // 커뮤니티: 작품 고치기 · 페이지 안 삭제 확인 창
+  "작품 수정하기": "Werk bewerken",
+  "수정하기": "Wijzigingen opslaan",
+  "수정": "Bewerken",
+  "새 파일을 고르지 않으면 지금 올라가 있는 파일을 그대로 둡니다.": "Kies je geen nieuw bestand, dan blijft het huidige staan.",
+  "썸네일 이미지 지우기": "Miniatuur verwijderen",
+  "수정했습니다.": "Opgeslagen.",
+  "수정하지 못했습니다.": "De wijzigingen konden niet worden opgeslagen.",
+  "본인 게시물만 고칠 수 있습니다.": "Je kunt alleen je eigen berichten bewerken.",
+  "게시물 수정 중 오류가 발생했습니다.": "Er ging iets mis bij het opslaan van het bericht.",
+  "이 작품을 삭제할까요?": "Dit werk verwijderen?",
+  "삭제하지 못했습니다.": "Kon niet verwijderen.",
 });

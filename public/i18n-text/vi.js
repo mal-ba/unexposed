@@ -893,4 +893,16 @@ window.i18nAddText('vi', {
   "별명 (예: 봄바람)": "Biệt danh (vd: Gió xuân)",
   "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Tác phẩm của bạn sẽ hiện biệt danh này thay cho tên tài khoản Google.",
   "별명을 입력해주세요.": "Vui lòng nhập biệt danh.",
+  // 커뮤니티: 작품 고치기 · 페이지 안 삭제 확인 창
+  "작품 수정하기": "Sửa tác phẩm",
+  "수정하기": "Lưu thay đổi",
+  "수정": "Sửa",
+  "새 파일을 고르지 않으면 지금 올라가 있는 파일을 그대로 둡니다.": "Nếu không chọn tệp mới, tệp hiện tại sẽ được giữ lại.",
+  "썸네일 이미지 지우기": "Xóa ảnh thu nhỏ",
+  "수정했습니다.": "Đã lưu.",
+  "수정하지 못했습니다.": "Không thể lưu thay đổi.",
+  "본인 게시물만 고칠 수 있습니다.": "Bạn chỉ có thể sửa bài đăng của mình.",
+  "게시물 수정 중 오류가 발생했습니다.": "Đã xảy ra lỗi khi lưu bài đăng.",
+  "이 작품을 삭제할까요?": "Xóa tác phẩm này?",
+  "삭제하지 못했습니다.": "Không thể xóa.",
 });

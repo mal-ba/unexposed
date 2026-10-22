@@ -893,4 +893,16 @@ window.i18nAddText('sv', {
   "별명 (예: 봄바람)": "Smeknamn (t.ex. Vårvind)",
   "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Ditt verk visar det här smeknamnet i stället för namnet på ditt Google-konto.",
   "별명을 입력해주세요.": "Ange ett smeknamn.",
+  // 커뮤니티: 작품 고치기 · 페이지 안 삭제 확인 창
+  "작품 수정하기": "Redigera verk",
+  "수정하기": "Spara ändringar",
+  "수정": "Redigera",
+  "새 파일을 고르지 않으면 지금 올라가 있는 파일을 그대로 둡니다.": "Om du inte väljer en ny fil behålls den nuvarande.",
+  "썸네일 이미지 지우기": "Ta bort miniatyrbild",
+  "수정했습니다.": "Sparat.",
+  "수정하지 못했습니다.": "Det gick inte att spara ändringarna.",
+  "본인 게시물만 고칠 수 있습니다.": "Du kan bara redigera dina egna inlägg.",
+  "게시물 수정 중 오류가 발생했습니다.": "Ett fel uppstod när inlägget sparades.",
+  "이 작품을 삭제할까요?": "Ta bort det här verket?",
+  "삭제하지 못했습니다.": "Det gick inte att ta bort.",
 });

@@ -893,4 +893,16 @@ window.i18nAddText('fr', {
   "별명 (예: 봄바람)": "Pseudo (ex. : Brise de printemps)",
   "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Ton œuvre affiche ce pseudo au lieu du nom de ton compte Google.",
   "별명을 입력해주세요.": "Saisis un pseudo.",
+  // 커뮤니티: 작품 고치기 · 페이지 안 삭제 확인 창
+  "작품 수정하기": "Modifier l’œuvre",
+  "수정하기": "Enregistrer",
+  "수정": "Modifier",
+  "새 파일을 고르지 않으면 지금 올라가 있는 파일을 그대로 둡니다.": "Si tu ne choisis pas de nouveau fichier, l’actuel est conservé.",
+  "썸네일 이미지 지우기": "Supprimer la miniature",
+  "수정했습니다.": "Enregistré.",
+  "수정하지 못했습니다.": "Impossible d’enregistrer les modifications.",
+  "본인 게시물만 고칠 수 있습니다.": "Tu ne peux modifier que tes propres publications.",
+  "게시물 수정 중 오류가 발생했습니다.": "Une erreur est survenue pendant l’enregistrement de la publication.",
+  "이 작품을 삭제할까요?": "Supprimer cette œuvre ?",
+  "삭제하지 못했습니다.": "Impossible de supprimer.",
 });
