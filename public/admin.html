@@ -358,10 +358,8 @@
     ordersTable.hidden = false;
     ordersEmpty.hidden = true;
     ordersTbody.innerHTML = orders.map(o => {
-      const optionParts = [o.fabric_label, ...(o.detail_labels || []), o.finish_label].filter(Boolean).join(' · ');
-      // 요청사항·스튜디오 디자인(부위별 원단/색)은 사용자가 보낸 글이라 이스케이프해서 보여줘요.
-      const escNote = t => String(t).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-      const notes = [o.fabric_note, o.detail_note].filter(Boolean).map(t => `<span class="order-note">${escNote(t)}</span>`).join('')
+      const optionParts = [o.fabric_label, ...(o.detail_labels || []), o.finish_label].filter(Boolean).map(optionHtml).join(' · ');
+      const notes = [o.fabric_note, o.detail_note].filter(Boolean).map(t => `<span class="order-note">${noteHtml(t)}</span>`).join('')
         + (/체형 사진: /.test(o.fabric_note || '') ? `<button class="body-photo-btn" data-photo-order-id="${o.order_id}" type="button">체형 사진 보기</button>` : '')
         + (designPhotoItems(o).length ? ` <button class="design-photo-btn" data-design-order-id="${o.order_id}" data-design-items="${designPhotoItems(o).join(',')}" type="button">그림 이미지 보기</button>` : '');
       const address = [o.shipping_address1, o.shipping_address2].filter(Boolean).join(' ');
@@ -383,6 +381,48 @@
           <td class="del-cell"><button class="del-btn" data-order-id="${o.order_id}" title="삭제" type="button">✕</button></td>
         </tr>`;
     }).join('');
+  }
+
+  /* 주문 옵션·메모 번역용 쪼개기
+     i18n.js 는 글자 덩어리(텍스트 노드) 하나를 통째로 사전에서 찾아요. 메모 전체가 한 덩어리면
+     옷 종류·치수·키처럼 주문마다 바뀌는 값 때문에 사전에 있을 수가 없어서, 서버(server.js 의
+     buildStudioOrder·장바구니 주문)가 만드는 형식은 단어·문구마다 따로 감싸요.
+     모르는 형식의 줄은 줄 하나를 그대로 한 덩어리로 둬요. (서버 문구를 바꾸면 여기도 같이 고쳐주세요) */
+  // 요청사항·스튜디오 디자인(부위별 원단/색)은 사용자가 보낸 글이라 이스케이프해서 보여줘요.
+  const escNote = t => String(t).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const tx = t => `<span>${escNote(t)}</span>`;
+  const NOTE_FABRICS = ['면', '린넨', '실크', '데님', '니트', '가죽', '단색'];
+
+  // 부위 한 칸: "왼쪽 몸판 앞: 면 #0F2E2C", "1번 양말 밴드: 단색 #14201E", "왼발 갑피: 가죽"
+  function regionHtml(seg){
+    const m = /^(\d번 양말|\S+) (\S+)(?: (앞|뒤))?: (\S+)(?: (#[0-9A-Fa-f]{6}))?$/.exec(seg);
+    if(!m || !NOTE_FABRICS.includes(m[4])) return null;
+    return `${tx(m[1])} ${tx(m[2])}${m[3] ? ' ' + tx(m[3]) : ''}: ${tx(m[4])}${m[5] ? ' ' + escNote(m[5]) : ''}`;
+  }
+  function noteLineHtml(line){
+    let m;
+    if((m = /^#(\d+) \((\d+)벌 · (.+)\)$/.exec(line))) return `#${m[1]} (${tx(m[2] + '벌')} · ${tx(m[3])})`;
+    if((m = /^\[제작 스튜디오\] (.+) · (\S+) ×([\d.]+) · (\S+) ×([\d.]+)$/.exec(line))){
+      return `${tx('[제작 스튜디오]')} ${tx(m[1])} · ${tx(m[2])} ×${m[3]} · ${tx(m[4])} ×${m[5]}`;
+    }
+    if((m = /^체형: 키 ([\d.]+)cm · 몸무게 (?:([\d.]+)kg|미입력)$/.exec(line))){
+      return `${tx('체형')}: ${tx('키')} ${m[1]}cm · ${tx('몸무게')} ${m[2] ? m[2] + 'kg' : tx('미입력')}`;
+    }
+    if((m = /^#(\d+) ([^:]+): (.+)$/.exec(line))) return `#${m[1]} ${tx(m[2])}: ${tx(m[3])}`; // 장바구니 브러시 그림 줄
+    const regions = line.split(' / ').map(regionHtml);
+    if(regions.every(Boolean)) return regions.join(' / ');
+    return tx(line);
+  }
+  function noteHtml(text){
+    return String(text).split('\n').map(l => `<span>${noteLineHtml(l)}</span>`).join('\n');
+  }
+  function optionHtml(part){
+    let m;
+    if((m = /^원단 (\S+)(?: \((.+)\))? · \+([\d,]+)원$/.exec(part))){
+      return `${tx('원단')} ${tx(m[1])}${m[2] ? ' (' + m[2].split(', ').map(tx).join(', ') + ')' : ''} · ${tx('+' + m[3] + '원')}`;
+    }
+    if((m = /^#(\d+) (.+) ×(\d+) · (Premium|Lite)$/.exec(part))) return `#${m[1]} ${tx(m[2])} ×${m[3]} · ${m[4]}`;
+    return tx(part);
   }
 
   // 브러시 그림 이미지가 첨부된 디자인 번호(0부터) 목록. 장바구니 주문은 detail_note 줄마다 '#번호'가 붙어 있어요.
