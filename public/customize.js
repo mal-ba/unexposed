@@ -937,7 +937,7 @@
 
   scanGenerateBtn.addEventListener('click', () => {
     const height = parseFloat(scanHeightInput.value);
-    const validHeight = (height && height >= 120 && height <= 210) ? height : 165;
+    const validHeight = (height && height >= 30 && height <= 250) ? height : 165;
     if(typeof window.applyHeightToMannequin === 'function'){
       window.applyHeightToMannequin(validHeight);
     }

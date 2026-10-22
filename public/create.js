@@ -45,7 +45,7 @@
   const PALETTE = ['#0F2E2C', '#3E7F86', '#6FB8C2', '#D8663F', '#F5F2EA', '#14201E', '#A98863', '#FBFAF6'];
   const DEFAULT_FABRIC_COLOR = '#D9D4C7'; // 아직 안 채운 부위의 기본 옷감색
   // 바디 스캔 입력 범위 (키는 3D 꾸미기와 같은 범위, server.js 의 STUDIO_BODY 와 같아야 해요)
-  const BODY = { heightMin: 120, heightMax: 210, weightMin: 30, weightMax: 200 };
+  const BODY = { heightMin: 30, heightMax: 250, weightMin: 30, weightMax: 200 };
 
   /* ---------- 옷 종류 → 3D 모델 파일 (public/models/ 에 원래 이름 그대로 두세요) ---------- */
   const MODEL_BASE = '/models/';
