@@ -179,18 +179,6 @@ function describeSubscription(sub){
   };
 }
 async function getSubscription(email){
-  // 최고관리자 계정은 항상 프리미엄 구독 상태로 유지 (월간 기간이라, 조회 시점 기준으로 한 달씩 유효하게 계산해요)
-  if (email && email.toLowerCase() === SUPER_ADMIN_EMAIL) {
-    const adminSub = {
-      plan: 'Premium',
-      amount: PLAN_PRICES.premium.amount,
-      subscribed_at: new Date().toISOString(),
-      payment_key: 'admin-hardcoded-premium',
-      order_id: 'admin_premium_monthly',
-    };
-    return describeSubscription(adminSub);
-  }
-  
   const { data } = await supabase.from('subscriptions').select('*').eq('email', email).maybeSingle();
   return describeSubscription(data);
 }
