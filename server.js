@@ -387,7 +387,7 @@ function toPublicWardrobeItem(row, viewerEmail) {
 const app = express();
 app.set('trust proxy', 1); // Render/Railway 같은 리버스 프록시 뒤에서 secure 쿠키가 정상 동작하도록
 app.use(compression()); // 응답을 gzip으로 압축해서 전송량을 줄여요 (html/css/js 등 텍스트 파일에 특히 효과적)
-app.use(express.json({ limit: '3mb' })); // 신체 스캔 사진(4장, 장당 약 300KB) 등 JSON 요청용 (큰 파일은 multer로 따로 처리)
+app.use(express.json({ limit: '6mb' })); // 신체 스캔 사진(4장, 장당 약 300KB)·브러시 그림 이미지(디자인마다 4장) 등 JSON 요청용 (큰 파일은 multer로 따로 처리)
 app.use(cookieParser());
 
 // 복제 방지 레이어 — '/' 라우트와 express.static 보다 반드시 먼저 등록해야 해요.
@@ -1128,6 +1128,7 @@ function buildStudioOrder(studio){
   }
   const hasPaint = !!studio.hasPaint;
   const detailAmount = hasPaint ? STUDIO_PAINT_AMOUNT : 0;
+  const paintViews = hasPaint ? parseDesignPhotos(studio.paintViews) : null;
 
   const fabricLabel = `원단 ${STUDIO_TIER_LABELS[fabricAmount]}${usedFabrics.size ? ' (' + [...usedFabrics].join(', ') + ')' : ''} · +${fabricAmount.toLocaleString('ko-KR')}원`;
   const detailLabels = hasPaint ? [`브러시 그림(나염) · +${STUDIO_PAINT_AMOUNT.toLocaleString('ko-KR')}원`] : [];
@@ -1136,8 +1137,10 @@ function buildStudioOrder(studio){
     `체형: 키 ${body.heightCm}cm · 몸무게 ${body.weightKg != null ? body.weightKg + 'kg' : '미입력'}`,
     regionLines.length ? regionLines.join(' / ') : '부위 채우기 없음(기본 옷감색)',
   ].join('\n');
-  const detailNote = hasPaint ? '브러시로 직접 그린 그림이 있습니다 (나염 필요).' : null;
-  return { typeLabel: type.label, fabricAmount, detailAmount, fabricLabel, detailLabels, fabricNote, detailNote };
+  const detailNote = hasPaint
+    ? `브러시로 직접 그린 그림이 있습니다 (나염 필요). ${paintViews ? `그림 이미지 ${Object.keys(paintViews).length}장 첨부 (관리자 페이지에서 보기)` : '그림 이미지 없음'}`
+    : null;
+  return { typeLabel: type.label, fabricAmount, detailAmount, fabricLabel, detailLabels, fabricNote, detailNote, paintViews };
 }
 
 // orders 테이블 저장 — design_mode 컬럼에 '3d'/'2d'만 허용하는 제약이 걸려 있으면,
@@ -1199,8 +1202,34 @@ async function uploadPrivatePhoto(storagePath, buffer, contentType){
 async function saveOrderBodyPhotos(orderId, photos){
   await Promise.all(Object.entries(photos).map(([view, p]) => uploadPrivatePhoto(`${orderId}/${view}`, p.buffer, p.contentType)));
 }
-async function deleteOrderBodyPhotos(orderId){
-  await supabase.storage.from(ORDER_PHOTO_BUCKET).remove(Object.keys(BODY_PHOTO_VIEWS).map(v => `${orderId}/${v}`)).catch(() => {});
+
+/* ---------------- 주문 브러시 그림 이미지 (나염 참고용) ----------------
+   제작 스튜디오가 브러시로 칠한 옷을 앞·뒤·왼쪽·오른쪽에서 찍어 보내요. (create.js 의 DESIGN_VIEWS 와 같아야 해요)
+   체형 사진과 같은 비공개 버킷의 {orderId}/design/{디자인 번호(0부터)}/{방향} 에 저장해요. */
+const DESIGN_PHOTO_VIEWS = { front: '앞', back: '뒤', left: '왼쪽', right: '오른쪽' };
+
+// 그림 이미지는 있으면 받고, 없거나 이상한 장은 빼요. (그림이 있다는 표시만으로도 주문은 돼요)
+function parseDesignPhotos(views){
+  if(!views || typeof views !== 'object') return null;
+  const out = {};
+  for(const view of Object.keys(DESIGN_PHOTO_VIEWS)){
+    const v = views[view];
+    const m = typeof v === 'string' && v.length <= 200000 && /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(v);
+    if(m) out[view] = { buffer: Buffer.from(m[2], 'base64'), contentType: `image/${m[1]}` };
+  }
+  return Object.keys(out).length ? out : null;
+}
+async function saveOrderDesignPhotos(orderId, item, photos){
+  await Promise.all(Object.entries(photos).map(([view, p]) => uploadPrivatePhoto(`${orderId}/design/${item}/${view}`, p.buffer, p.contentType)));
+}
+
+// 주문에 딸린 사진(체형 사진 + 그림 이미지)을 모두 지워요.
+async function deleteOrderPhotos(orderId){
+  const paths = Object.keys(BODY_PHOTO_VIEWS).map(v => `${orderId}/${v}`);
+  for(let i = 0; i < STUDIO_MAX_CART_ITEMS; i++){
+    for(const v of Object.keys(DESIGN_PHOTO_VIEWS)) paths.push(`${orderId}/design/${i}/${v}`);
+  }
+  await supabase.storage.from(ORDER_PHOTO_BUCKET).remove(paths).catch(() => {});
 }
 
 app.post('/api/orders/create-order', requireLogin, async (req, res) => {
@@ -1214,6 +1243,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
   let fa, da, fabricLabel, detailLabels, fabricNote, detailNote, safeDesignMode;
   let quantity = 1;
   let bodyPhotos = null;
+  let paintViews = null;
   if(designMode === 'studio'){
     // 제작 스튜디오: 금액은 클라이언트 값을 쓰지 않고, 보낸 디자인으로 서버가 다시 계산해요.
     const built = buildStudioOrder(body.studio);
@@ -1221,7 +1251,7 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     const parsed = parseBodyPhotos(body.bodyPhotos);
     if(parsed.error) return res.status(400).json({ ok: false, error: parsed.error });
     bodyPhotos = parsed.photos;
-    ({ fabricAmount: fa, detailAmount: da, fabricLabel, detailLabels, fabricNote, detailNote } = built);
+    ({ fabricAmount: fa, detailAmount: da, fabricLabel, detailLabels, fabricNote, detailNote, paintViews } = built);
     safeDesignMode = 'studio';
     quantity = clampQty(body.quantity); // 스튜디오는 같은 디자인을 여러 벌 주문할 수 있어요.
   } else {
@@ -1260,17 +1290,20 @@ app.post('/api/orders/create-order', requireLogin, async (req, res) => {
     status: 'pending',
   };
   if (bodyPhotos) {
-    try { await saveOrderBodyPhotos(orderId, bodyPhotos); }
-    catch (e) {
-      console.error('체형 사진 저장 오류:', e);
-      return res.status(500).json({ ok: false, error: '체형 사진을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.' });
+    try {
+      await saveOrderBodyPhotos(orderId, bodyPhotos);
+      if (paintViews) await saveOrderDesignPhotos(orderId, 0, paintViews);
+    } catch (e) {
+      console.error('체형 사진·그림 이미지 저장 오류:', e);
+      await deleteOrderPhotos(orderId);
+      return res.status(500).json({ ok: false, error: '체형 사진·그림 이미지를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.' });
     }
     row.fabric_note = `${row.fabric_note || ''}\n${BODY_PHOTO_NOTE}`.trim();
   }
   const error = await insertOrderRow(row);
   if (error) {
     console.error('주문 생성 오류:', error);
-    if (bodyPhotos) await deleteOrderBodyPhotos(orderId);
+    if (bodyPhotos) await deleteOrderPhotos(orderId);
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했습니다.' });
   }
 
@@ -1312,6 +1345,7 @@ app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
   let totalQty = 0, needsShipping = false;
   const lines = [], notes = [], paintNotes = [];
   let firstLabel = '';
+  const designPhotos = []; // [디자인 번호, 그림 이미지]
   for (let i = 0; i < items.length; i++) {
     const it = items[i] || {};
     const fi = Number(it.finishAmount);
@@ -1327,6 +1361,7 @@ app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
     lines.push(`#${i + 1} ${built.typeLabel} ×${qty} · ${fi ? 'Premium' : 'Lite'}`);
     notes.push(`#${i + 1} (${qty}벌 · ${fi ? 'Premium 재봉사 매칭 + 완제품 배송' : 'Lite 패턴 PDF'})\n${built.fabricNote}`);
     if (built.detailNote) paintNotes.push(`#${i + 1} ${built.typeLabel}: ${built.detailNote}`);
+    if (built.paintViews) designPhotos.push([i, built.paintViews]);
   }
 
   const amount = ORDER_PRICE * totalQty;
@@ -1345,14 +1380,17 @@ app.post('/api/orders/create-cart-order', requireLogin, async (req, res) => {
     detail_note: paintNotes.length ? paintNotes.join('\n') : null,
     status: 'pending',
   };
-  try { await saveOrderBodyPhotos(orderId, parsedPhotos.photos); }
-  catch (e) {
-    console.error('체형 사진 저장 오류:', e);
-    return res.status(500).json({ ok: false, error: '체형 사진을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.' });
+  try {
+    await saveOrderBodyPhotos(orderId, parsedPhotos.photos);
+    await Promise.all(designPhotos.map(([i, views]) => saveOrderDesignPhotos(orderId, i, views)));
+  } catch (e) {
+    console.error('체형 사진·그림 이미지 저장 오류:', e);
+    await deleteOrderPhotos(orderId);
+    return res.status(500).json({ ok: false, error: '체형 사진·그림 이미지를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.' });
   }
   const error = await insertOrderRow(row);
   if (error) {
-    await deleteOrderBodyPhotos(orderId);
+    await deleteOrderPhotos(orderId);
     console.error('장바구니 주문 생성 오류:', error);
     return res.status(500).json({ ok: false, error: '주문 생성 중 오류가 발생했습니다.' });
   }
@@ -1478,7 +1516,7 @@ app.get('/api/admin/orders', requireLogin, requireAdmin, async (req, res) => {
 app.delete('/api/admin/orders/:orderId', requireLogin, requireAdmin, async (req, res) => {
   const { error } = await supabase.from('orders').delete().eq('order_id', req.params.orderId);
   if (error) return res.status(500).json({ ok: false, error: '삭제 중 오류가 발생했습니다.' });
-  await deleteOrderBodyPhotos(req.params.orderId);
+  await deleteOrderPhotos(req.params.orderId);
   res.json({ ok: true });
 });
 
@@ -1487,6 +1525,20 @@ app.get('/api/admin/orders/:orderId/body-photos/:view', requireLogin, requireAdm
   const { orderId, view } = req.params;
   if (!BODY_PHOTO_VIEWS[view] || !/^order_[A-Za-z0-9_]+$/.test(orderId)) return res.status(404).end();
   const { data, error } = await supabase.storage.from(ORDER_PHOTO_BUCKET).download(`${orderId}/${view}`);
+  if (error || !data) return res.status(404).end();
+  res.set('Content-Type', data.type || 'image/jpeg');
+  res.set('Cache-Control', 'private, no-store');
+  res.send(Buffer.from(await data.arrayBuffer()));
+});
+
+// 관리자 전용: 주문에 딸린 브러시 그림 이미지 한 장을 내려줘요. item 은 장바구니 안 디자인 번호(0부터)예요.
+app.get('/api/admin/orders/:orderId/design-photos/:item/:view', requireLogin, requireAdmin, async (req, res) => {
+  const { orderId, item, view } = req.params;
+  const n = Number(item);
+  if (!DESIGN_PHOTO_VIEWS[view] || !/^order_[A-Za-z0-9_]+$/.test(orderId) || !Number.isInteger(n) || n < 0 || n >= STUDIO_MAX_CART_ITEMS) {
+    return res.status(404).end();
+  }
+  const { data, error } = await supabase.storage.from(ORDER_PHOTO_BUCKET).download(`${orderId}/design/${n}/${view}`);
   if (error || !data) return res.status(404).end();
   res.set('Content-Type', data.type || 'image/jpeg');
   res.set('Cache-Control', 'private, no-store');
