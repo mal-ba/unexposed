@@ -893,4 +893,16 @@ window.i18nAddText('de', {
   "별명 (예: 봄바람)": "Spitzname (z. B. Frühlingswind)",
   "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Bei deinem Werk wird dieser Spitzname statt deines Google-Kontonamens angezeigt.",
   "별명을 입력해주세요.": "Bitte gib einen Spitznamen ein.",
+  // 커뮤니티: 작품 고치기 · 페이지 안 삭제 확인 창
+  "작품 수정하기": "Werk bearbeiten",
+  "수정하기": "Änderungen speichern",
+  "수정": "Bearbeiten",
+  "새 파일을 고르지 않으면 지금 올라가 있는 파일을 그대로 둡니다.": "Wenn du keine neue Datei wählst, bleibt die aktuelle erhalten.",
+  "썸네일 이미지 지우기": "Vorschaubild entfernen",
+  "수정했습니다.": "Gespeichert.",
+  "수정하지 못했습니다.": "Die Änderungen konnten nicht gespeichert werden.",
+  "본인 게시물만 고칠 수 있습니다.": "Du kannst nur deine eigenen Beiträge bearbeiten.",
+  "게시물 수정 중 오류가 발생했습니다.": "Beim Speichern des Beitrags ist ein Fehler aufgetreten.",
+  "이 작품을 삭제할까요?": "Dieses Werk löschen?",
+  "삭제하지 못했습니다.": "Konnte nicht gelöscht werden.",
 });

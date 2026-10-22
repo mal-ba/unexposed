@@ -1612,8 +1612,8 @@ app.get('/api/admin/me', requireLogin, requireAdmin, (req, res) => {
    로그인 여부와 상관없이(익명 방문자도 포함) 기록해요 — "몇 시에 몇 명 왔는지"를
    보려는 목적이라, 누가 왔는지보다 언제 얼마나 왔는지가 중요해서예요. */
 /* ---------------- 커뮤니티 (사람들이 만든 작품 공유) ---------------- */
-// 목록은 누구나 보니까 글쓴이 이메일은 내보내지 않고, 보는 사람이 지울 수 있는지만 알려줘요.
-// (본인 글이거나 관리자면 canDelete) 이름은 올릴 때 직접 정한 별명이에요.
+// 목록은 누구나 보니까 글쓴이 이메일은 내보내지 않고, 보는 사람이 고치거나 지울 수 있는지만 알려줘요.
+// (고치기는 본인 글만, 지우기는 본인 글이거나 관리자) 이름은 올릴 때 직접 정한 별명이에요.
 function communityPostToJson(row, viewerEmail) {
   return {
     id: row.id,
@@ -1622,6 +1622,7 @@ function communityPostToJson(row, viewerEmail) {
     imageUrl: row.image_url || null,
     glbUrl: row.glb_url || null,
     authorName: row.author_name,
+    canEdit: !!viewerEmail && row.author_email === viewerEmail,
     canDelete: !!viewerEmail && (row.author_email === viewerEmail || isAdminEmail(viewerEmail)),
     createdAt: row.created_at,
   };
@@ -1709,6 +1710,73 @@ app.post('/api/community/posts', requireLogin, communityUploadFields, async (req
       return res.status(500).json({ ok: false, error: '게시물 저장 중 오류가 발생했습니다.' });
     }
     res.json({ ok: true, post: communityPostToJson(row, req.user.email) });
+  } finally {
+    cleanupTempUploadFiles(req.files);
+  }
+});
+
+// 고치기: 글쓴이 본인만. 별명·제목·설명을 바꾸고, 3D 파일·썸네일은 새로 고른 것만 바꿔요.
+// (removeImage=1 이면 썸네일을 지워요) 새 파일을 올린 뒤 DB를 바꾸고, 그게 성공해야 예전 파일을 지워요.
+app.patch('/api/community/posts/:id', requireLogin, communityUploadFields, async (req, res) => {
+  const glbFile = req.files && req.files.glb && req.files.glb[0];
+  const imageFile = req.files && req.files.image && req.files.image[0];
+  const uploaded = [];
+  try {
+    const { data: post } = await supabase.from('community_posts').select('*').eq('id', req.params.id).maybeSingle();
+    if (!post) return res.status(404).json({ ok: false, error: '게시물을 찾을 수 없습니다.' });
+    if (post.author_email !== req.user.email) {
+      return res.status(403).json({ ok: false, error: '본인 게시물만 고칠 수 있습니다.' });
+    }
+    const nickname = cleanNickname(req.body?.nickname);
+    const title = String(req.body?.title || '').trim().slice(0, 80);
+    const description = String(req.body?.description || '').trim().slice(0, 500);
+    if (!nickname) return res.status(400).json({ ok: false, error: '별명을 입력해주세요.' });
+    if (!title) return res.status(400).json({ ok: false, error: '제목을 입력해주세요.' });
+    let glbName = '';
+    if (glbFile) {
+      glbName = fixMulterFilenameEncoding(glbFile.originalname) || '';
+      if (path.extname(glbName).toLowerCase() !== '.glb' || !(await isGlbFile(glbFile.path))) {
+        return res.status(400).json({ ok: false, error: '.glb 형식의 3D 파일만 올릴 수 있습니다.' });
+      }
+    }
+    if (imageFile && !/^image\//.test(imageFile.mimetype || '')) {
+      return res.status(400).json({ ok: false, error: '썸네일은 이미지 파일만 올릴 수 있습니다.' });
+    }
+
+    const updates = { title, description, author_name: nickname };
+    try {
+      if (glbFile) {
+        updates.glb_url = (await uploadFileToBucket(COMMUNITY_BUCKET, post.id, glbFile.path, glbName || `${post.id}.glb`, 'model/gltf-binary')).publicUrl;
+        uploaded.push(updates.glb_url);
+      }
+      if (imageFile) {
+        updates.image_url = (await uploadFileToBucket(
+          COMMUNITY_BUCKET, post.id, imageFile.path,
+          fixMulterFilenameEncoding(imageFile.originalname) || `${post.id}.png`, 'image/png'
+        )).publicUrl;
+        uploaded.push(updates.image_url);
+      } else if (req.body?.removeImage === '1') {
+        updates.image_url = null;
+      }
+    } catch (err) {
+      console.error('커뮤니티 파일 업로드 실패:', err.message || err);
+      await Promise.all(uploaded.map(u => deleteFromBucketIfManaged(COMMUNITY_BUCKET, u))).catch(() => {});
+      return res.status(500).json({ ok: false, error: '파일 업로드 중 오류가 발생했습니다.' });
+    }
+
+    const { error } = await supabase.from('community_posts').update(updates).eq('id', post.id);
+    if (error) {
+      console.error('커뮤니티 게시물 수정 실패:', error.message);
+      await Promise.all(uploaded.map(u => deleteFromBucketIfManaged(COMMUNITY_BUCKET, u))).catch(() => {});
+      return res.status(500).json({ ok: false, error: '게시물 수정 중 오류가 발생했습니다.' });
+    }
+    // 바뀐 파일의 예전 것은 저장소에서 지워요. 실패해도 수정 자체는 성공이에요.
+    const old = [];
+    if ('glb_url' in updates && post.glb_url !== updates.glb_url) old.push(post.glb_url);
+    if ('image_url' in updates && post.image_url !== updates.image_url) old.push(post.image_url);
+    await Promise.all(old.map(u => deleteFromBucketIfManaged(COMMUNITY_BUCKET, u)))
+      .catch(err => console.warn('커뮤니티 예전 파일 삭제 실패:', err.message || err));
+    res.json({ ok: true, post: communityPostToJson({ ...post, ...updates }, req.user.email) });
   } finally {
     cleanupTempUploadFiles(req.files);
   }

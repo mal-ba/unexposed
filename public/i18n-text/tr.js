@@ -893,4 +893,16 @@ window.i18nAddText('tr', {
   "별명 (예: 봄바람)": "Takma ad (ör. Bahar Esintisi)",
   "작품에는 구글 계정 이름 대신 이 별명이 보입니다.": "Eserinde Google hesap adın yerine bu takma ad görünür.",
   "별명을 입력해주세요.": "Lütfen bir takma ad gir.",
+  // 커뮤니티: 작품 고치기 · 페이지 안 삭제 확인 창
+  "작품 수정하기": "Eseri düzenle",
+  "수정하기": "Değişiklikleri kaydet",
+  "수정": "Düzenle",
+  "새 파일을 고르지 않으면 지금 올라가 있는 파일을 그대로 둡니다.": "Yeni dosya seçmezsen mevcut dosya kalır.",
+  "썸네일 이미지 지우기": "Küçük resmi kaldır",
+  "수정했습니다.": "Kaydedildi.",
+  "수정하지 못했습니다.": "Değişiklikler kaydedilemedi.",
+  "본인 게시물만 고칠 수 있습니다.": "Yalnızca kendi gönderilerini düzenleyebilirsin.",
+  "게시물 수정 중 오류가 발생했습니다.": "Gönderi kaydedilirken bir hata oluştu.",
+  "이 작품을 삭제할까요?": "Bu eser silinsin mi?",
+  "삭제하지 못했습니다.": "Silinemedi.",
 });
