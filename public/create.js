@@ -148,6 +148,14 @@
   .studio-quote{font-size:13px;background:var(--mist);border-radius:10px;padding:10px 12px;margin:8px 0;line-height:1.7}
   .studio-order-btns,.studio-order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .studio-order-btns .btn,.studio-order-actions .btn{flex:1;justify-content:center}
+  .studio-tryon-btn{width:100%;justify-content:center;margin-top:10px}
+  .tryon-box{max-width:560px;width:100%;max-height:92vh;overflow-y:auto}
+  .tryon-stage{position:relative;height:min(460px,58vh);background:#fbfaf6;border:1px solid var(--line);border-radius:12px;overflow:hidden;touch-action:none}
+  .tryon-stage canvas{display:block;width:100%;height:100%}
+  .tryon-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:13px;color:var(--ink-soft)}
+  .tryon-loading[hidden]{display:none}
+  .tryon-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
+  .tryon-hint{font-size:12px;color:var(--ink-soft)}
   .cart-toast{font-size:12.5px;color:var(--star-dark);margin-top:8px}
   .cart-toast[hidden]{display:none}
   .cart-box{max-width:560px;width:100%;max-height:90vh;overflow-y:auto}
@@ -558,8 +566,14 @@
     root: null, rootData: null, currentType: null, ready: false, failed: false, needsRender: true,
   };
   const modelCache = {};
+  const modelFailed = {}; // 3D 파일을 불러오지 못한 옷 종류
   // 화면이 바뀔 때만 다시 그려요. (가만히 있을 때도 매 프레임 그리면 휴대폰이 뜨거워지고 느려져요)
   function requestRender() { view.needsRender = true; }
+  // 휴대폰은 화면 픽셀이 많아서 2배로 그리면 버거워요. 1.5배면 눈으로는 차이가 거의 없어요.
+  function screenPixelRatio() {
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    return Math.min(coarse ? 1.5 : 2, window.devicePixelRatio || 1);
+  }
 
   async function ensure3D() {
     if (view.ready) return true;
@@ -572,9 +586,7 @@
 
       const stage = $('create-3d');
       const renderer = new THREE.WebGLRenderer({ antialias: true });
-      // 휴대폰은 화면 픽셀이 많아서 2배로 그리면 버거워요. 1.5배면 눈으로는 차이가 거의 없어요.
-      const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      renderer.setPixelRatio(Math.min(coarse ? 1.5 : 2, window.devicePixelRatio || 1));
+      renderer.setPixelRatio(screenPixelRatio());
       renderer.setClearColor(0xfbfaf6, 1);
       renderer.domElement.className = 'stage-gl';
       stage.insertBefore(renderer.domElement, stage.firstChild);
@@ -869,6 +881,7 @@
       if (p === keep || p.meshes.some(m => m.userData.paintA.some(a => a > 0))) continue;
       for (const m of p.meshes) { m.geometry.dispose(); m.userData.grid = null; }
       if (p.meshes[0]) p.meshes[0].material.dispose();
+      if (p.tryonMaterial) p.tryonMaterial.dispose();
       delete modelCache[key];
     }
   }
@@ -953,6 +966,7 @@
         loading.hidden = true;
       } catch (e) {
         console.warn('모델을 불러오지 못했습니다:', file, e);
+        modelFailed[typeKey] = true;
         detachModel(); setGLVisible(false);
         loading.hidden = false; loading.textContent = '이 옷의 3D 파일을 불러오지 못해 칸으로 채웁니다.';
       }
@@ -1357,7 +1371,7 @@
   }
 
   function bindEvents() {
-    $('create-modal-close').addEventListener('click', () => { stopScanCamera(); $('create-modal').hidden = true; });
+    $('create-modal-close').addEventListener('click', () => { stopScanCamera(); closeTryon(); $('create-modal').hidden = true; });
     $('cart-open-btn').addEventListener('click', () => { renderCart(); $('cart-modal').hidden = false; });
     $('cart-close-btn').addEventListener('click', () => { $('cart-modal').hidden = true; });
     $('create-order-cancel-btn').addEventListener('click', () => { $('create-order-modal').hidden = true; pending = null; });
@@ -1392,6 +1406,16 @@
       st.quantity = Math.min(MAX_QTY, Math.max(1, st.quantity + Number(b.dataset.qty)));
       renderQty(); renderQuote();
     }));
+
+    $('create-tryon-btn').addEventListener('click', openTryon);
+    $('tryon-close-btn').addEventListener('click', closeTryon);
+    $('tryon-back-btn').addEventListener('click', closeTryon);
+    $('tryon-order-btn').addEventListener('click', () => { closeTryon(); $('create-order-open-btn').click(); });
+    $('tryon-view-btn').addEventListener('click', () => { tryon.closeView = !tryon.closeView; frameTryon(); });
+    $('tryon-spin-btn').addEventListener('click', e => {
+      tryon.controls.autoRotate = !tryon.controls.autoRotate;
+      e.currentTarget.classList.toggle('active', tryon.controls.autoRotate);
+    });
 
     $('cart-add-btn').addEventListener('click', addToCart);
     $('create-order-open-btn').addEventListener('click', () => {
@@ -1474,6 +1498,455 @@
     } else {
       $('cart-note').textContent = '';
     }
+  }
+
+  /* ---------- 마네킹에 입혀보기: 지금 꾸민 옷을 체형 키에 맞춘 마네킹에 입혀서 결제 전에 확인해요 ----------
+     옷은 스튜디오 3D 모델의 지오메트리·재질을 그대로 같이 써서, 칠한 색·브러시 그림이 그대로 보여요.
+     mannequin.glb는 관절이 있는 T포즈 모델이라, 실제로 그려지는 자세(스킨 적용 후)의 정점으로 몸 치수를 재요. */
+  const MANNEQUIN_URL = '/models/mannequin.glb?v=4';
+  const ARM_DOWN = 1.15; // 팔 내리는 각도 (라디안, 약 66도)
+  const tryon = {
+    renderer: null, scene: null, camera: null, controls: null,
+    mannequin: null, points: null, heightM: 0, joints: null, armAngle: 0, garment: null, focus: null,
+    loading: null, failed: false, raf: 0, closeView: true, needsRender: true,
+  };
+
+  // 마네킹 정점을 월드 좌표(m 단위)로 뽑아요. 스킨(관절) 변형까지 적용해서 화면에 보이는 그대로 재요.
+  function mannequinPoints(root) {
+    const THREE = view.THREE;
+    root.updateMatrixWorld(true);
+    const out = [];
+    const v = new THREE.Vector3();
+    root.traverse(o => {
+      if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+      if (o.isSkinnedMesh) o.skeleton.update();
+      const pos = o.geometry.attributes.position;
+      const step = Math.max(1, Math.floor(pos.count / 20000));
+      for (let i = 0; i < pos.count; i += step) {
+        v.fromBufferAttribute(pos, i);
+        if (o.isSkinnedMesh) o.applyBoneTransform(i, v);
+        v.applyMatrix4(o.matrixWorld);
+        out.push(v.x, v.y, v.z);
+      }
+    });
+    return new Float32Array(out);
+  }
+
+  function boundsOf(pts) {
+    const b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity, minZ: Infinity, maxZ: -Infinity };
+    for (let i = 0; i < pts.length; i += 3) {
+      const x = pts[i], y = pts[i + 1], z = pts[i + 2];
+      if (x < b.minX) b.minX = x; if (x > b.maxX) b.maxX = x;
+      if (y < b.minY) b.minY = y; if (y > b.maxY) b.maxY = y;
+      if (z < b.minZ) b.minZ = z; if (z > b.maxZ) b.maxZ = z;
+    }
+    return b;
+  }
+
+  // y0~y1 높이, |x - cx| < xLimit 안에 있는 점들의 범위를 재요. (T포즈 팔을 빼고 몸통·다리만 재려고 써요)
+  function bandBounds(pts, y0, y1, xLimit, cx) {
+    const b = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity, n: 0 };
+    for (let i = 0; i < pts.length; i += 3) {
+      const x = pts[i], y = pts[i + 1], z = pts[i + 2];
+      if (y < y0 || y > y1 || Math.abs(x - (cx || 0)) > xLimit) continue;
+      if (x < b.minX) b.minX = x; if (x > b.maxX) b.maxX = x;
+      if (z < b.minZ) b.minZ = z; if (z > b.maxZ) b.maxZ = z;
+      b.n++;
+    }
+    return b.n ? b : null;
+  }
+
+  // 좌우로 가장 넓게 퍼지는 높이(= 어깨선, 소매가 벌어지는 곳)를 찾아요. customize-3d.js 의 findShoulderLineY 와 같은 방식이에요.
+  function shoulderLineY(pts, b) {
+    const BUCKETS = 24, span = b.maxY - b.minY, cx = (b.minX + b.maxX) / 2;
+    if (span <= 0) return b.maxY;
+    const widest = new Array(BUCKETS).fill(0);
+    for (let i = 0; i < pts.length; i += 3) {
+      const k = Math.min(BUCKETS - 1, Math.max(0, Math.floor(((pts[i + 1] - b.minY) / span) * BUCKETS)));
+      widest[k] = Math.max(widest[k], Math.abs(pts[i] - cx));
+    }
+    let best = 0;
+    for (let k = 1; k < BUCKETS; k++) if (widest[k] > widest[best]) best = k;
+    return b.minY + span * ((best + 0.5) / BUCKETS);
+  }
+
+  // 모자 챙·신발 앞코처럼 낮게 뻗은 쪽을 앞(+z)으로 돌리는 각도를 구해요.
+  function frontYaw(pts, b) {
+    const alongX = (b.maxX - b.minX) > (b.maxZ - b.minZ);
+    const lo = alongX ? b.minX : b.minZ, hi = alongX ? b.maxX : b.maxZ, quarter = (hi - lo) / 4;
+    let topLo = -Infinity, topHi = -Infinity;
+    for (let i = 0; i < pts.length; i += 3) {
+      const a = alongX ? pts[i] : pts[i + 2];
+      if (a < lo + quarter) topLo = Math.max(topLo, pts[i + 1]);
+      else if (a > hi - quarter) topHi = Math.max(topHi, pts[i + 1]);
+    }
+    const frontIsLow = topLo < topHi; // 낮은 끝이 앞이에요
+    if (alongX) return frontIsLow ? Math.PI / 2 : -Math.PI / 2;
+    return frontIsLow ? Math.PI : 0;
+  }
+
+  // 스튜디오 모델의 정점을 (발밑 가운데 = 원점, 앞 = +z) 기준으로 옮긴 점 목록과 범위를 만들어요.
+  function garmentFrame(rd, kind) {
+    const raw = [];
+    for (const m of rd.meshes) {
+      const pos = m.geometry.attributes.position;
+      const step = Math.max(1, Math.floor(pos.count / 15000));
+      for (let i = 0; i < pos.count; i += step) raw.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+    }
+    const rawPts = new Float32Array(raw);
+    const rb = boundsOf(rawPts);
+    const yaw = (kind === 'hat' || kind === 'shoes') ? frontYaw(rawPts, rb) : 0;
+    const cos = Math.cos(yaw), sin = Math.sin(yaw);
+    const cx = (rb.minX + rb.maxX) / 2, cz = (rb.minZ + rb.maxZ) / 2;
+    const pts = new Float32Array(rawPts.length);
+    for (let i = 0; i < rawPts.length; i += 3) {
+      const x = rawPts[i] - cx, z = rawPts[i + 2] - cz;
+      pts[i] = x * cos + z * sin;
+      pts[i + 1] = rawPts[i + 1] - rb.minY;
+      pts[i + 2] = -x * sin + z * cos;
+    }
+    return { pts, b: boundsOf(pts), yaw, offset: [-cx, -rb.minY, -cz] };
+  }
+
+  // 옷 메쉬를 새로 만들어요. 지오메트리(칠한 색·브러시 자국)는 스튜디오 모델과 같이 쓰고,
+  // 옷 모델에는 법선이 없어서 재질만 면 단위 음영(flatShading)으로 바꾼 복사본을 써요. 그래야 조명에 입체감이 생겨요.
+  function garmentObject(rd, frame) {
+    const THREE = view.THREE;
+    if (!rd.tryonMaterial) {
+      rd.tryonMaterial = rd.meshes[0].material.clone();
+      rd.tryonMaterial.onBeforeCompile = addBrushShader;
+      rd.tryonMaterial.flatShading = true;
+    }
+    const inner = new THREE.Group();
+    inner.position.set(frame.offset[0], frame.offset[1], frame.offset[2]);
+    for (const m of rd.meshes) inner.add(new THREE.Mesh(m.geometry, rd.tryonMaterial));
+    const turn = new THREE.Group();
+    turn.rotation.y = frame.yaw;
+    turn.add(inner);
+    const holder = new THREE.Group();
+    holder.add(turn);
+    return holder;
+  }
+
+  // 옷 종류별로 마네킹 위 위치·크기를 정해요. 몸은 키 H 기준 비율과 실측 치수로 재요.
+  function fitGarment(kind, rd) {
+    const pts = tryon.points, B = boundsOf(pts), H = B.maxY - B.minY;
+    const frame = garmentFrame(rd, kind);
+    const gb = frame.b, gw = gb.maxX - gb.minX, gh = gb.maxY - gb.minY, gd = gb.maxZ - gb.minZ;
+    const obj = garmentObject(rd, frame);
+    const torso = H * 0.2; // 이 폭 안쪽만 몸통·다리로 봐요 (T포즈 팔 빼기)
+    const copies = [];
+    let s = 1, sx, sy, sz, x = 0, y = 0, z = 0;
+    // 옷이 몸에 묻히지 않도록, 옷 높이를 여러 칸으로 나눠 칸마다 몸 치수와 옷 치수를 비교하고
+    // 가장 모자란 칸에 맞춰 가로·앞뒤를 넓혀요. (맨 위·아래 칸은 옷 끝이 얇아서 빼요)
+    // 칸마다 몸과 옷의 앞뒤 중심도 기억해 두었다가, 평균적으로 가장 잘 겹치는 앞뒤 위치(z)를 구해요.
+    const cover = (base, ys, bottom, xLimit, yCut) => {
+      let needX = base, needZ = base;
+      const N = 10, mids = [];
+      for (let k = 1; k < N - 1; k++) {
+        const g0 = (gh * k) / N, g1 = (gh * (k + 1)) / N;
+        if (bottom + g0 * ys > yCut) break;
+        const body = bandBounds(pts, bottom + g0 * ys, bottom + g1 * ys, xLimit);
+        const gBand = bandBounds(frame.pts, g0, g1, Infinity);
+        if (!body || !gBand || body.n < 20 || gBand.n < 20) continue;
+        needX = Math.max(needX, (body.maxX - body.minX) * 1.06 / Math.max(gBand.maxX - gBand.minX, 1e-6));
+        needZ = Math.max(needZ, (body.maxZ - body.minZ) * 1.2 / Math.max(gBand.maxZ - gBand.minZ, 1e-6));
+        mids.push([(body.minZ + body.maxZ) / 2, (gBand.minZ + gBand.maxZ) / 2]);
+      }
+      const fx = Math.min(needX, base * 3), fz = Math.min(needZ, base * 6) * st.girthMul;
+      const zAt = mids.length ? mids.reduce((a, [b, g]) => a + b - g * fz, 0) / mids.length : 0;
+      return [fx * st.girthMul, fz, zAt];
+    };
+    if (kind === 'top') {
+      const bodyShoulder = shoulderLineY(pts, B);
+      // 옷 모델은 소매를 내린 모양이라 길이(어깨~엉덩이)로 크기를 정하고, 몸통 둘레는 cover 가 맞춰요.
+      s = (H * 0.38) / Math.max(gh, 1e-6);
+      sy = s * st.lengthMul;
+      y = bodyShoulder + H * 0.055 - gh * sy; // 옷 목둘레(맨 위)를 어깨선 살짝 위에 (기장 배율은 아래로 늘어나요)
+      // 어깨 위(목)는 빼고, 좌우는 어깨 폭(키의 13%) 안쪽만 재서 T포즈 팔을 빼요.
+      [sx, sz, z] = cover(s, sy, y, H * 0.13, bodyShoulder - H * 0.03);
+      // 긴팔은 팔이 소매 속으로 들어가도록, 어깨 관절에서 소매 끝(옷에서 가장 바깥 점)을 향하는 각도로 팔을 내려요.
+      // (반팔은 소매가 짧아서 기본 각도가 더 자연스러워요)
+      let cuffX = 0, cuffY = 0;
+      for (let i = 0; i < frame.pts.length; i += 3) {
+        const ax = Math.abs(frame.pts[i]);
+        if (ax > cuffX) { cuffX = ax; cuffY = frame.pts[i + 1]; }
+      }
+      const J = tryon.joints;
+      const dx = cuffX * sx - J.shX, dy = J.shY - (y + cuffY * sy);
+      if (st.typeKey === 'longSleeve' && dx > 0) tryon.armAngle = Math.min(1.3, Math.max(0.2, Math.atan2(dy, dx)));
+      tryon.focus = { y0: bodyShoulder - H * 0.4, y1: bodyShoulder + H * 0.14 };
+    } else if (kind === 'bottom') {
+      const waist = B.minY + H * 0.57;
+      const length = st.typeKey === 'longPants' ? H * 0.54 : H * 0.26;
+      s = length / Math.max(gh, 1e-6);
+      sy = s * st.lengthMul;
+      y = waist - gh * sy; // 허리단 = 허리선
+      [sx, sz, z] = cover(s, sy, y, torso * 1.3, waist);
+      tryon.focus = { y0: waist - length * st.lengthMul - H * 0.05, y1: waist + H * 0.1 };
+    } else if (kind === 'hat') {
+      const head = bandBounds(pts, B.maxY - H * 0.1, B.maxY, H * 0.15) || { minX: -0.08, maxX: 0.08, minZ: -0.1, maxZ: 0.1 };
+      s = (head.maxX - head.minX) * 1.22 / Math.max(gw, 1e-6); // 모자 너비(챙 제외 좌우) = 머리 폭 + 여유
+      sx = sz = s * st.girthMul; sy = s * st.lengthMul;
+      y = B.maxY + H * 0.025 - gh * sy; // 모자 꼭대기를 정수리 살짝 위에
+      z = head.minZ - H * 0.012 - gb.minZ * sz; // 모자 뒤쪽을 뒤통수에 맞춰요
+      tryon.focus = { y0: B.maxY - H * 0.22, y1: B.maxY + H * 0.06 };
+    } else {
+      // 신발·양말: 발 위치(좌우 두 발)를 재서 맞춰요.
+      const footTop = B.minY + H * 0.05;
+      const feet = bandBounds(pts, B.minY, footTop, H * 0.3);
+      let lSum = 0, lN = 0, rSum = 0, rN = 0;
+      for (let i = 0; i < pts.length; i += 3) {
+        if (pts[i + 1] > footTop || Math.abs(pts[i]) > H * 0.3) continue;
+        if (pts[i] < 0) { lSum += pts[i]; lN++; } else { rSum += pts[i]; rN++; }
+      }
+      const lx = lN ? lSum / lN : -H * 0.06, rx = rN ? rSum / rN : H * 0.06;
+      const footZ = feet ? (feet.minZ + feet.maxZ) / 2 : 0;
+      const gMidZ = (gb.minZ + gb.maxZ) / 2;
+      if (kind === 'shoes') {
+        const footLen = feet ? feet.maxZ - feet.minZ : H * 0.16;
+        s = footLen * 1.1 / Math.max(gd, 1e-6);
+        // 가로가 길이의 3/4보다 넓으면 두 짝이 같이 있는 모델, 아니면 한 짝이라 두 발에 하나씩 신겨요.
+        // 발이 신발 옆으로 삐져나오지 않게 발 폭(두 짝이면 두 발 전체 폭)에 맞춰 가로를 넓히고, 높이는 발목까지 덮어요.
+        const pair = gw / Math.max(gd, 1e-6) > 0.75;
+        const oneFoot = bandBounds(pts, B.minY, footTop, H * 0.12, rx);
+        const footW = pair ? (feet ? feet.maxX - feet.minX : H * 0.2) : (oneFoot ? oneFoot.maxX - oneFoot.minX : H * 0.06);
+        if (pair) x = (lx + rx) / 2;
+        else copies.push(lx, rx);
+        sx = Math.max(s, footW * 1.12 / Math.max(gw, 1e-6)) * st.girthMul;
+        sy = Math.max(s, H * 0.065 / Math.max(gh, 1e-6)) * st.girthMul;
+        sz = s * st.lengthMul;
+        z = footZ - gMidZ * sz;
+      } else if (kind === 'socks3') {
+        // 3켤레 세트는 신은 모양이 아니라서, 발 앞 바닥에 펼쳐서 보여줘요.
+        s = H * 0.32 / Math.max(gw, gd, 1e-6);
+        sx = sy = sz = s;
+        z = (feet ? feet.maxZ : 0) + H * 0.04 - gb.minZ * sz;
+      } else {
+        s = H * 0.24 / Math.max(gh, 1e-6);
+        sx = sz = s * st.girthMul; sy = s * st.lengthMul;
+        x = (lx + rx) / 2;
+        z = footZ - gMidZ * sz;
+      }
+      y = B.minY; // 밑창·발바닥 = 바닥
+      tryon.focus = { y0: B.minY - H * 0.02, y1: B.minY + H * 0.32 };
+    }
+    const group = new view.THREE.Group();
+    const place = (o, px, mirror) => {
+      o.scale.set(sx * (mirror ? -1 : 1), sy, sz);
+      o.position.set(px, y, z);
+      group.add(o);
+    };
+    if (copies.length) {
+      // 한 짝만 있는 신발은 오른발에 그대로, 왼발에는 좌우를 뒤집어서 신겨요.
+      place(obj, copies[1], false);
+      place(garmentObject(rd, frame), copies[0], true);
+    } else {
+      place(obj, x, false);
+    }
+    return group;
+  }
+
+  function setupTryonScene() {
+    if (tryon.renderer) return;
+    const { THREE, OrbitControls } = view;
+    const stage = $('tryon-stage');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(screenPixelRatio());
+    renderer.setClearColor(0xfbfaf6, 1);
+    renderer.domElement.addEventListener('webglcontextrestored', () => { tryon.needsRender = true; });
+    stage.insertBefore(renderer.domElement, stage.firstChild);
+    const scene = new THREE.Scene();
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8478, 0.7));
+    const key = new THREE.DirectionalLight(0xffffff, 1.0);
+    key.position.set(2, 4, 3);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.45);
+    rim.position.set(-2, 2, -3);
+    scene.add(rim);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(0.6, 48), new THREE.MeshBasicMaterial({ color: 0xece7dc }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.001;
+    scene.add(floor);
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.02, 50);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.minDistance = 0.4;
+    controls.maxDistance = 8;
+    controls.autoRotateSpeed = 2.4;
+    // 돌리거나 자동 회전할 때만 다시 그려요.
+    controls.addEventListener('change', () => { tryon.needsRender = true; });
+    Object.assign(tryon, { renderer, scene, camera, controls });
+    window.addEventListener('resize', () => { if (!$('tryon-modal').hidden) resizeTryon(); });
+  }
+
+  function resizeTryon() {
+    const stage = $('tryon-stage');
+    const w = stage.clientWidth || 480, h = stage.clientHeight || 420;
+    tryon.renderer.setSize(w, h, false);
+    tryon.camera.aspect = w / h;
+    tryon.camera.updateProjectionMatrix();
+    tryon.needsRender = true;
+  }
+
+  // 팔을 angle(라디안)만큼 아래로 내려요. 0이면 원래 T포즈로 돌아가요.
+  // 옷 모델은 팔을 내린 모양이라, 보여줄 때는 팔을 내려야 소매와 잘 맞아요. (치수는 T포즈에서 재요)
+  function setArmPose(root, angle) {
+    const THREE = view.THREE;
+    for (const [name, childName] of [['LeftArm', 'LeftForeArm'], ['RightArm', 'RightForeArm']]) {
+      const arm = root.getObjectByName(name), fore = root.getObjectByName(childName);
+      if (!arm || !fore) continue;
+      if (!arm.userData.restQ) arm.userData.restQ = arm.quaternion.clone();
+      arm.quaternion.copy(arm.userData.restQ);
+      if (!angle) continue;
+      root.updateMatrixWorld(true);
+      const a = arm.getWorldPosition(new THREE.Vector3()), f = fore.getWorldPosition(new THREE.Vector3());
+      const turn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), f.x > a.x ? -angle : angle);
+      const parentQ = arm.parent.getWorldQuaternion(new THREE.Quaternion());
+      const armQ = arm.getWorldQuaternion(new THREE.Quaternion());
+      arm.quaternion.copy(parentQ.invert().multiply(turn).multiply(armQ));
+    }
+    root.updateMatrixWorld(true);
+  }
+
+  // 마네킹을 체형 키(m)에 맞추고, 몸무게가 있으면 키 대비 몸무게(BMI)만큼 몸통 굵기를 살짝 바꿔요.
+  function sizeMannequin() {
+    const m = tryon.mannequin;
+    m.position.set(0, 0, 0);
+    m.scale.set(1, 1, 1);
+    setArmPose(m, 0);
+    const b0 = boundsOf(mannequinPoints(m));
+    const H0 = Math.max(b0.maxY - b0.minY, 1e-6);
+    const heightM = (st.body && st.body.heightCm ? st.body.heightCm : 165) / 100;
+    const k = heightM / H0;
+    let girth = 1;
+    if (st.body && st.body.weightKg) {
+      const bmi = st.body.weightKg / (heightM * heightM);
+      girth = Math.min(1.3, Math.max(0.85, Math.sqrt(bmi / 21.5)));
+    }
+    m.scale.set(k * girth, k, k * girth);
+    m.position.set(-((b0.minX + b0.maxX) / 2) * k * girth, -b0.minY * k, -((b0.minZ + b0.maxZ) / 2) * k * girth);
+    tryon.points = mannequinPoints(m);
+    tryon.heightM = heightM;
+    // T포즈에서 어깨 관절과 손목 위치를 재 둬요. (소매 각도·길이를 팔에 맞출 때 써요)
+    m.updateMatrixWorld(true);
+    const at = name => { const o = m.getObjectByName(name); return o ? o.getWorldPosition(new view.THREE.Vector3()) : null; };
+    const arm = at('RightArm') || at('LeftArm'), hand = at('RightHand') || at('LeftHand');
+    tryon.joints = arm && hand
+      ? { shX: Math.abs(arm.x), shY: arm.y, len: Math.abs(hand.x - arm.x) }
+      : { shX: heightM * 0.11, shY: heightM * 0.8, len: heightM * 0.33 };
+  }
+
+  // 크기를 1로 되돌린 상태에서 팔을 내린 뒤 다시 크기를 적용해요. (늘린 상태에서 돌리면 각도가 틀어져요)
+  function poseMannequin(angle) {
+    const m = tryon.mannequin;
+    const scale = m.scale.clone();
+    m.scale.set(1, 1, 1);
+    setArmPose(m, angle);
+    m.scale.copy(scale);
+    m.updateMatrixWorld(true);
+  }
+
+  function loadMannequin() {
+    if (tryon.mannequin) return Promise.resolve(true);
+    if (!tryon.loading) {
+      tryon.loading = new Promise(resolve => {
+        new view.GLTFLoader().load(MANNEQUIN_URL, gltf => {
+          const root = gltf.scene;
+          const skin = new view.THREE.MeshStandardMaterial({ color: 0xa9aeb0, roughness: 0.75, metalness: 0 });
+          root.traverse(o => { if (o.isMesh) { o.material = skin; o.frustumCulled = false; } });
+          tryon.mannequin = root;
+          tryon.scene.add(root);
+          resolve(true);
+        }, undefined, err => {
+          console.warn('마네킹을 불러오지 못했습니다:', err);
+          tryon.loading = null;
+          resolve(false);
+        });
+      });
+    }
+    return tryon.loading;
+  }
+
+  // 카메라를 전신 또는 옷 가까이에 맞춰요.
+  function frameTryon() {
+    const H = tryon.heightM || 1.65;
+    const f = tryon.closeView && tryon.focus ? tryon.focus : { y0: -H * 0.02, y1: H * 1.04 };
+    const span = Math.max(f.y1 - f.y0, 0.2);
+    const vFov = view.THREE.MathUtils.degToRad(tryon.camera.fov);
+    const dist = (span * 0.62) / Math.tan(vFov / 2) + 0.15;
+    const cy = (f.y0 + f.y1) / 2;
+    tryon.controls.target.set(0, cy, 0);
+    tryon.camera.position.set(dist * 0.42, cy + span * 0.08, dist);
+    tryon.controls.maxDistance = Math.max(8, dist * 2);
+    tryon.controls.update();
+    tryon.needsRender = true;
+    $('tryon-view-btn').textContent = tryon.closeView ? '전신 보기' : '옷 가까이 보기';
+  }
+
+  function tryonLoop() {
+    tryon.raf = requestAnimationFrame(tryonLoop);
+    tryon.controls.update();
+    if (!tryon.needsRender) return;
+    tryon.needsRender = false;
+    tryon.renderer.render(tryon.scene, tryon.camera);
+  }
+  function stopTryonLoop() {
+    if (tryon.raf) cancelAnimationFrame(tryon.raf);
+    tryon.raf = 0;
+  }
+
+  function tryonSummary() {
+    const kind = TYPES[st.typeKey].kind;
+    const parts = [`${TYPES[st.typeKey].label}`];
+    if (st.body) parts.push(bodyText(st.body).replace('기준 체형 · ', '마네킹 체형 · '));
+    else parts.push('마네킹 체형 · 키 165cm (바디 스캔 전 기본값)');
+    const [lName, gName] = KINDS[kind].size;
+    if (st.lengthMul !== 1 || st.girthMul !== 1) parts.push(`${lName} ×${st.lengthMul} · ${gName} ×${st.girthMul}`);
+    if (kind === 'socks3') parts.push('3켤레 세트는 발 앞에 펼쳐서 보여드려요.');
+    $('tryon-summary').innerHTML = parts.join('<br>');
+  }
+
+  async function openTryon() {
+    if (!view.rootData || view.rootData !== modelCache[st.typeKey]) {
+      toast(MODEL_FILES[st.typeKey] && !view.failed && !modelFailed[st.typeKey]
+        ? '3D 옷을 불러오는 중입니다. 잠시 후 다시 눌러주세요.'
+        : '이 옷은 3D 모델을 쓸 수 없어 마네킹에 입혀볼 수 없습니다.');
+      return;
+    }
+    const loading = $('tryon-loading');
+    $('tryon-modal').hidden = false;
+    tryonSummary();
+    setupTryonScene();
+    resizeTryon();
+    loading.hidden = false;
+    loading.textContent = '마네킹을 불러오는 중...';
+    if (!(await loadMannequin())) {
+      loading.textContent = '마네킹을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+      return;
+    }
+    if ($('tryon-modal').hidden) return; // 불러오는 사이에 닫았으면 그만둬요
+    sizeMannequin();
+    if (tryon.garment) tryon.scene.remove(tryon.garment);
+    tryon.armAngle = ARM_DOWN;
+    tryon.garment = fitGarment(TYPES[st.typeKey].kind, view.rootData);
+    poseMannequin(tryon.armAngle);
+    tryon.scene.add(tryon.garment);
+    tryon.closeView = false;
+    tryon.controls.autoRotate = false;
+    $('tryon-spin-btn').classList.remove('active');
+    frameTryon();
+    loading.hidden = true;
+    tryon.needsRender = true;
+    stopTryonLoop();
+    tryonLoop();
+  }
+  function closeTryon() {
+    $('tryon-modal').hidden = true;
+    stopTryonLoop();
+    if (tryon.garment && tryon.scene) { tryon.scene.remove(tryon.garment); tryon.garment = null; }
   }
 
   /* ---------- 주문 확인 · 결제 ---------- */
