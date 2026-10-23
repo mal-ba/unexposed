@@ -713,7 +713,7 @@
 
   // 3D 모드: 스캔 → 3D 마네킹·옷장 → 원단/색상 꾸미기로 이어지는 흐름이에요.
   function openDesignModal3D(){
-    currentDesignMode = '3d';
+    switchScanMode('3d');
     refreshDesignSubscription();
     designModal.hidden = false;
     if(wizard3dOnlyBlock) wizard3dOnlyBlock.hidden = false;
@@ -726,12 +726,54 @@
 
   // 2D 모드: 3D 마네킹 없이, 스캔한 사진을 그대로 내 캐릭터로 써서 원단/색상/디테일만 꾸며요.
   function openDesignModal2D(){
-    currentDesignMode = '2d';
+    switchScanMode('2d');
     refreshDesignSubscription();
     designModal.hidden = false;
     if(wizard3dOnlyBlock) wizard3dOnlyBlock.hidden = true; // 3D 마네킹·옷장 부분은 2D에선 필요 없어서 숨겨요.
     setScanStepText(true);
     showWizardStep(1);
+  }
+
+  // 3D와 2D는 1단계 사진·동영상·키·안내 문구를 따로 가져요.
+  // 모드를 바꿀 때 지금 모드의 것을 넣어두고, 바꿀 모드의 것을 꺼내 보여줘요.
+  const scanStashByMode = { '3d': null, '2d': null };
+  function switchScanMode(mode){
+    if(mode === currentDesignMode) return;
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+      mediaRecorder.onstop = null; // 녹화 중이던 영상이 다른 모드에 들어가지 않게 버려요.
+      mediaRecorder.stop();
+    }
+    if(scanStream){
+      stopScanStream();
+      scanVideo.srcObject = null;
+      resetCameraButtons();
+    }
+    const frag = document.createDocumentFragment();
+    while(scanPhotoSlot.firstChild) frag.appendChild(scanPhotoSlot.firstChild);
+    scanStashByMode[currentDesignMode] = {
+      slot: frag,
+      height: scanHeightInput.value,
+      hint: scanHint.textContent,
+      status: scanStatus.textContent,
+    };
+    const saved = scanStashByMode[mode];
+    if(saved){
+      scanPhotoSlot.appendChild(saved.slot);
+      scanHeightInput.value = saved.height;
+      scanHint.textContent = saved.hint;
+      scanStatus.textContent = saved.status;
+    } else {
+      scanPhotoSlot.innerHTML = '';
+      scanPhotoSlot.appendChild(scanPhotoPlaceholder.cloneNode(true));
+      scanHeightInput.value = '';
+      scanHint.textContent = scanHintDefault;
+      scanStatus.textContent = '';
+    }
+    scanStashByMode[mode] = null;
+    // 같은 파일을 다시 골라도 바로 등록되게 비워둬요.
+    scanFileInput.value = '';
+    scanVideoFileInput.value = '';
+    currentDesignMode = mode;
   }
 
   function setScanStepText(is2D){
@@ -778,6 +820,8 @@
   const scanStatus = document.getElementById('scan-status');
   const scanAvatarLoading = document.getElementById('scan-avatar-loading');
   const scanAvatarHint = document.getElementById('scan-avatar-hint');
+  const scanPhotoPlaceholder = scanPhotoSlot.querySelector('.scan-photo-placeholder').cloneNode(true);
+  const scanHintDefault = scanHint.textContent;
   let scanStream = null;
   let mediaRecorder = null;
   let recordedChunks = [];
