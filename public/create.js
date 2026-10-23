@@ -555,9 +555,11 @@
   const view = {
     THREE: null, GLTFLoader: null, OrbitControls: null,
     renderer: null, scene: null, camera: null, controls: null, raycaster: null,
-    root: null, rootData: null, currentType: null, ready: false, failed: false,
+    root: null, rootData: null, currentType: null, ready: false, failed: false, needsRender: true,
   };
   const modelCache = {};
+  // 화면이 바뀔 때만 다시 그려요. (가만히 있을 때도 매 프레임 그리면 휴대폰이 뜨거워지고 느려져요)
+  function requestRender() { view.needsRender = true; }
 
   async function ensure3D() {
     if (view.ready) return true;
@@ -570,7 +572,9 @@
 
       const stage = $('create-3d');
       const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      // 휴대폰은 화면 픽셀이 많아서 2배로 그리면 버거워요. 1.5배면 눈으로는 차이가 거의 없어요.
+      const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      renderer.setPixelRatio(Math.min(coarse ? 1.5 : 2, window.devicePixelRatio || 1));
       renderer.setClearColor(0xfbfaf6, 1);
       renderer.domElement.className = 'stage-gl';
       stage.insertBefore(renderer.domElement, stage.firstChild);
@@ -587,6 +591,7 @@
       controls.enablePan = false;
       controls.minDistance = 2.2;
       controls.maxDistance = 9;
+      controls.addEventListener('change', requestRender);
 
       Object.assign(view, { renderer, scene, camera, controls, raycaster: new THREE.Raycaster(), ready: true });
       resizeView();
@@ -598,9 +603,13 @@
       renderer.domElement.addEventListener('pointermove', onStagePointerMove);
       renderer.domElement.addEventListener('pointerup', onStagePointerEnd);
       renderer.domElement.addEventListener('pointercancel', onStagePointerEnd);
+      renderer.domElement.addEventListener('webglcontextrestored', requestRender);
       (function loop() {
         requestAnimationFrame(loop);
+        flushStroke();
         controls.update();
+        if (!view.needsRender) return;
+        view.needsRender = false;
         renderer.render(scene, camera);
       })();
       renderTools();
@@ -620,6 +629,7 @@
     view.renderer.setSize(w, h, false);
     view.camera.aspect = w / h;
     view.camera.updateProjectionMatrix();
+    requestRender();
   }
 
   // 모델 파일을 읽고, 모든 삼각형에 부위 이름을 붙여요.
@@ -680,6 +690,7 @@
       m.geometry.setAttribute('paintColor', new THREE.BufferAttribute(paintC, 3));
       m.userData.paintA = paintA;
       m.userData.paintC = paintC;
+      m.userData.grid = buildGrid(m.geometry);
     }
     const maxDim = Math.max(size.x, size.y, size.z, 1e-6);
     return { root, meshes, scale: 2.0 / maxDim, center };
@@ -739,6 +750,127 @@
       }
       m.geometry.attributes.color.needsUpdate = true;
     }
+    requestRender();
+  }
+
+  /* ---------- 빠른 찾기용 격자 ----------
+     옷 하나에 꼭짓점이 수십만 개라, 붓을 찍거나 누른 곳을 찾을 때마다 전부 훑으면 휴대폰이 버벅여요.
+     모델을 불러올 때 공간을 작은 칸으로 나눠 칸마다 들어 있는 꼭짓점·삼각형 번호를 적어 두고,
+     필요한 칸만 살펴봐요. (counting sort 로 칸 순서대로 이어 붙여서 배열 두 개로 둬요) */
+  const GRID_RES = 40;
+  function buildGrid(geometry) {
+    const attr = geometry.attributes.position;
+    const n = attr.count;
+    let P = attr.array;
+    if (attr.isInterleavedBufferAttribute || attr.normalized || attr.itemSize !== 3) {
+      P = new Float32Array(n * 3);
+      for (let v = 0; v < n; v++) { P[v * 3] = attr.getX(v); P[v * 3 + 1] = attr.getY(v); P[v * 3 + 2] = attr.getZ(v); }
+    }
+    const bb = geometry.boundingBox;
+    const sx = bb.max.x - bb.min.x, sy = bb.max.y - bb.min.y, sz = bb.max.z - bb.min.z;
+    const cell = Math.max(sx, sy, sz, 1e-6) / GRID_RES;
+    const pad = cell * 1e-3;
+    const ox = bb.min.x - pad, oy = bb.min.y - pad, oz = bb.min.z - pad;
+    const nx = Math.max(1, Math.ceil((sx + 2 * pad) / cell));
+    const ny = Math.max(1, Math.ceil((sy + 2 * pad) / cell));
+    const nz = Math.max(1, Math.ceil((sz + 2 * pad) / cell));
+    const inv = 1 / cell;
+    const cells = nx * ny * nz;
+    const ci = (x, X) => { const i = Math.floor(x); return i < 0 ? 0 : i >= X ? X - 1 : i; };
+    // 꼭짓점: 칸 하나에만 들어가요.
+    const vCell = new Int32Array(n);
+    const vStart = new Int32Array(cells + 1);
+    for (let v = 0; v < n; v++) {
+      const c = ci((P[v * 3] - ox) * inv, nx) + nx * (ci((P[v * 3 + 1] - oy) * inv, ny) + ny * ci((P[v * 3 + 2] - oz) * inv, nz));
+      vCell[v] = c; vStart[c + 1]++;
+    }
+    for (let c = 0; c < cells; c++) vStart[c + 1] += vStart[c];
+    const vList = new Int32Array(n);
+    const fill = vStart.slice(0, cells);
+    for (let v = 0; v < n; v++) vList[fill[vCell[v]]++] = v;
+    // 삼각형: 삼각형을 감싸는 상자가 걸치는 칸마다 들어가요.
+    const triCount = (n / 3) | 0;
+    const tStart = new Int32Array(cells + 1);
+    const forTriCells = (t, fn) => {
+      const a = t * 9;
+      const x0 = Math.min(P[a], P[a + 3], P[a + 6]), x1 = Math.max(P[a], P[a + 3], P[a + 6]);
+      const y0 = Math.min(P[a + 1], P[a + 4], P[a + 7]), y1 = Math.max(P[a + 1], P[a + 4], P[a + 7]);
+      const z0 = Math.min(P[a + 2], P[a + 5], P[a + 8]), z1 = Math.max(P[a + 2], P[a + 5], P[a + 8]);
+      const ix0 = ci((x0 - ox) * inv - 1e-4, nx), ix1 = ci((x1 - ox) * inv + 1e-4, nx);
+      const iy0 = ci((y0 - oy) * inv - 1e-4, ny), iy1 = ci((y1 - oy) * inv + 1e-4, ny);
+      const iz0 = ci((z0 - oz) * inv - 1e-4, nz), iz1 = ci((z1 - oz) * inv + 1e-4, nz);
+      for (let iz = iz0; iz <= iz1; iz++) for (let iy = iy0; iy <= iy1; iy++) for (let ix = ix0; ix <= ix1; ix++) fn(ix + nx * (iy + ny * iz));
+    };
+    for (let t = 0; t < triCount; t++) forTriCells(t, c => { tStart[c + 1]++; });
+    for (let c = 0; c < cells; c++) tStart[c + 1] += tStart[c];
+    const tList = new Int32Array(tStart[cells]);
+    const tFill = tStart.slice(0, cells);
+    for (let t = 0; t < triCount; t++) forTriCells(t, c => { tList[tFill[c]++] = t; });
+    return { P, ox, oy, oz, cell, inv, nx, ny, nz, vStart, vList, tStart, tList };
+  }
+
+  // 격자를 따라 광선이 지나가는 칸만 살펴서 가장 가까운 삼각형을 찾아요. (모델 좌표, 양면 모두 맞음)
+  function rayGrid(g, o, d) {
+    const { P, ox, oy, oz, cell, nx, ny, nz, tStart, tList } = g;
+    // 격자 상자와 만나는 구간
+    let t0 = 0, t1 = Infinity;
+    const lo = [ox, oy, oz], dims = [nx, ny, nz], oo = [o.x, o.y, o.z], dd = [d.x, d.y, d.z];
+    for (let k = 0; k < 3; k++) {
+      const hi = lo[k] + dims[k] * cell;
+      if (Math.abs(dd[k]) < 1e-12) { if (oo[k] < lo[k] || oo[k] > hi) return null; continue; }
+      let a = (lo[k] - oo[k]) / dd[k], b = (hi - oo[k]) / dd[k];
+      if (a > b) { const tmp = a; a = b; b = tmp; }
+      if (a > t0) t0 = a;
+      if (b < t1) t1 = b;
+      if (t0 > t1) return null;
+    }
+    const idx = [0, 0, 0], step = [0, 0, 0], tMax = [Infinity, Infinity, Infinity], tDelta = [Infinity, Infinity, Infinity];
+    for (let k = 0; k < 3; k++) {
+      const x = (oo[k] + dd[k] * t0 - lo[k]) / cell;
+      idx[k] = Math.min(dims[k] - 1, Math.max(0, Math.floor(x)));
+      if (dd[k] > 1e-12) { step[k] = 1; tMax[k] = (lo[k] + (idx[k] + 1) * cell - oo[k]) / dd[k]; tDelta[k] = cell / dd[k]; }
+      else if (dd[k] < -1e-12) { step[k] = -1; tMax[k] = (lo[k] + idx[k] * cell - oo[k]) / dd[k]; tDelta[k] = -cell / dd[k]; }
+    }
+    let best = Infinity, bestT = -1;
+    for (;;) {
+      const c = idx[0] + nx * (idx[1] + ny * idx[2]);
+      for (let k = tStart[c], end = tStart[c + 1]; k < end; k++) {
+        const t = tList[k], a = t * 9;
+        const e1x = P[a + 3] - P[a], e1y = P[a + 4] - P[a + 1], e1z = P[a + 5] - P[a + 2];
+        const e2x = P[a + 6] - P[a], e2y = P[a + 7] - P[a + 1], e2z = P[a + 8] - P[a + 2];
+        const px = d.y * e2z - d.z * e2y, py = d.z * e2x - d.x * e2z, pz = d.x * e2y - d.y * e2x;
+        const det = e1x * px + e1y * py + e1z * pz;
+        if (Math.abs(det) < 1e-14) continue;
+        const id = 1 / det;
+        const sx = o.x - P[a], sy = o.y - P[a + 1], sz = o.z - P[a + 2];
+        const u = (sx * px + sy * py + sz * pz) * id;
+        if (u < 0 || u > 1) continue;
+        const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x;
+        const w = (d.x * qx + d.y * qy + d.z * qz) * id;
+        if (w < 0 || u + w > 1) continue;
+        const dist = (e2x * qx + e2y * qy + e2z * qz) * id;
+        if (dist > 1e-9 && dist < best) { best = dist; bestT = t; }
+      }
+      const k = tMax[0] < tMax[1] ? (tMax[0] < tMax[2] ? 0 : 2) : (tMax[1] < tMax[2] ? 1 : 2);
+      // 지금 칸을 벗어나기 전에 맞았다면 그보다 가까운 삼각형은 더 없어요.
+      if (best <= tMax[k] || tMax[k] > t1) break;
+      idx[k] += step[k];
+      if (idx[k] < 0 || idx[k] >= dims[k]) break;
+      tMax[k] += tDelta[k];
+    }
+    return bestT < 0 ? null : { t: best, tri: bestT };
+  }
+
+  // 지금 보고 있지 않고 칠한 자국도 없는 옷은 메모리에서 내려요. (다시 고르면 새로 불러와요)
+  // 여러 옷을 계속 열어 두면 휴대폰 브라우저가 메모리가 모자라 페이지를 닫아 버려요.
+  function evictUnusedModels(keep) {
+    for (const key of Object.keys(modelCache)) {
+      const p = modelCache[key];
+      if (p === keep || p.meshes.some(m => m.userData.paintA.some(a => a > 0))) continue;
+      for (const m of p.meshes) { m.geometry.dispose(); m.userData.grid = null; }
+      if (p.meshes[0]) p.meshes[0].material.dispose();
+      delete modelCache[key];
+    }
   }
 
   function attachModel(prepared) {
@@ -750,11 +882,13 @@
     view.root.position.set(-prepared.center.x * s, -prepared.center.y * s, -prepared.center.z * s);
     view.scene.add(view.root);
     paintModel();
+    evictUnusedModels(prepared);
   }
   function detachModel() {
     if (view.root) view.scene.remove(view.root);
     view.root = null;
     view.rootData = null;
+    requestRender();
   }
 
   // 화면에서 누른 곳 아래에 있는 옷 삼각형을 찾아요.
@@ -763,8 +897,22 @@
     const r = view.renderer.domElement.getBoundingClientRect();
     const ndc = new view.THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     view.raycaster.setFromCamera(ndc, view.camera);
-    const hits = view.raycaster.intersectObjects(view.root.children, false);
-    return hits.length && hits[0].object.userData.triKeys ? hits[0] : null;
+    const THREE = view.THREE;
+    const ray = view.raycaster.ray;
+    let best = null;
+    for (const m of view.root.children) {
+      const { grid, triKeys, triNormals } = m.userData;
+      if (!grid || !triKeys) continue;
+      const local = ray.clone().applyMatrix4(new THREE.Matrix4().copy(m.matrixWorld).invert());
+      const r = rayGrid(grid, local.origin, local.direction);
+      if (!r) continue;
+      const point = local.at(r.t, new THREE.Vector3()).applyMatrix4(m.matrixWorld);
+      const distance = point.distanceTo(ray.origin);
+      if (best && best.distance <= distance) continue;
+      const j = r.tri * 3;
+      best = { object: m, point, distance, faceIndex: r.tri, face: { normal: new THREE.Vector3(triNormals[j], triNormals[j + 1], triNormals[j + 2]) } };
+    }
+    return best;
   }
   // 모델 위에서 눌린 삼각형의 부위 이름을 찾아요.
   function pickRegion(clientX, clientY) {
@@ -813,6 +961,7 @@
   function setGLVisible(on) {
     if (view.renderer) view.renderer.domElement.hidden = !on;
     if (!on) detachModel();
+    requestRender();
   }
   function applyToolToStage() {
     const painting = st.tool === 'brush' || st.tool === 'eraser';
@@ -836,13 +985,20 @@
     const brush = rgbOf(st.color);
     let changed = false;
     for (const m of view.rootData.meshes) {
-      const pos = m.geometry.attributes.position;
-      const { triNormals: tn, paintA, paintC } = m.userData;
+      const { triNormals: tn, paintA, paintC, grid } = m.userData;
+      const { P, ox, oy, oz, inv, nx, ny, nz, vStart, vList } = grid;
       let touched = stroke.touched.get(m);
       if (!touched) { touched = new Map(); stroke.touched.set(m, touched); }
       let meshChanged = false;
-      for (let v = 0, cnt = paintA.length; v < cnt; v++) {
-        const dx = pos.getX(v) - p.x, dy = pos.getY(v) - p.y, dz = pos.getZ(v) - p.z;
+      // 붓 둘레가 걸치는 칸의 꼭짓점만 살펴요.
+      const ix0 = Math.max(0, Math.floor((p.x - radius - ox) * inv)), ix1 = Math.min(nx - 1, Math.floor((p.x + radius - ox) * inv));
+      const iy0 = Math.max(0, Math.floor((p.y - radius - oy) * inv)), iy1 = Math.min(ny - 1, Math.floor((p.y + radius - oy) * inv));
+      const iz0 = Math.max(0, Math.floor((p.z - radius - oz) * inv)), iz1 = Math.min(nz - 1, Math.floor((p.z + radius - oz) * inv));
+      for (let iz = iz0; iz <= iz1; iz++) for (let iy = iy0; iy <= iy1; iy++) {
+       const row = nx * (iy + ny * iz);
+       for (let k = vStart[row + ix0], kEnd = vStart[row + ix1 + 1]; k < kEnd; k++) {
+        const v = vList[k];
+        const dx = P[v * 3] - p.x, dy = P[v * 3 + 1] - p.y, dz = P[v * 3 + 2] - p.z;
         const d2 = dx * dx + dy * dy + dz * dz;
         if (d2 >= r2) continue;
         const j = ((v / 3) | 0) * 3;
@@ -871,6 +1027,7 @@
         }
         if (paintA[v] < 0.01) { paintA[v] = 0; paintC[i] = paintC[i + 1] = paintC[i + 2] = 0; }
         meshChanged = true;
+       }
       }
       if (meshChanged) {
         m.geometry.attributes.paintAlpha.needsUpdate = true;
@@ -898,6 +1055,7 @@
       if (st.mirror && stampPaint({ x: 2 * cx - q.x, y: q.y, z: q.z }, { x: -n.x, y: n.y, z: n.z }, radius, erase)) changed = true;
     }
     stroke.last = p;
+    if (changed) requestRender();
     if (changed && !erase && !st.hasPaint) { st.hasPaint = true; renderQuote(); }
   }
 
@@ -1023,16 +1181,28 @@
     view.controls.enabled = !h;
     if (!h) return;
     stroke = { id: e.pointerId, last: null, touched: new Map() };
+    pendingMove = null;
     view.renderer.domElement.setPointerCapture(e.pointerId);
     paintHit(h);
   }
+  // 휴대폰은 1초에 터치 신호를 60~120번 보내요. 올 때마다 칠하면 계산이 밀려 늦게 칠해지니,
+  // 가장 최근 위치만 기억했다가 화면을 그리기 직전에 한 번만 칠해요. (사이는 paintHit 이 메워요)
+  let pendingMove = null;
   function onStagePointerMove(e) {
     if (!stroke || e.pointerId !== stroke.id) return;
-    const h = hitModel(e.clientX, e.clientY);
+    pendingMove = { x: e.clientX, y: e.clientY };
+  }
+  function flushStroke() {
+    if (!pendingMove) return;
+    const { x, y } = pendingMove;
+    pendingMove = null;
+    if (!stroke || !view.rootData) return;
+    const h = hitModel(x, y);
     if (h) paintHit(h); else stroke.last = null;
   }
   function onStagePointerEnd(e) {
     if (!stroke || e.pointerId !== stroke.id) return;
+    flushStroke();
     stroke = null;
     view.controls.enabled = true;
     if (st.tool === 'eraser' && st.hasPaint && !anyPaint()) { st.hasPaint = false; renderQuote(); }
@@ -1424,6 +1594,7 @@
   window.openCreateStudio = function () {
     $('create-modal').hidden = false;
     showCreateStep(st.body ? 2 : 1);
+    requestRender();
   };
 
   // 커뮤니티 3D 창(community-glb.js)에서 '내가 만든 옷' 내려받기에 써요. 스튜디오 2단계(옷 만들기)가 열려 있을 때만 보여줘요.
