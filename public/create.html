@@ -157,6 +157,8 @@
           <span class="qty-hint">최대 10벌</span>
         </div>
         <div class="studio-quote" id="create-quote"></div>
+        <!-- 결제 전에 지금 디자인을 마네킹에 입혀서 확인해요. -->
+        <button class="btn btn-ghost-dark studio-tryon-btn" id="create-tryon-btn" type="button">마네킹에 입혀보기</button>
         <div class="studio-order-btns">
           <button class="btn btn-ghost-dark" id="cart-add-btn" type="button">장바구니 담기</button>
           <button class="btn btn-primary studio-order-btn" id="create-order-open-btn" type="button">바로 주문하기 →</button>
@@ -181,6 +183,30 @@
     <div class="studio-order-actions" id="cart-actions" hidden>
       <button class="btn btn-ghost-dark" id="cart-clear-btn" type="button">비우기</button>
       <button class="btn btn-primary" id="cart-checkout-btn" type="button">전체 주문하기 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- 마네킹에 입혀보기 모달 (스튜디오 팝업 위에 떠요) — 지금 디자인을 체형 키에 맞춘 마네킹에 입혀서 360도로 봐요. -->
+<div class="modal-overlay" id="tryon-modal" hidden>
+  <div class="modal-box consent-box tryon-box">
+    <div class="cart-head">
+      <h3 class="serif" style="font-size:20px; margin:0;">마네킹에 입혀보기</h3>
+      <button class="wizard-close" id="tryon-close-btn" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="tryon-stage" id="tryon-stage">
+      <div class="tryon-loading" id="tryon-loading">마네킹을 불러오는 중...</div>
+    </div>
+    <div class="tryon-tools">
+      <button class="calc-chip" id="tryon-view-btn" type="button">전신 보기</button>
+      <button class="calc-chip" id="tryon-spin-btn" type="button">자동 회전</button>
+      <span class="tryon-hint">드래그해서 돌려보고, 휠·두 손가락으로 확대해요.</span>
+    </div>
+    <div class="studio-quote" id="tryon-summary"></div>
+    <p class="modal-note">디자인(색·원단·그림)을 확인하는 미리보기예요. 마네킹 자세와 옷 모양에 따라 실제 핏과는 조금 다르게 보일 수 있어요.</p>
+    <div class="studio-order-actions">
+      <button class="btn btn-ghost-dark" id="tryon-back-btn" type="button">계속 꾸미기</button>
+      <button class="btn btn-primary" id="tryon-order-btn" type="button">이대로 주문하기 →</button>
     </div>
   </div>
 </div>
